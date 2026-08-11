@@ -35,4 +35,10 @@ object DatabaseModule{
 
     @Provides
     fun provideUserDao(db: AppDatabase): UserDao = db.userDao()
+
+    @Provides
+    fun provideReminderDao(db: AppDatabase) = db.reminderDao()
+
+    @Provides
+    fun provideBudgetDao(db: AppDatabase) = db.budgetDao()
 }

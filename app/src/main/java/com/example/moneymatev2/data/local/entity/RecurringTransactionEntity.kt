@@ -18,6 +18,7 @@ data class RecurringTransactionEntity(
 )
 
 enum class RepeatRule{
+    NONE,
     DAILY,
     WEEKLY,
     MONTHLY,

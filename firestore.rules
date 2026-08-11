@@ -1,0 +1,55 @@
+rules_version = '1';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{userId} {
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false;
+
+      match /transactions/{txId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId
+          && isValidTransaction(request.resource.data);
+      }
+
+      match /categories/{catId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId
+          && isValidCategory(request.resource.data);
+      }
+
+      match /budgets/{budgetId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId
+          && isValidBudget(request.resource.data);
+      }
+
+      match /reminders/{reminderId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId
+          && isValidReminder(request.resource.data);
+      }
+    }
+
+    function isValidTransaction(data) {
+      return data.amountMinor is int && data.amountMinor >= 0
+        && data.type in ['INCOME', 'EXPENSE']
+        && data.categoryLocalId is string && data.categoryLocalId.size() > 0;
+    }
+
+    function isValidCategory(data) {
+      return data.name is string && data.name.size() > 0
+        && data.type in ['INCOME', 'EXPENSE'];
+    }
+
+    function isValidBudget(data) {
+      return data.amountMinor is int && data.amountMinor >= 0
+        && data.categoryLocalId is string && data.categoryLocalId.size() > 0
+        && data.effectiveMonth is int && data.effectiveMonth >= 1 && data.effectiveMonth <= 12
+        && data.effectiveYear is int;
+    }
+
+    function isValidReminder(data) {
+      return data.title is string && data.title.size() > 0
+        && data.triggerAt is int
+        && data.repeatRule in ['NONE', 'DAILY', 'WEEKLY', 'MONTHLY'];
+    }
+  }
+}
