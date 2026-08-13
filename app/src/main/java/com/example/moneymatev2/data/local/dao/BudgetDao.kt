@@ -10,11 +10,12 @@ import kotlinx.coroutines.flow.Flow
 interface BudgetDao {
     @Query("""
         SELECT b.* FROM budgets b
-        INNER JOIN (categoryLocalId, MAX(effectiveYear * 100 + effectiveMonth) AS maxKey
-        FROM budgets
-        WHERE userId = :userId
-            AND (effectiveYear * 100 + effectiveMonth) <= (:year * 100 + :month)
-        GROUP BY categoryLocalId
+        INNER JOIN (
+            SELECT categoryLocalId, MAX(effectiveYear * 100 + effectiveMonth) AS maxKey
+            FROM budgets
+            WHERE userId = :userId
+                AND (effectiveYear * 100 + effectiveMonth) <= (:year * 100 + :month)
+            GROUP BY categoryLocalId
         ) latest ON b.categoryLocalId = latest.categoryLocalId
             AND (b.effectiveYear * 100 + b.effectiveMonth) = latest.maxKey
         WHERE b.userId = :userId AND b.isArchived = 0
@@ -28,7 +29,7 @@ interface BudgetDao {
         LIMIT 1
     """)
     suspend fun getBudgetRowForExactMonth(
-        userId: String, categoryLocalId: Long, year: Int, month: Int
+        userId: String, categoryLocalId: String, year: Int, month: Int
     ): BudgetEntity?
 
     @Query("""

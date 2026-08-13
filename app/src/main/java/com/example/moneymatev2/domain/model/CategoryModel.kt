@@ -6,7 +6,7 @@ data class CategoryModel(
     val id: String,
     val name: String,
     val type: TransactionType,
-    val iconHex: String,
+    val iconKey: String,
     val colorHex: String,
     val isDefault: Boolean,
     val isArchived: Boolean

@@ -1,7 +1,6 @@
 package com.example.moneymatev2.data.local.dao
 
 import androidx.room.Dao
-import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -30,13 +29,13 @@ interface TransactionDao{
 
     @Query("""
         SELECT * FROM transactions
-        WHERE userId = :userId AND isDeleted = 0 AND categoryStableId = :categoryStableId
+        WHERE userId = :userId AND isDeleted = 0 AND categoryLocalId = :categoryLocalId
         ORDER BY createdAt DESC
     """)
-    fun getTransactionByCategory(userId: String, categoryStableId: String): Flow<List<TransactionEntity>>
+    fun getTransactionByCategory(userId: String, categoryLocalId: String): Flow<List<TransactionEntity>>
 
     @Query("SELECT * FROM transactions WHERE localId = :localId AND isDeleted = 0")
-    fun getTransactionByLocalId(localId: Long): Flow<TransactionEntity?>
+    fun getTransactionByLocalId(localId: String): Flow<TransactionEntity?>
 
     //sync
     @Query("""
@@ -46,8 +45,8 @@ interface TransactionDao{
     """)
     suspend fun getPendingTransactionsForSync(userId: String): List<TransactionEntity>
 
-    @Query("SELECT * FROM transactions WHERE remoteId = :remoteId LIMIT 1")
-    suspend fun getTransactionByRemoteId(remoteId: String): Flow<TransactionEntity?>
+//    @Query("SELECT * FROM transactions WHERE localId = :remoteId LIMIT 1")
+//    suspend fun getTransactionByRemoteId(remoteId: String): Flow<TransactionEntity?>
 
     //
     @Insert(onConflict = OnConflictStrategy.ABORT)
@@ -62,20 +61,20 @@ interface TransactionDao{
         SET isDeleted = 1, pendingOperation = 'DELETE', updatedAt = :updatedAt
         WHERE localId = :localId
     """)
-    suspend fun softDeleteTransaction(localId: Long, updatedAt: Long)
+    suspend fun softDeleteTransaction(localId: String, updatedAt: Long)
 
     @Query("DELETE FROM transactions WHERE localId = :localId")
-    suspend fun deleteTransaction(localId: Long)
+    suspend fun hardDeleteTransaction(localId: String)
 
     //update sync
     @Query("""
         UPDATE transactions
         SET syncStatus = "SYNCED", pendingOperation = "NONE",
-        remoteId = :remoteId, remoteUpdateAt = :remoteUpdateAt,
+        remoteUpdatedAt = :remoteUpdatedAt,
         lastSyncError = NULL, retryCount = 0
         WHERE localId = :localId
     """)
-    suspend fun markSynced(localId: String, remoteId: String, remoteUpdateAt: Long)
+    suspend fun markSynced(localId: String, remoteId: String, remoteUpdatedAt: Long)
 
     @Query("""
         UPDATE transactions
@@ -88,7 +87,7 @@ interface TransactionDao{
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertFromRemote(transaction: List<TransactionEntity>)
 
-    @Query("SELECT COUNT(*) FROM transactions WHERE userId = :userId AND categoryStableId = :categoryStableId AND isDeleted = 0")
+    @Query("SELECT COUNT(*) FROM transactions WHERE userId = :userId AND categoryLocalId = :categoryStableId AND isDeleted = 0")
     suspend fun countTransactionsByCategory(userId: String, categoryStableId: String): Int
 
     @Query("DELETE FROM transactions WHERE userId = :userId")

@@ -32,7 +32,7 @@ interface ReminderDao {
         SET isActive = 0, pendingOperation = 'UPDATE', updatedAt = :updatedAt
         WHERE localId = :localId
     """)
-    suspend fun deactivateReminder(localId: Long, updatedAt: Long)
+    suspend fun deactivateReminder(localId: String, updatedAt: Long)
 
     @Query("""
         UPDATE reminders

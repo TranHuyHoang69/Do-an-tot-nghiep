@@ -5,9 +5,8 @@ import com.example.moneymatev2.data.local.entity.RepeatRule
 data class ReminderModel(
     val id: String,
     val title: String,
-    val description: String?,
-    val amount: Money,
-    val dueDate: Long,
+    val message: String?,
+    val triggerAt: Long,
     val repeatRule: RepeatRule,
-    val isCompleted: Boolean
+    val isActive: Boolean
 )

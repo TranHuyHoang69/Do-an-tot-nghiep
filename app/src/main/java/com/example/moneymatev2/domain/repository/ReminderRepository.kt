@@ -10,6 +10,8 @@ interface ReminderRepository {
 
     suspend fun createReminder(userId: String, title: String, message: String?, triggerAt: Long, repeatRule: RepeatRule)
 
+    suspend fun updateReminder(reminder: ReminderModel)
+
     suspend fun deactivateReminder(id: String)
 
     suspend fun syncPendingReminders(userId: String)
