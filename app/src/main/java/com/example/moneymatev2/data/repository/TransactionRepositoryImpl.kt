@@ -5,6 +5,7 @@ import com.example.moneymatev2.data.local.entity.PendingOperation
 import com.example.moneymatev2.data.local.entity.SyncStatus
 import com.example.moneymatev2.data.local.entity.TransactionEntity
 import com.example.moneymatev2.data.remote.dto.toDto
+import com.example.moneymatev2.data.remote.sync.SyncTrigger
 import com.example.moneymatev2.domain.model.Money
 import com.example.moneymatev2.domain.model.TransactionModel
 import com.example.moneymatev2.domain.repository.TransactionRepository
@@ -17,7 +18,8 @@ import javax.inject.Inject
 
 class TransactionRepositoryImpl @Inject constructor(
     private val dao: TransactionDao,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val syncTrigger: SyncTrigger
 ): TransactionRepository{
     override fun getAllTransactions(userId: String): Flow<List<TransactionModel>> =
         dao.getAllTransactions(userId).map { list -> list.map { it.toModel() } }
@@ -54,6 +56,7 @@ class TransactionRepositoryImpl @Inject constructor(
             updatedAt = now
         )
         dao.insertTransaction(entity)
+        syncTrigger.requestImmediateSync()
     }
 
     override suspend fun updateTransaction(transaction: TransactionModel) {
@@ -72,22 +75,25 @@ class TransactionRepositoryImpl @Inject constructor(
             updatedAt = System.currentTimeMillis()
         )
         dao.updateTransaction(entity)
+        syncTrigger.requestImmediateSync()
     }
 
     override suspend fun deleteTransaction(id: String) {
         dao.softDeleteTransaction(id, System.currentTimeMillis())
+        syncTrigger.requestImmediateSync()
     }
 
     override suspend fun syncPendingTransactions(userId: String) {
         val pending = dao.getPendingTransactionsForSync(userId)
-        for(tx in pending) {
+        for (tx in pending) {
             try {
-                val docRef = firestore.collection("users").document("userId")
+                val docRef = firestore.collection("users").document(userId)
                     .collection("transactions").document(tx.localId)
-                when(tx.pendingOperation){
+
+                when (tx.pendingOperation) {
                     PendingOperation.CREATE, PendingOperation.UPDATE -> {
                         docRef.set(tx.toDto()).await()
-                        dao.markSynced(tx.localId, tx.localId, System.currentTimeMillis())
+                        dao.markSynced(tx.localId, System.currentTimeMillis())
                     }
                     PendingOperation.DELETE -> {
                         docRef.delete().await()
@@ -95,8 +101,8 @@ class TransactionRepositoryImpl @Inject constructor(
                     }
                     PendingOperation.NONE -> Unit
                 }
-            }catch (e: Exception){
-                dao.markSyncFailed(tx.localId, e.message ?: "Unknown error", System.currentTimeMillis())
+            } catch (e: Exception) {
+                dao.markSyncFailed(tx.localId, e.message ?: "unknown error", System.currentTimeMillis())
             }
         }
     }

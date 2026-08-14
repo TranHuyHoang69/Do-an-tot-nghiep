@@ -6,6 +6,7 @@ import com.example.moneymatev2.data.local.entity.ReminderEntity
 import com.example.moneymatev2.data.local.entity.RepeatRule
 import com.example.moneymatev2.data.local.entity.SyncStatus
 import com.example.moneymatev2.data.remote.dto.toDto
+import com.example.moneymatev2.data.remote.sync.SyncTrigger
 import com.example.moneymatev2.domain.model.ReminderModel
 import com.example.moneymatev2.domain.repository.ReminderRepository
 import com.google.firebase.firestore.FirebaseFirestore
@@ -17,7 +18,8 @@ import javax.inject.Inject
 
 class ReminderRepositoryImpl @Inject constructor(
     private val dao: ReminderDao,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val syncTrigger: SyncTrigger
 ): ReminderRepository {
     override fun getActiveReminders(userId: String): Flow<List<ReminderModel>> =
         dao.getActiveReminders(userId).map { list -> list.map { it.toModel() } }
@@ -45,29 +47,31 @@ class ReminderRepositoryImpl @Inject constructor(
                 updatedAt = now
             )
         )
+        syncTrigger.requestImmediateSync()
     }
 
     override suspend fun updateReminder(reminder: ReminderModel){
+        val existing = dao.getReminderByLocalIdOnce(reminder.id)
+            ?: throw IllegalArgumentException("Reminder with id ${reminder.id} does not exist")
         dao.updateReminder(
-            ReminderEntity(
-                localId = reminder.id,
-                userId = "",
+            existing.copy(
                 title = reminder.title,
                 message = reminder.message,
                 triggerAt = reminder.triggerAt,
                 repeatRule = reminder.repeatRule,
                 isActive = reminder.isActive,
+                updatedAt = System.currentTimeMillis(),
                 syncStatus = SyncStatus.PENDING,
-                pendingOperation = PendingOperation.UPDATE,
-                createdAt = 0,
-                updatedAt = System.currentTimeMillis()
+                pendingOperation = PendingOperation.UPDATE
             )
         )
+        syncTrigger.requestImmediateSync()
     }
 
     override suspend fun deactivateReminder(id: String) {
         val now = System.currentTimeMillis()
         dao.deactivateReminder(id, now)
+        syncTrigger.requestImmediateSync()
     }
 
     override suspend fun syncPendingReminders(userId: String) {

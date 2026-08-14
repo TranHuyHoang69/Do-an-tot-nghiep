@@ -74,7 +74,7 @@ interface TransactionDao{
         lastSyncError = NULL, retryCount = 0
         WHERE localId = :localId
     """)
-    suspend fun markSynced(localId: String, remoteId: String, remoteUpdatedAt: Long)
+    suspend fun markSynced(localId: String, remoteUpdatedAt: Long)
 
     @Query("""
         UPDATE transactions

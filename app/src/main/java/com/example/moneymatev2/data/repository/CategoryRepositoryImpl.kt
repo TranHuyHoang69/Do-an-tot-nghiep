@@ -6,6 +6,7 @@ import com.example.moneymatev2.data.local.entity.PendingOperation
 import com.example.moneymatev2.data.local.entity.SyncStatus
 import com.example.moneymatev2.data.local.entity.TransactionType
 import com.example.moneymatev2.data.remote.dto.toDto
+import com.example.moneymatev2.data.remote.sync.SyncTrigger
 import com.example.moneymatev2.domain.model.CategoryModel
 import com.example.moneymatev2.domain.repository.CategoryRepository
 import com.google.firebase.firestore.FirebaseFirestore
@@ -24,7 +25,8 @@ object DefaultCategoryIds {
 
 class CategoryRepositoryImpl @Inject constructor(
     private val dao: CategoryDao,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val syncTrigger: SyncTrigger
 ): CategoryRepository {
     override fun getActiveCategories(userId: String): Flow<List<CategoryModel>> =
         dao.getActiveCategories(userId).map { list -> list.map { it.toModel() } }
@@ -53,30 +55,29 @@ class CategoryRepositoryImpl @Inject constructor(
                 updatedAt = now
             )
         )
+        syncTrigger.requestImmediateSync()
     }
 
     override suspend fun updateCategory(category: CategoryModel) {
+        val existing = dao.getCategoryByLocalIdOnce(category.id)
+            ?: throw IllegalArgumentException("Category with id ${category.id} does not exist")
         dao.updateCategory(
-            CategoryEntity(
-                localId = category.id,
-                stableId = null,
-                userId = "",
+            existing.copy(
                 name = category.name,
-                type = category.type,
                 iconKey = category.iconKey,
                 colorHex = category.colorHex,
-                isDefault = category.isDefault,
                 isArchived = category.isArchived,
+                updatedAt = System.currentTimeMillis(),
                 syncStatus = SyncStatus.PENDING,
-                pendingOperation = PendingOperation.UPDATE,
-                createdAt = 0,
-                updatedAt = System.currentTimeMillis()
+                pendingOperation = PendingOperation.UPDATE
             )
         )
+        syncTrigger.requestImmediateSync()
     }
 
     override suspend fun archiveCategory(id: String) {
         dao.archiveCategory(id, System.currentTimeMillis())
+        syncTrigger.requestImmediateSync()
     }
 
     override suspend fun seedDefaultCategoriesIfNeeded(userId: String) {
@@ -124,6 +125,7 @@ class CategoryRepositoryImpl @Inject constructor(
                 )
             )
         }
+        syncTrigger.requestImmediateSync()
     }
 
     override suspend fun syncPendingCategories(userId: String) {

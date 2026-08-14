@@ -24,7 +24,7 @@ import com.example.moneymatev2.data.local.entity.UserEntity
         ReminderEntity::class
     ],
     version = 1,
-    exportSchema = true
+    exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase(){

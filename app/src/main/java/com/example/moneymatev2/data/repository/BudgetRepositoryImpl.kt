@@ -6,6 +6,7 @@ import com.example.moneymatev2.data.local.entity.BudgetEntity
 import com.example.moneymatev2.data.local.entity.PendingOperation
 import com.example.moneymatev2.data.local.entity.SyncStatus
 import com.example.moneymatev2.data.remote.dto.toDto
+import com.example.moneymatev2.data.remote.sync.SyncTrigger
 import com.example.moneymatev2.domain.model.BudgetModel
 import com.example.moneymatev2.domain.model.Money
 import com.example.moneymatev2.domain.repository.BudgetRepository
@@ -20,7 +21,8 @@ import javax.inject.Inject
 class BudgetRepositoryImpl @Inject constructor(
     private val budgetDao: BudgetDao,
     private val transactionDao: TransactionDao,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val syncTrigger: SyncTrigger
 ): BudgetRepository {
     override fun getBudgetForMonth(userId: String, month: Int, year: Int): Flow<List<BudgetModel>> =
         budgetDao.getActiveBudgetsForMonth(userId, month, year).map { budgets ->
@@ -67,6 +69,7 @@ class BudgetRepositoryImpl @Inject constructor(
                 )
             )
         }
+        syncTrigger.requestImmediateSync()
     }
 
     override suspend fun deleteBudget(userId: String, categoryId: String) {
@@ -103,6 +106,7 @@ class BudgetRepositoryImpl @Inject constructor(
                 )
             )
         }
+        syncTrigger.requestImmediateSync()
     }
 
     override suspend fun syncPendingBudgets(userId: String) {

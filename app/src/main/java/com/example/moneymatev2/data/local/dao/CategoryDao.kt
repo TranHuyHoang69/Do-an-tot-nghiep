@@ -29,6 +29,10 @@ interface CategoryDao {
     @Query("SELECT * FROM categories WHERE localId = :localId")
     fun getCategoryByLocalId(localId: String): Flow<CategoryEntity?>
 
+
+    @Query("SELECT * FROM categories WHERE localId = :localId LIMIT 1")
+    suspend fun getCategoryByLocalIdOnce(localId: String): CategoryEntity?
+
     @Query("SELECT * FROM categories WHERE userId = :userId AND stableId = :stableId LIMIT 1")
     suspend fun getByStableId(userId: String, stableId: String): CategoryEntity?
 
@@ -56,11 +60,11 @@ interface CategoryDao {
     @Query("""
         UPDATE categories
         SET syncStatus = 'SYNCED', pendingOperation = 'NONE',
-            remoteId = :remoteId, remoteUpdatedAt = :remoteUpdatedAt,
+             remoteUpdatedAt = :remoteUpdatedAt,
             lastSyncError = NULL, retryCount = 0
         WHERE localId = :localId
     """)
-    suspend fun markSynced(localId: String, remoteId: String, remoteUpdatedAt: Long)
+    suspend fun markSynced(localId: String, remoteUpdatedAt: Long)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertFromRemote(categories: List<CategoryEntity>)
