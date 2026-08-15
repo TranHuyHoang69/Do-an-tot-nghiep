@@ -4,8 +4,8 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.example.moneymatev2.domain.repository.AuthRepository
 import com.example.moneymatev2.domain.usecase.SyncManager
-import com.example.moneymatev2.util.AuthStateProvider
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 
@@ -14,11 +14,10 @@ class SyncWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
     private val syncWorker: SyncManager,
-    private val authStateProvider: AuthStateProvider
+    private val authRepository: AuthRepository
 ): CoroutineWorker(context, params){
     override suspend fun doWork(): Result {
-        val userId = authStateProvider.getCurrentUserId()
-            ?: return Result.success()
+        val userId = authRepository.getCurrentUserId() ?: return Result.success()
 
         return try {
             syncWorker.syncAll(userId)

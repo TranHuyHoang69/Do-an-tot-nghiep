@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="error_empty_credentials">Please enter your email and password</string>
+    <string name="error_invalid_email">Invalid email address</string>
+    <string name="error_weak_password">Password must be at least 6 characters</string>
+    <string name="error_email_in_use">This email is already in use</string>
+    <string name="error_invalid_credentials">Incorrect email or password</string>
+    <string name="error_network">No internet connection, please try again</string>
+    <string name="error_unknown">Something went wrong, please try again</string>
+</resources>

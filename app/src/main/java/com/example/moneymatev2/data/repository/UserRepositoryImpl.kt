@@ -2,6 +2,7 @@ package com.example.moneymatev2.data.repository
 
 import com.example.moneymatev2.data.local.dao.UserDao
 import com.example.moneymatev2.data.local.entity.UserEntity
+import com.example.moneymatev2.data.remote.sync.SyncTrigger
 import com.example.moneymatev2.domain.model.UserModel
 import com.example.moneymatev2.domain.repository.UserRepository
 import kotlinx.coroutines.flow.Flow
@@ -9,7 +10,8 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 class UserRepositoryImpl @Inject constructor(
-    private val dao: UserDao
+    private val dao: UserDao,
+    private val syncTrigger: SyncTrigger
 ): UserRepository {
     override fun getCurrentUser(userId: String): Flow<UserModel?> =
         dao.getUser(userId).map { it?.toModel() }
@@ -26,6 +28,7 @@ class UserRepositoryImpl @Inject constructor(
                 updatedAt = now
             )
         )
+        syncTrigger.requestImmediateSync()
     }
 
     override suspend fun signOut() {

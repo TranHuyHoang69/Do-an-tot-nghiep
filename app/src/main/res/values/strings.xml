@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">MoneyMatev2</string>
+
+    <string name="error_empty_credentials">Vui lòng nhập email và mật khẩu</string>
+    <string name="error_invalid_email">Email không hợp lệ</string>
+    <string name="error_weak_password">Mật khẩu phải có ít nhất 6 ký tự</string>
+    <string name="error_email_in_use">Email này đã được sử dụng</string>
+    <string name="error_invalid_credentials">Email hoặc mật khẩu không đúng</string>
+    <string name="error_network">Không có kết nối mạng, vui lòng thử lại</string>
+    <string name="error_unknown">Đã có lỗi xảy ra, vui lòng thử lại</string>
 </resources>

@@ -4,6 +4,7 @@ import com.example.moneymatev2.data.local.entity.TransactionType
 
 data class CategoryModel(
     val id: String,
+    val stableId: String?,
     val name: String,
     val type: TransactionType,
     val iconKey: String,

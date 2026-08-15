@@ -86,42 +86,25 @@ class CategoryRepositoryImpl @Inject constructor(
 
         val now = System.currentTimeMillis()
         val defaults = listOf(
-            Triple(
-                DefaultCategoryIds.SPEND_FOOD,
-                "Ăn uống" to TransactionType.EXPENSE,
-                "spend_food"
-            ),
-            Triple(
-                DefaultCategoryIds.SPEND_TRANSPORT,
-                "Di chuyển" to TransactionType.EXPENSE,
-                "spend_transport"
-            ),
-            Triple(
-                DefaultCategoryIds.SPEND_SHOPPING,
-                "Mua sắm" to TransactionType.EXPENSE,
-                "spend_shopping"
-            ),
-            Triple(
-                DefaultCategoryIds.INCOME_SALARY,
-                "Lương" to TransactionType.INCOME,
-                "income_salary"
-            )
+            Triple(DefaultCategoryIds.SPEND_FOOD, TransactionType.EXPENSE, "spend_food"),
+            Triple(DefaultCategoryIds.SPEND_TRANSPORT, TransactionType.EXPENSE, "spend_transport"),
+            Triple(DefaultCategoryIds.SPEND_SHOPPING, TransactionType.EXPENSE, "spend_shopping"),
+            Triple(DefaultCategoryIds.INCOME_SALARY, TransactionType.INCOME, "income_salary")
         )
-        defaults.forEach { (id, nameType, stableId) ->
+        defaults.forEach { (id, type, stableId) ->
             dao.insertCategory(
                 CategoryEntity(
                     localId = id,
                     stableId = stableId,
                     userId = userId,
-                    name = nameType.first,
-                    type = nameType.second,
-                    iconKey = "default_icon",
+                    name = stableId,
+                    type = type,
+                    iconKey = "ic_default_$stableId",
                     colorHex = "#9E9E9E",
                     isDefault = true,
-                    syncStatus = SyncStatus.SYNCED,
+                    syncStatus = SyncStatus.PENDING,
                     pendingOperation = PendingOperation.CREATE,
-                    createdAt = now,
-                    updatedAt = now
+                    createdAt = now, updatedAt = now
                 )
             )
         }
@@ -142,6 +125,7 @@ class CategoryRepositoryImpl @Inject constructor(
     }
     private fun CategoryEntity.toModel() = CategoryModel(
         id = localId,
+        stableId = stableId,
         name = name,
         type = type,
         iconKey = iconKey,
