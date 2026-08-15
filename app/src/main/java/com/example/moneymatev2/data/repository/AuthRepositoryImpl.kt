@@ -11,6 +11,8 @@ import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthCredential
+import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -45,6 +47,18 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun signUp(email: String, password: String): AppResult<UserModel> {
         return try{
             val authResult = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
+            val user = authResult.user?.toUserModel()
+                ?: return AppResult.Failure(AuthError.Unknown("FireBase trả về user null"))
+            AppResult.Success(user)
+        }catch (e: Exception) {
+            AppResult.Failure(e.toAuthError())
+        }
+    }
+
+    override suspend fun signInWithGoogle(idToken: String): AppResult<UserModel> {
+        return try{
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            val authResult = firebaseAuth.signInWithCredential(credential).await()
             val user = authResult.user?.toUserModel()
                 ?: return AppResult.Failure(AuthError.Unknown("FireBase trả về user null"))
             AppResult.Success(user)
