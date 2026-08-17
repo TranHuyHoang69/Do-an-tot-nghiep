@@ -7,4 +7,18 @@
     <string name="error_invalid_credentials">Incorrect email or password</string>
     <string name="error_network">No internet connection, please try again</string>
     <string name="error_unknown">Something went wrong, please try again</string>
+    <string name="app_name">MoneyMate</string>
+    <string name="app_slogan">Smart Management - A Secure Future</string>
+    <!--    Login/RegisterScreen-->
+    <string name="welcome_back">Welcome Back!</string>
+    <string name="user_name">User name</string>
+    <string name="password">Password</string>
+    <string name="login">Log In</string>
+    <string name="register">Register</string>
+    <string name="no_account">Don\'t have an account?</string>
+    <string name="register_now">Sign Up Now</string>
+    <string name="have_account">Already have an account?</string>
+    <string name="login_now">Log In Now</string>
+    <string name="or">Or</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
 </resources>
