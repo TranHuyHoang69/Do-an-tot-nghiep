@@ -21,4 +21,6 @@
     <string name="login_now">Log In Now</string>
     <string name="or">Or</string>
     <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="register_title">Register account</string>
+    <string name="app_slogan_register">Start Your Financial Management Journey</string>
 </resources>

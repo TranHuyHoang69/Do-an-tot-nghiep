@@ -16,4 +16,6 @@ object StringRes {
     val login_now = R.string.login_now
     val or = R.string.or
     val sign_in_with_google = R.string.sign_in_with_google
+    var register_title = R.string.register_title
+    var app_slogan_register = R.string.app_slogan_register
 }

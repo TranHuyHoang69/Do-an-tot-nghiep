@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.moneymatev2.navigation.NavGraph
 import com.example.moneymatev2.ui.screen.LoginScreen
 import com.example.moneymatev2.ui.theme.MoneyMatev2Theme
 import dagger.hilt.android.AndroidEntryPoint
@@ -22,7 +23,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MoneyMatev2Theme {
-                    LoginScreen()
+                NavGraph()
             }
         }
     }

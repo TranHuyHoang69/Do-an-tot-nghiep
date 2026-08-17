@@ -35,8 +35,8 @@ class AuthViewModel @Inject constructor(
         signInUseCase(email, password)
     }
 
-    fun signUp(email: String, password: String) = launchAuth{
-        signUpUseCase(email, password)
+    fun signUp(email: String, password: String, displayName: String) = launchAuth{
+        signUpUseCase(email, password, displayName)
     }
 
     fun signInWithGoogle(context: Context, webClientId: String) = launchAuth{

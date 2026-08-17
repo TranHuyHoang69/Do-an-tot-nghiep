@@ -44,13 +44,21 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun signUp(email: String, password: String): AppResult<UserModel> {
-        return try{
+    override suspend fun signUp(email: String, password: String, displayName: String): AppResult<UserModel> {
+        return try {
             val authResult = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
-            val user = authResult.user?.toUserModel()
-                ?: return AppResult.Failure(AuthError.Unknown("FireBase trả về user null"))
-            AppResult.Success(user)
-        }catch (e: Exception) {
+            val firebaseUser = authResult.user
+                ?: return AppResult.Failure(AuthError.Unknown("Firebase trả về user null sau khi đăng ký"))
+
+            if (displayName.isNotBlank()) {
+                val profileUpdates = com.google.firebase.auth.UserProfileChangeRequest.Builder()
+                    .setDisplayName(displayName)
+                    .build()
+                firebaseUser.updateProfile(profileUpdates).await()
+            }
+
+            AppResult.Success(firebaseUser.toUserModel().copy(displayName = displayName.ifBlank { null }))
+        } catch (e: Exception) {
             AppResult.Failure(e.toAuthError())
         }
     }

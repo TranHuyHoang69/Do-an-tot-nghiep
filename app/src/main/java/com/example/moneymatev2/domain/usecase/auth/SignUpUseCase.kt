@@ -13,10 +13,10 @@ class SignUpUseCase @Inject constructor(
     private val userRepository: UserRepository,
     private val categoryRepository: CategoryRepository
 ) {
-    suspend operator fun invoke(email: String, password: String): AppResult<UserModel> {
+    suspend operator fun invoke(email: String, password: String, displayName: String): AppResult<UserModel> {
         validate(email, password)?.let { return AppResult.Failure(it) }
 
-        return when (val result = authRepository.signIn(email, password)) {
+        return when (val result = authRepository.signUp(email, password, displayName)) {
             is AppResult.Success -> {
                 userRepository.upsertUser(result.data)
                 categoryRepository.seedDefaultCategoriesIfNeeded(result.data.userId)
