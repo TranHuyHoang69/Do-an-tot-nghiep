@@ -45,6 +45,10 @@ class AuthViewModel @Inject constructor(
         signInWithGoogleUseCase(idToken)
     }
 
+    fun signInWithGoogleToken(idToken: String) = launchAuth{
+        signInWithGoogleUseCase(idToken)
+    }
+
     private fun launchAuth(action: suspend() -> AppResult<*>){
         _uiState.value = AuthUiState.Loading
         viewModelScope.launch {

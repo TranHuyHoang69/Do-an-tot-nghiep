@@ -12,7 +12,20 @@
           "package_name": "com.example.moneymatev2"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "966238100003-jtlmict5vr7tnb76v2sk6cfr81ujnag0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.moneymatev2",
+            "certificate_hash": "98f70cd21c1e989056d02cf968b247784974f4da"
+          }
+        },
+        {
+          "client_id": "966238100003-hlau1vl60gaijnmkracsm1i0ul5o8dg7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyB3appi3zBYTuc8BrLsn6M5IK89SpepZRM"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "966238100003-hlau1vl60gaijnmkracsm1i0ul5o8dg7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

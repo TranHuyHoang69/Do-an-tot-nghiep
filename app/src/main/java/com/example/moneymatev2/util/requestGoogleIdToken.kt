@@ -1,6 +1,7 @@
 package com.example.moneymatev2.util
 
 import android.content.Context
+import android.util.Log
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
@@ -23,6 +24,7 @@ suspend fun requestGoogleIdToken(context: Context, webClientId: String): String?
             .createFrom(result.credential.data)
         googleIdTokenCredential.idToken
     }catch (e: Exception){
+        Log.e("GoogleSignIn", "Credential Manager failed", e)
         null
     }
 }
