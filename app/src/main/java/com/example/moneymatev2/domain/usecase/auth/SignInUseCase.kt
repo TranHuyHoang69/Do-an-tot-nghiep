@@ -25,6 +25,7 @@ class SignInUseCase @Inject constructor(
                 result
             }
             is AppResult.Failure -> result
+            AppResult.Loading -> result
         }
     }
 }

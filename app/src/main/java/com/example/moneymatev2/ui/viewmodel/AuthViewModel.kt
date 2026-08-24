@@ -8,7 +8,7 @@ import com.example.moneymatev2.domain.model.AuthError
 import com.example.moneymatev2.domain.usecase.auth.SignInUseCase
 import com.example.moneymatev2.domain.usecase.auth.SignInWithGoogleUseCase
 import com.example.moneymatev2.domain.usecase.auth.SignUpUseCase
-import com.example.moneymatev2.util.requestGoogleIdToken
+import com.example.moneymatev2.ui.util.requestGoogleIdToken
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -54,7 +54,8 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = when(val result = action()){
                 is AppResult.Success -> AuthUiState.Success
-                is AppResult.Failure -> AuthUiState.Error(result.error)
+                is AppResult.Failure -> AuthUiState.Error(result.error as AuthError)
+                AppResult.Loading -> AuthUiState.Loading
             }
         }
     }

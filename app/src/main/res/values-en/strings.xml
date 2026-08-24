@@ -10,6 +10,7 @@
     <string name="app_name">MoneyMate</string>
     <string name="app_slogan">Smart Management - A Secure Future</string>
     <!--    Login/RegisterScreen-->
+    <string name="error_not_authenticated">Log in to continue</string>
     <string name="welcome_back">Welcome Back!</string>
     <string name="user_name">User name</string>
     <string name="password">Password</string>
@@ -23,4 +24,20 @@
     <string name="sign_in_with_google">Sign in with Google</string>
     <string name="register_title">Register account</string>
     <string name="app_slogan_register">Start Your Financial Management Journey</string>
+    <string name="add_transaction_title">Add Transaction</string>
+    <string name="expense">Expense</string>
+    <string name="income">Income</string>
+    <string name="amount">Amount</string>
+    <string name="category_management">Category management</string>
+    <string name="see_more">See more</string>
+    <string name="transaction_date">Date</string>
+    <string name="select_date_hint">Pick date</string>
+    <string name="error_format">Wrong format</string>
+    <string name="note">Note</string>
+    <string name="note_placeholder">Type note (optional)</string>
+    <string name="confirm">Confirm</string>
+    <string name="error_invalid_amount">Invalid amount</string>
+    <string name="error_category_not_selected">Please choice a category</string>
+    <string name="back">Back</string>
+    <string name="cancel">Cancel</string>
 </resources>

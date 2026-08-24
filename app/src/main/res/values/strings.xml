@@ -10,7 +10,9 @@
     <string name="error_invalid_credentials">Email hoặc mật khẩu không đúng</string>
     <string name="error_network">Không có kết nối mạng, vui lòng thử lại</string>
     <string name="error_unknown">Đã có lỗi xảy ra, vui lòng thử lại</string>
-
+    <string name="error_invalid_amount">Số tiền không hợp lệ</string>
+    <string name="error_category_not_selected">Vui lòng chọn danh mục</string>
+    <string name="error_not_authenticated">Bạn chưa đăng nhập, vui lòng đăng nhập để tiếp tục</string>
 <!--    Login/RegisterScreen-->
     <string name="welcome_back">Chào mừng quay trở lại!</string>
     <string name="user_name">Tên người dùng</string>
@@ -27,6 +29,20 @@
     <string name="register_title">Đăng ký tài khoản</string>
     <string name="app_slogan_register">Bắt đầu hành trình quản lý tài chính</string>
 
-
+<!--    AddTransactionScreen-->
+    <string name="add_transaction_title">Thêm giao dịch</string>
+    <string name="expense">Chi phí</string>
+    <string name="income">Thu nhập</string>
+    <string name="amount">Số tiền</string>
+    <string name="category_management">Quản lý danh mục</string>
+    <string name="see_more">Xem thêm</string>
+    <string name="transaction_date">Ngày giao dịch</string>
+    <string name="select_date_hint">Chọn ngày</string>
+    <string name="error_format">Sai định dạng</string>
+    <string name="note">Ghi chú</string>
+    <string name="note_placeholder">Nhập ghi chú (tuỳ chọn)</string>
+    <string name="confirm">Xác nhận</string>
+    <string name="back">Quay lại</string>
+    <string name="cancel">Hủy</string>
 
 </resources>
