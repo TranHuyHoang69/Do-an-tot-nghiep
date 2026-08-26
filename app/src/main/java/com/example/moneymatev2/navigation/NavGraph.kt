@@ -1,13 +1,17 @@
 package com.example.moneymatev2.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.moneymatev2.ui.screen.LoginScreen
 import com.example.moneymatev2.ui.screen.RegisterScreen
+import com.example.moneymatev2.ui.screen.AddTransactionScreen
+import com.example.moneymatev2.ui.screen.HomeScreen
+
 @Composable
 fun NavGraph(
     navController: NavHostController = rememberNavController(),
@@ -46,7 +50,35 @@ fun NavGraph(
         }
 
         composable(Screen.Home.route) {
-            // HomeScreen content goes here
+            HomeScreen(
+                onAddTransaction = {
+                    navController.navigate(Screen.AddTransaction.route)
+                },
+                onSeeMoreDetail = {period, anchorDate, type, customEnd ->
+                    navController.navigate(Screen.History.createRoute(period, anchorDate, type, customEnd))
+                },
+                onMenuClick = {}
+            )
+        }
+
+
+        composable(Screen.AddTransaction.route) {
+            AddTransactionScreen(
+                onBack = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.History.route,
+            arguments = listOf(
+                navArgument(HomeNavKeys.SELECTED_PERIOD) { type = NavType.StringType },
+                navArgument(HomeNavKeys.ANCHOR_DATE) { type = NavType.LongType },
+                navArgument(HomeNavKeys.SELECTED_TYPE) { type = NavType.StringType },
+                navArgument(HomeNavKeys.CUSTOM_END) { type = NavType.LongType; defaultValue = -1L }
+            )
+        ) {
+//            HistoryScreen(onBack = { navController.popBackStack() })
         }
     }
 }

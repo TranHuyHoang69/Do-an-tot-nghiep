@@ -1,4 +1,4 @@
-package com.example.moneymatev2.ui.util
+package com.example.moneymatev2.util
 
 import android.content.Context
 import android.util.Log

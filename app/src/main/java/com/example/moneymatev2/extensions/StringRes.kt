@@ -36,4 +36,14 @@ object StringRes {
     val error_unknown = R.string.error_unknown
     val back = R.string.back
     val cancel = R.string.cancel
+    val total_balance = R.string.total_balance
+    val day = R.string.day
+    val week = R.string.week
+    val month = R.string.month
+    val year = R.string.year
+    val period = R.string.period
+    val total = R.string.total
+    val transaction = R.string.transaction
+    val select_period = R.string.select_period
+    val dont_have_transaction = R.string.dont_have_transaction
 }

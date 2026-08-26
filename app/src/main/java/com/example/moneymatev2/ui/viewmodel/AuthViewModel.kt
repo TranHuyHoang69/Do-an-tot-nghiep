@@ -8,7 +8,7 @@ import com.example.moneymatev2.domain.model.AuthError
 import com.example.moneymatev2.domain.usecase.auth.SignInUseCase
 import com.example.moneymatev2.domain.usecase.auth.SignInWithGoogleUseCase
 import com.example.moneymatev2.domain.usecase.auth.SignUpUseCase
-import com.example.moneymatev2.ui.util.requestGoogleIdToken
+import com.example.moneymatev2.util.requestGoogleIdToken
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

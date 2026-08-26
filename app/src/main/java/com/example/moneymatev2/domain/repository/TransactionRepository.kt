@@ -11,7 +11,7 @@ interface TransactionRepository {
 
     fun getTransactionByCategory(userId: String, categoryId: String): Flow<List<TransactionModel>>
 
-    fun getTransactionById(localId: Long): Flow<TransactionModel?>
+    fun getTransactionById(localId: String): Flow<TransactionModel?>
 
     suspend fun createTransaction(transaction: TransactionModel)
 

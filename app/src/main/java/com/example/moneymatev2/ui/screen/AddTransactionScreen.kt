@@ -1,7 +1,5 @@
 package com.example.moneymatev2.ui.screen
 
-import android.graphics.drawable.Icon
-import android.icu.number.Precision.currency
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -66,13 +64,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.example.moneymatev2.StringRes
 import com.example.moneymatev2.data.local.entity.TransactionType
 import com.example.moneymatev2.domain.model.CategoryModel
 import com.example.moneymatev2.domain.model.TransactionError
 import com.example.moneymatev2.ui.theme.StringResource
-import com.example.moneymatev2.ui.util.toUiMessage
+import com.example.moneymatev2.util.toUiMessage
 import com.example.moneymatev2.ui.viewmodel.AddTransactionEvent
 import com.example.moneymatev2.ui.viewmodel.AddTransactionViewmodel
 import java.text.SimpleDateFormat
@@ -314,13 +311,11 @@ fun FormSection(
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
-                onClick = {},
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp),
+                onClick = onConfirm,
+                modifier = Modifier.fillMaxWidth().height(60.dp),
                 shape = RoundedCornerShape(20.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = themeColor),
-                enabled = false
+                enabled = canConfirm
             ) {
                 Text(
                     text = StringResource(StringRes.confirm),
@@ -511,56 +506,54 @@ fun AmountInputField(
         },
         shape = RoundedCornerShape(20.dp),
         colors = OutlinedTextFieldDefaults.colors(focusedBorderColor =themeColor),
-        visualTransformation = ThousandSeparatorTransformation()
+        visualTransformation = VisualTransformation { thousandSeparatorTransformation(it) }
     )
 }
 
-class ThousandSeparatorTransformation(): VisualTransformation {
-    override fun filter(text: AnnotatedString): TransformedText {
-        val originalText = text.text
-        if(originalText.isEmpty()){
-            return TransformedText(text, OffsetMapping.Identity)
-        }
-
-        val formattedText = StringBuilder()
-        var count = 0
-        for(i in originalText.indices.reversed()){
-            formattedText.append(originalText[i])
-            count++
-            if(count % 3 == 0 && i != 0){
-                formattedText.append(".")
-            }
-        }
-        val out = formattedText.reversed().toString()
-
-        val offsetMapping = object : OffsetMapping{
-            override fun originalToTransformed(offset: Int): Int {
-                if(offset <= 0) return offset
-                var dots = 0
-                val length = originalText.length
-                for (i in 0 until offset) {
-                    val revIdx = length - 1 - i
-                    if((length - revIdx) % 3 == 0 && revIdx != 0){
-                        dots++
-                    }
-                }
-                val realDots = if(offset == length && length % 3 == 0)dots - 1 else dots
-                val totalOffset = offset + (out.length - originalText.length) - (dots - realDots)
-                return totalOffset.coerceIn(0, out.length)
-            }
-
-            override fun transformedToOriginal(offset: Int): Int {
-                var originalOffset = offset
-                for(i in 0 until offset){
-                    if(i < out.length && out[i] == '.'){
-                        originalOffset--
-                    }
-                }
-                return originalOffset.coerceIn(0, originalText.length)
-            }
-        }
-        return TransformedText(AnnotatedString(out), offsetMapping)
+fun thousandSeparatorTransformation(text: AnnotatedString): TransformedText {
+    val originalText = text.text
+    if(originalText.isEmpty()){
+        return TransformedText(text, OffsetMapping.Identity)
     }
+
+    val formattedText = StringBuilder()
+    var count = 0
+    for(i in originalText.indices.reversed()){
+        formattedText.append(originalText[i])
+        count++
+        if(count % 3 == 0 && i != 0){
+            formattedText.append(".")
+        }
+    }
+    val out = formattedText.reversed().toString()
+
+    val offsetMapping = object : OffsetMapping{
+        override fun originalToTransformed(offset: Int): Int {
+            if(offset <= 0) return offset
+            var dots = 0
+            val length = originalText.length
+            for (i in 0 until offset) {
+                val revIdx = length - 1 - i
+                if((length - revIdx) % 3 == 0 && revIdx != 0){
+                    dots++
+                }
+            }
+            val realDots = if(offset == length && length % 3 == 0)dots - 1 else dots
+            val totalOffset = offset + (out.length - originalText.length) - (dots - realDots)
+            return totalOffset.coerceIn(0, out.length)
+        }
+
+        override fun transformedToOriginal(offset: Int): Int {
+            var originalOffset = offset
+            for(i in 0 until offset){
+                if(i < out.length && out[i] == '.'){
+                    originalOffset--
+                }
+            }
+            return originalOffset.coerceIn(0, originalText.length)
+        }
+    }
+    return TransformedText(AnnotatedString(out), offsetMapping)
 }
 
 fun formatLongToDate(timestamp: Long, emptyHint: String, errorHint: String): String {

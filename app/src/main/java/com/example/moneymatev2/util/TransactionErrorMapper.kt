@@ -1,4 +1,4 @@
-package com.example.moneymatev2.ui.util
+package com.example.moneymatev2.util
 
 import androidx.compose.runtime.Composable
 import com.example.moneymatev2.StringRes

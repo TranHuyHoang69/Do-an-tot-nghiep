@@ -59,7 +59,7 @@ import com.example.moneymatev2.StringRes
 import com.example.moneymatev2.ui.theme.StringResource
 import com.example.moneymatev2.ui.viewmodel.AuthUiState
 import com.example.moneymatev2.ui.viewmodel.AuthViewModel
-import com.example.moneymatev2.ui.util.toUiMessage
+import com.example.moneymatev2.util.toUiMessage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

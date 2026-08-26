@@ -6,7 +6,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import com.example.moneymatev2.ui.util.Localization
+import com.example.moneymatev2.util.Localization
 val LocalLanguage = compositionLocalOf { "vi" }
 
 @Composable

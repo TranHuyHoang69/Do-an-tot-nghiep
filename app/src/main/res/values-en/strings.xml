@@ -40,4 +40,14 @@
     <string name="error_category_not_selected">Please choice a category</string>
     <string name="back">Back</string>
     <string name="cancel">Cancel</string>
+    <string name="total_balance">Total balance</string>
+    <string name="day">Day</string>
+    <string name="week">Week</string>
+    <string name="month">Month</string>
+    <string name="year">Year</string>
+    <string name="period">Period</string>
+    <string name="total">Total</string>
+    <string name="transaction">transaction</string>
+    <string name="select_period">Select period</string>
+    <string name="dont_have_transaction">Don\'t have any transaction</string>
 </resources>

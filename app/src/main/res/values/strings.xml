@@ -44,5 +44,16 @@
     <string name="confirm">Xác nhận</string>
     <string name="back">Quay lại</string>
     <string name="cancel">Hủy</string>
-
+    
+<!--    HomeScreen-->
+    <string name="total_balance">Tổng số dư</string>
+    <string name="day">Ngày</string>
+    <string name="week">Tuần</string>
+    <string name="month">Tháng</string>
+    <string name="year">Năm</string>
+    <string name="period">Khoảng</string>
+    <string name="select_period">Chọn khoảng thời gian</string>
+    <string name="total">Tổng cộng</string>
+    <string name="transaction">giao dịch</string>
+    <string name="dont_have_transaction">Chưa có giao dịch nào</string>
 </resources>

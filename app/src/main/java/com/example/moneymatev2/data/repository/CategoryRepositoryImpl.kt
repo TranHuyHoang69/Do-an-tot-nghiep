@@ -116,7 +116,7 @@ class CategoryRepositoryImpl @Inject constructor(
         for(cat in pending){
             try {
                 firestore.collection("users").document(userId)
-                    .collection("categories").document(cat.userId)
+                    .collection("categories").document(cat.localId)
                     .set(cat.toDto()).await()
             }catch (e: Exception) {
                 // Handle error, maybe log it

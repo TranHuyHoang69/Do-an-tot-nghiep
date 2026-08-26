@@ -30,8 +30,8 @@ class TransactionRepositoryImpl @Inject constructor(
         end: Long): Flow<List<TransactionModel>> =
         dao.getTransactionByPeriod(userId, start, end).map { list -> list.map { it.toModel() } }
 
-    override fun getTransactionById(localId: Long): Flow<TransactionModel?> =
-        dao.getTransactionByLocalId(localId.toString()).map { it?.toModel() }
+    override fun getTransactionById(localId: String): Flow<TransactionModel?> =
+        dao.getTransactionByLocalId(localId).map { it?.toModel() }
 
 
     override fun getTransactionByCategory(
