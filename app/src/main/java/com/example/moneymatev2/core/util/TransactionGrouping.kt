@@ -1,4 +1,4 @@
-package com.example.moneymatev2.util
+package com.example.moneymatev2.core.util
 
 import com.example.moneymatev2.data.local.entity.TransactionType
 import com.example.moneymatev2.domain.model.GroupedTransaction

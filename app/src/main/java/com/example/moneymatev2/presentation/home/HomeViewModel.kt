@@ -1,6 +1,5 @@
-package com.example.moneymatev2.ui.viewmodel
+package com.example.moneymatev2.presentation.home
 
-import android.icu.util.Calendar
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -9,14 +8,11 @@ import androidx.lifecycle.viewModelScope
 import com.example.moneymatev2.data.local.entity.TransactionType
 import com.example.moneymatev2.domain.model.GroupedTransaction
 import com.example.moneymatev2.domain.model.TransactionWithCategory
-import com.example.moneymatev2.domain.repository.TransactionRepository
 import com.example.moneymatev2.domain.usecase.transaction.GetTransactionWithCategoryUseCase
-import com.example.moneymatev2.util.TimeRangeCalculator
-import com.example.moneymatev2.util.groupByCategory
+import com.example.moneymatev2.core.util.TimeRangeCalculator
+import com.example.moneymatev2.core.util.groupByCategory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +23,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
-import kotlin.time.Duration.Companion.milliseconds
 
 
 enum class HomePeriod {

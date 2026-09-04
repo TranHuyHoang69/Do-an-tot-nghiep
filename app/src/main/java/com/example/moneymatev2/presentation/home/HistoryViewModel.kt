@@ -1,4 +1,4 @@
-package com.example.moneymatev2.ui.viewmodel
+package com.example.moneymatev2.presentation.home
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -6,14 +6,14 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.moneymatev2.core.util.TimeRangeCalculator
+import com.example.moneymatev2.core.util.groupByCategory
 import com.example.moneymatev2.data.local.entity.TransactionType
 import com.example.moneymatev2.domain.model.GroupedTransaction
 import com.example.moneymatev2.domain.model.TransactionWithCategory
 import com.example.moneymatev2.domain.model.categoryIdentityKey
 import com.example.moneymatev2.domain.usecase.transaction.GetTransactionWithCategoryUseCase
 import com.example.moneymatev2.navigation.HomeNavKeys
-import com.example.moneymatev2.util.TimeRangeCalculator
-import com.example.moneymatev2.util.groupByCategory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -38,7 +38,8 @@ class HistoryViewModel @Inject constructor(
         private set
     var selectedType by mutableStateOf(
         savedStateHandle.get<String>(HomeNavKeys.SELECTED_TYPE)
-            ?.let { runCatching { TransactionType.valueOf(it) }.getOrNull() } ?: TransactionType.EXPENSE
+            ?.let { runCatching { TransactionType.valueOf(it) }.getOrNull() }
+            ?: TransactionType.EXPENSE
     )
         private set
 
@@ -49,7 +50,7 @@ class HistoryViewModel @Inject constructor(
     val groupItems: StateFlow<List<GroupedTransaction>> = _groupItems
 
     var customRangeStart by mutableStateOf<Long?>(
-        if(selectedPeriod == HomePeriod.CUSTOM) anchorDate else null
+        if (selectedPeriod == HomePeriod.CUSTOM) anchorDate else null
     )
         private set
     var customRangeEnd by mutableStateOf<Long?>(

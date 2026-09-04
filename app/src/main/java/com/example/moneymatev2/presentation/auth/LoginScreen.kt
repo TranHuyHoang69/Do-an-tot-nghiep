@@ -1,8 +1,10 @@
-package com.example.moneymatev2.ui.screen
+package com.example.moneymatev2.presentation.auth
 
-import com.example.moneymatev2.R
+
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +22,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -34,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -42,6 +46,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -49,22 +54,20 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.moneymatev2.R
 import com.example.moneymatev2.StringRes
-import com.example.moneymatev2.ui.theme.StringResource
-import com.example.moneymatev2.ui.viewmodel.AuthUiState
-import com.example.moneymatev2.ui.viewmodel.AuthViewModel
-import com.example.moneymatev2.util.toUiMessage
+import com.example.moneymatev2.presentation.theme.StringResource
+import com.example.moneymatev2.core.util.toUiMessage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegisterScreen(
+fun LoginScreen(
     viewModel: AuthViewModel = hiltViewModel(),
-    onNavigateToLogin: () -> Unit ,
-    onRegisterSuccess: () -> Unit
-) {
+    onNavigateToRegister: () -> Unit,
+    onLoginSuccess: () -> Unit
+){
     val uiState by viewModel.uiState.collectAsState()
     var emailState by remember { mutableStateOf("") }
-    var userNameState by remember { mutableStateOf("") }
     var passwordState by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
@@ -79,44 +82,45 @@ fun RegisterScreen(
                 viewModel.signInWithGoogleToken(idToken)
             }
         } catch (e: Exception) {
-            // ignore
+            // ignore or show error
         }
     }
     val isLoading = uiState is AuthUiState.Loading
     val error = (uiState as? AuthUiState.Error)?.error
 
     LaunchedEffect(uiState) {
-        if (uiState is AuthUiState.Success) {
-            onRegisterSuccess()
+        if(uiState is AuthUiState.Success){
+            onLoginSuccess()
         }
     }
 
     Box(
-        modifier = Modifier.fillMaxSize().background(
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    MaterialTheme.colorScheme.primary,
-                    MaterialTheme.colorScheme.primaryContainer
+        modifier = Modifier.fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primary,
+                        MaterialTheme.colorScheme.primaryContainer
+                    )
                 )
             )
-        )
     ){
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.weight(0.1f))
+            Spacer(modifier = Modifier.weight(0.2f))
             Text(
-                text = StringResource(StringRes.register_title),
-                fontSize = 34.sp,
+                text = StringResource(StringRes.app_name),
+                fontSize = 42.sp,
                 fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.primaryContainer
+                color =MaterialTheme.colorScheme.primaryContainer
             )
             Text(
-                text = StringResource(StringRes.app_slogan_register),
-                fontSize = 14.sp,
+                text = StringResource(StringRes.app_slogan),
                 fontStyle = FontStyle.Italic,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                fontSize = 14.sp,
+                color =MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
             )
 
             Spacer(modifier = Modifier.weight(0.1f))
@@ -131,22 +135,27 @@ fun RegisterScreen(
                     modifier = Modifier.fillMaxSize().padding(32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    RegisterEmailInputField(email = emailState, onEmailChange = {emailState = it})
+                    Text(
+                        text = StringResource(StringRes.welcome_back),
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
 
-                    Spacer(modifier = Modifier.height(36.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
 
-                    RegisterUserNameInputField(userName = userNameState, onUserNameChange = {userNameState = it})
+                    EmailInputField(email = emailState, onEmailChange = { emailState = it })
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    RegisterPasswordInputField(password = passwordState, onPasswordChange = {passwordState = it})
+                    PasswordInputField(password = passwordState, onPasswordChange = { passwordState = it })
 
-                    Spacer(modifier = Modifier.height(36.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
 
                     Button(
-                        onClick = {
+                        onClick ={
                             focusManager.clearFocus()
-                            viewModel.signUp(emailState, passwordState, userNameState)
+                            viewModel.signIn(emailState,passwordState)
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         shape = RoundedCornerShape(16.dp),
@@ -156,22 +165,22 @@ fun RegisterScreen(
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
-                        if(isLoading) {
+                        if (isLoading) {
                             CircularProgressIndicator(
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(24.dp)
                             )
                         } else {
                             Text(
-                                text = StringResource(StringRes.register),
+                                text = StringResource(StringRes.login),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp
-                            )
+                                )
                         }
                     }
 
                     if (error != null) {
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = error.toUiMessage(),
                             color = MaterialTheme.colorScheme.error,
@@ -179,19 +188,20 @@ fun RegisterScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
+
                     Row {
                         Text(
-                            text = StringResource(StringRes.have_account),
+                            text = StringResource(StringRes.no_account),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = StringResource(StringRes.login),
+                            text = StringResource(StringRes.register),
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable {
-                                onNavigateToLogin()
+                            modifier = Modifier.clickable{
+                                onNavigateToRegister()
                             }
                         )
 
@@ -201,11 +211,11 @@ fun RegisterScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         HorizontalDivider(
                             modifier = Modifier.weight(1f),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         )
                         Text(
                             text = StringResource(StringRes.or),
-                            modifier = Modifier.padding(horizontal = 8.dp),
+                            modifier = Modifier.padding(horizontal = 16.dp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp
                         )
@@ -230,20 +240,18 @@ fun RegisterScreen(
                     )
                 }
             }
+
         }
     }
 }
 
 @Composable
-fun RegisterEmailInputField(
-    email: String,
-    onEmailChange: (String) -> Unit
-){
+fun EmailInputField(email: String, onEmailChange: (String) -> Unit){
     OutlinedTextField(
         value = email,
         onValueChange = onEmailChange,
         label = {Text(StringResource(StringRes.email))},
-        placeholder = {Text(StringResource(StringRes.email))},
+        placeholder ={Text(StringResource(StringRes.email))},
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         singleLine = true,
@@ -252,26 +260,7 @@ fun RegisterEmailInputField(
 }
 
 @Composable
-fun RegisterUserNameInputField(
-    userName: String,
-    onUserNameChange: (String) -> Unit
-){
-    OutlinedTextField(
-        value = userName,
-        onValueChange = onUserNameChange,
-        label = {Text(StringResource(StringRes.user_name))},
-        placeholder = {Text(StringResource(StringRes.user_name))},
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        singleLine = true
-    )
-}
-
-@Composable
-fun RegisterPasswordInputField(
-    password: String,
-    onPasswordChange: (String) -> Unit
-){
+fun PasswordInputField(password: String, onPasswordChange: (String) -> Unit){
     OutlinedTextField(
         value = password,
         onValueChange = onPasswordChange,
@@ -279,8 +268,54 @@ fun RegisterPasswordInputField(
         placeholder = {Text(StringResource(StringRes.password))},
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        visualTransformation = PasswordVisualTransformation(),
         singleLine = true,
+        visualTransformation = PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
     )
+}
+
+@Composable
+fun GoogleLoginButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    isLoading: Boolean = false
+){
+    Surface(
+        onClick = {if(!isLoading) onClick()},
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+        color = if(isLoading){
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+        }else{
+            MaterialTheme.colorScheme.surface
+        },
+        modifier = modifier.fillMaxWidth().height(50.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        ){
+            if (isLoading){
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp),
+                    strokeWidth = 2.dp
+                )
+            }else{
+                Icon(
+                    painter = painterResource(R.drawable.ic_google),
+                    contentDescription = StringResource(StringRes.sign_in_with_google),
+                    modifier = Modifier.size(24.dp),
+                    tint = Color.Unspecified
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = StringResource(StringRes.sign_in_with_google),
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
 }

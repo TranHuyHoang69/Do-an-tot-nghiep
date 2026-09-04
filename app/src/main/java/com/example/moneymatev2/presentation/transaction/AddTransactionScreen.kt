@@ -1,4 +1,4 @@
-package com.example.moneymatev2.ui.screen
+package com.example.moneymatev2.presentation.transaction
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -68,10 +68,8 @@ import com.example.moneymatev2.StringRes
 import com.example.moneymatev2.data.local.entity.TransactionType
 import com.example.moneymatev2.domain.model.CategoryModel
 import com.example.moneymatev2.domain.model.TransactionError
-import com.example.moneymatev2.ui.theme.StringResource
-import com.example.moneymatev2.util.toUiMessage
-import com.example.moneymatev2.ui.viewmodel.AddTransactionEvent
-import com.example.moneymatev2.ui.viewmodel.AddTransactionViewmodel
+import com.example.moneymatev2.presentation.theme.StringResource
+import com.example.moneymatev2.core.util.toUiMessage
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

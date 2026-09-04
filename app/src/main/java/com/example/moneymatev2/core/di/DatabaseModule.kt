@@ -1,4 +1,4 @@
-package com.example.moneymatev2.di
+package com.example.moneymatev2.core.di
 
 import android.content.Context
 import androidx.room.Room

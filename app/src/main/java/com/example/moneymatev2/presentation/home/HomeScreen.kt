@@ -1,6 +1,5 @@
-package com.example.moneymatev2.ui.screen
+package com.example.moneymatev2.presentation.home
 
-import android.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +39,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,22 +48,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.moneymatev2.StringRes
 import com.example.moneymatev2.data.local.entity.TransactionType
 import com.example.moneymatev2.domain.model.GroupedTransaction
 import com.example.moneymatev2.domain.model.categoryIdentityKey
-import com.example.moneymatev2.ui.theme.AppTopBarColor
-import com.example.moneymatev2.ui.theme.StringResource
-import com.example.moneymatev2.ui.viewmodel.HomePeriod
-import com.example.moneymatev2.ui.viewmodel.HomeUiState
-import com.example.moneymatev2.ui.viewmodel.HomeViewModel
+import com.example.moneymatev2.presentation.theme.AppTopBarColor
+import com.example.moneymatev2.presentation.theme.StringResource
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import androidx.core.graphics.toColorInt
+import com.example.moneymatev2.ui.components.MorphingChartSection
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,7 +83,19 @@ fun HomeScreen(
         if (viewModel.selectedType == TransactionType.EXPENSE) expenseColor else incomeColor
     }
 
+
     val scrollState = rememberLazyListState()
+
+    val density = LocalDensity.current
+    val maxMorpScrollPx = remember(density) { with(density) {200.dp.toPx()} }
+
+    val morphProgress by remember {
+        derivedStateOf {
+            if(scrollState.firstVisibleItemIndex > 0) 1f
+            else (scrollState.firstVisibleItemScrollOffset / maxMorpScrollPx).coerceIn(0f, 1f)
+        }
+    }
+    val dynamicHeight = lerp(200.dp, 70.dp, morphProgress)
 
     var showDatePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
@@ -116,8 +129,9 @@ fun HomeScreen(
                 onNext = { viewModel.moveTimeRange(1) }
             )
 
+            val chartData = (transactionState as? HomeUiState.Success)?.chartData ?: emptyList()
+
             Box(modifier = Modifier.fillMaxSize()) {
-                val chartData = (transactionState as? HomeUiState.Success)?.chartData ?: emptyList()
 
                 LazyColumn(
                     state = scrollState,
@@ -161,6 +175,11 @@ fun HomeScreen(
                         }
                     }
                 }
+                MorphingChartSection(
+                    chartData = chartData,
+                    morphProgress = morphProgress,
+                    dynamicHeight = dynamicHeight
+                )
             }
         }
         FloatingActionButton(

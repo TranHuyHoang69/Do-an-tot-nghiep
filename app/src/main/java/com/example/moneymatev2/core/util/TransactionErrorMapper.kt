@@ -1,9 +1,9 @@
-package com.example.moneymatev2.util
+package com.example.moneymatev2.core.util
 
 import androidx.compose.runtime.Composable
 import com.example.moneymatev2.StringRes
 import com.example.moneymatev2.domain.model.TransactionError
-import com.example.moneymatev2.ui.theme.StringResource
+import com.example.moneymatev2.presentation.theme.StringResource
 
 @Composable
 fun TransactionError.toUiMessage(): String = when (this) {

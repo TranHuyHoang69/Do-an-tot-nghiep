@@ -1,4 +1,4 @@
-package com.example.moneymatev2.di
+package com.example.moneymatev2.core.di
 import com.example.moneymatev2.data.repository.*
 import com.example.moneymatev2.domain.repository.*
 import dagger.Binds

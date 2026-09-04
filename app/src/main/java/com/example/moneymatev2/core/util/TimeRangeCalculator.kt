@@ -1,8 +1,7 @@
-package com.example.moneymatev2.util
+package com.example.moneymatev2.core.util
 
-import com.example.moneymatev2.ui.viewmodel.HomePeriod
+import com.example.moneymatev2.presentation.home.HomePeriod
 import java.util.Calendar
-import kotlin.math.acos
 
 object TimeRangeCalculator {
     fun getTimeRange(period: HomePeriod, anchor: Long): Pair<Long, Long>{

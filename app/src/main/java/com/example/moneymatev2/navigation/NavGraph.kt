@@ -7,10 +7,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.moneymatev2.ui.screen.LoginScreen
-import com.example.moneymatev2.ui.screen.RegisterScreen
-import com.example.moneymatev2.ui.screen.AddTransactionScreen
-import com.example.moneymatev2.ui.screen.HomeScreen
+import com.example.moneymatev2.presentation.auth.LoginScreen
+import com.example.moneymatev2.presentation.auth.RegisterScreen
+import com.example.moneymatev2.presentation.transaction.AddTransactionScreen
+import com.example.moneymatev2.presentation.home.HomeScreen
 
 @Composable
 fun NavGraph(

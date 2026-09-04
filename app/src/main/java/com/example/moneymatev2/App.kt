@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import dagger.hilt.android.HiltAndroidApp
 import androidx.work.Configuration
-import com.example.moneymatev2.di.SyncScheduler
+import com.example.moneymatev2.core.di.SyncScheduler
 import javax.inject.Inject
 
 

@@ -1,4 +1,4 @@
-package com.example.moneymatev2.ui.viewmodel
+package com.example.moneymatev2.presentation.transaction
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

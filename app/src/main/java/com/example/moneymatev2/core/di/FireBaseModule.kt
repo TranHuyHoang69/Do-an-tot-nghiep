@@ -1,4 +1,4 @@
-package com.example.moneymatev2.di
+package com.example.moneymatev2.core.di
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
