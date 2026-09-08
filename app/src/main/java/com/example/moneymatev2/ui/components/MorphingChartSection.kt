@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.moneymatev2.StringRes
+import com.example.moneymatev2.core.util.CurrencyFormatter
 import com.example.moneymatev2.domain.model.GroupedTransaction
 import com.example.moneymatev2.presentation.theme.StringResource
 
@@ -39,11 +40,12 @@ private data class ChartSegment(
 @Composable
 fun MorphingChartSection(
     chartData: List<GroupedTransaction>,
+    totalAmount: Long,
     morphProgress: Float,
     dynamicHeight: Dp
 ){
-    val optimizedChartData = remember(chartData) {
-        val total = chartData.sumOf { it.totalAmount }.takeIf { it > 0 } ?: 1L
+    val optimizedChartData = remember(chartData, totalAmount) {
+        val total = totalAmount.takeIf { it > 0 } ?: 1L
         chartData.map { group ->
             val parsedColor = try {
                 Color(parseColor(group.category.colorHex))
@@ -78,9 +80,9 @@ fun MorphingChartSection(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    val total = remember(chartData) { chartData.sumOf { it.totalAmount }  }
+                    val total = remember(totalAmount) { totalAmount }
                     Text(
-                        text = "${String().format("%,d", total)} đ",
+                        text = "${CurrencyFormatter.formatCompact(total)} đ",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Black,
                         color = MaterialTheme.colorScheme.onSurface

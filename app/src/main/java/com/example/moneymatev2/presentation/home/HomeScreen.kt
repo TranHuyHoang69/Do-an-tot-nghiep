@@ -63,6 +63,7 @@ import com.example.moneymatev2.presentation.theme.StringResource
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import androidx.core.graphics.toColorInt
+import com.example.moneymatev2.core.util.CurrencyFormatter
 import com.example.moneymatev2.ui.components.MorphingChartSection
 
 
@@ -131,6 +132,14 @@ fun HomeScreen(
 
             val chartData = (transactionState as? HomeUiState.Success)?.chartData ?: emptyList()
 
+            val totalAmount = (transactionState as? HomeUiState.Success)?.let { success ->
+                if(viewModel.selectedType == TransactionType.EXPENSE) {
+                    success.totalExpense
+                } else {
+                    success.totalIncome
+                }
+            } ?: 0L
+
             Box(modifier = Modifier.fillMaxSize()) {
 
                 LazyColumn(
@@ -177,6 +186,7 @@ fun HomeScreen(
                 }
                 MorphingChartSection(
                     chartData = chartData,
+                    totalAmount = totalAmount,
                     morphProgress = morphProgress,
                     dynamicHeight = dynamicHeight
                 )
@@ -271,10 +281,8 @@ fun HeaderSection(
     onTabSelected: (TransactionType) -> Unit,
     onMenuClick: () -> Unit
 ) {
-    val balanceFormatter = remember {
-        DecimalFormat("#,###", DecimalFormatSymbols().apply { groupingSeparator = '.' })
-    }
-    val formattedBalance = if (totalBalance == 0L) "0" else balanceFormatter.format(totalBalance)
+
+    val formattedBalance = if (totalBalance == 0L) "0" else CurrencyFormatter.formatFull(totalBalance)
 
     Column(
         modifier = Modifier
@@ -489,7 +497,7 @@ fun TransactionListItem(
             }
             val sign = if (group.type == TransactionType.EXPENSE) "-" else "+"
             Text(
-                text = "$sign ${String.format("%,d", group.totalAmount)} $currencyUnit",
+                text = "$sign ${CurrencyFormatter.formatCompact( group.totalAmount)} $currencyUnit",
                 fontWeight = FontWeight.Bold
             )
         }

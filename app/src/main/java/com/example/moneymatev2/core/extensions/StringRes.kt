@@ -46,4 +46,9 @@ object StringRes {
     val transaction = R.string.transaction
     val select_period = R.string.select_period
     val dont_have_transaction = R.string.dont_have_transaction
+    val billion = R.string.billion
+    val million = R.string.million
+    val thousand = R.string.thousand
+    val no_data = R.string.no_data
+
 }

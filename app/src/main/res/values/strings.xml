@@ -56,4 +56,8 @@
     <string name="total">Tổng cộng</string>
     <string name="transaction">giao dịch</string>
     <string name="dont_have_transaction">Chưa có giao dịch nào</string>
+    <string name="billion">Tỷ</string>
+    <string name="million">Tr</string>
+    <string name="thousand">Nghìn</string>
+    <string name="no_data">Không có dữ liệu</string>
 </resources>

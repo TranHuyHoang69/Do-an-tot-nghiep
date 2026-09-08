@@ -50,4 +50,8 @@
     <string name="transaction">transaction</string>
     <string name="select_period">Select period</string>
     <string name="dont_have_transaction">Don\'t have any transaction</string>
+    <string name="billion">B</string>
+    <string name="million">M</string>
+    <string name="thousand">K</string>
+    <string name="no_data">No data</string>
 </resources>
