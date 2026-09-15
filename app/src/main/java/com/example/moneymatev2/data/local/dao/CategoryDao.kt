@@ -43,7 +43,7 @@ interface CategoryDao {
     """)
     suspend fun getPendingCategoriesForSync(userId: String): List<CategoryEntity>
 
-    @Insert(onConflict = OnConflictStrategy.ABORT)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCategory(category: CategoryEntity)
 
     @Update

@@ -74,6 +74,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.core.graphics.toColorInt
+import com.example.moneymatev2.ui.item.rememberCategoryIcon
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -417,11 +418,7 @@ fun CategoryItem(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val context = LocalContext.current
-
-    val resId = remember(category.iconKey) {
-        context.resources.getIdentifier(category.iconKey,"drawable",context.packageName)
-    }
+    val iconPainter = rememberCategoryIcon(category.iconKey)
 
     val categoryColor = remember(category.colorHex) {
         try{
@@ -452,9 +449,9 @@ fun CategoryItem(
                 .background(if(isSelected) categoryColor else categoryColor.copy(0.15f)),
             contentAlignment = Alignment.Center
         ){
-            if(resId != 0) {
+            if(iconPainter != null) {
                 Icon(
-                    painter = painterResource(id = resId),
+                    painter = iconPainter,
                     contentDescription = category.name,
                     tint = if(isSelected) Color.White else categoryColor,
                     modifier = Modifier.size(24.dp)

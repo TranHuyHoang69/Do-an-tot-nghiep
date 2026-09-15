@@ -86,12 +86,12 @@ class CategoryRepositoryImpl @Inject constructor(
 
         val now = System.currentTimeMillis()
         val defaults = listOf(
-            Triple(DefaultCategoryIds.SPEND_FOOD, TransactionType.EXPENSE, "spend_food"),
-            Triple(DefaultCategoryIds.SPEND_TRANSPORT, TransactionType.EXPENSE, "spend_transport"),
-            Triple(DefaultCategoryIds.SPEND_SHOPPING, TransactionType.EXPENSE, "spend_shopping"),
-            Triple(DefaultCategoryIds.INCOME_SALARY, TransactionType.INCOME, "income_salary")
+            Quadruple(DefaultCategoryIds.SPEND_FOOD, TransactionType.EXPENSE, "spend_food", "ic_food"),
+            Quadruple(DefaultCategoryIds.SPEND_TRANSPORT, TransactionType.EXPENSE, "spend_transport", "ic_car"),
+            Quadruple(DefaultCategoryIds.SPEND_SHOPPING, TransactionType.EXPENSE, "spend_shopping", "ic_shop"),
+            Quadruple(DefaultCategoryIds.INCOME_SALARY, TransactionType.INCOME, "income_salary", "ic_money")
         )
-        defaults.forEach { (id, type, stableId) ->
+        defaults.forEach { (id, type, stableId, iconKey) ->
             dao.insertCategory(
                 CategoryEntity(
                     localId = id,
@@ -99,7 +99,7 @@ class CategoryRepositoryImpl @Inject constructor(
                     userId = userId,
                     name = stableId,
                     type = type,
-                    iconKey = "ic_default_$stableId",
+                    iconKey = iconKey,   // <-- sửa: dùng tên icon thật thay vì "ic_default_$stableId"
                     colorHex = "#9E9E9E",
                     isDefault = true,
                     syncStatus = SyncStatus.PENDING,
@@ -133,4 +133,5 @@ class CategoryRepositoryImpl @Inject constructor(
         isDefault = isDefault,
         isArchived = isArchived
     )
-}
+
+    data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)}
