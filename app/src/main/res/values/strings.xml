@@ -60,4 +60,7 @@
     <string name="million">Tr</string>
     <string name="thousand">Nghìn</string>
     <string name="no_data">Không có dữ liệu</string>
+
+<!--    AddCategory-->
+    <string name="add_category_title">Thêm danh mục</string>
 </resources>

@@ -50,5 +50,6 @@ object StringRes {
     val million = R.string.million
     val thousand = R.string.thousand
     val no_data = R.string.no_data
+    val add_category_title = R.string.add_category_title
 
 }

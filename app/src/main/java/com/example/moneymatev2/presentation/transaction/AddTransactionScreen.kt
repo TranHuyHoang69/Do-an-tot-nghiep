@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
@@ -81,7 +82,8 @@ import com.example.moneymatev2.ui.item.rememberCategoryIcon
 fun AddTransactionScreen(
     viewModel: AddTransactionViewmodel = hiltViewModel(),
     onBack: () -> Unit,
-    onSaved: () -> Unit
+    onSaved: () -> Unit,
+    onAddCategoryClick: () -> Unit
 ){
 
     val state by viewModel.formState.collectAsState()
@@ -135,6 +137,7 @@ fun AddTransactionScreen(
             onNoteChange = { viewModel.onNoteChange(it) },
             onCategorySelected = { errorMessage = null; viewModel.onCategorySelected(it.id) },
             onDateClicked = { showDatePicker = true },
+            onAddCategoryClick = onAddCategoryClick,
             onConfirm = { viewModel.save() }
 
         )
@@ -248,7 +251,8 @@ fun FormSection(
     onNoteChange: (String) -> Unit,
     onCategorySelected: (CategoryModel) -> Unit,
     onDateClicked: () -> Unit,
-    onConfirm: () -> Unit
+    onConfirm: () -> Unit,
+    onAddCategoryClick: () -> Unit
 ){
 
     val canConfirm = amountText.isNotBlank() && amountText.toLongOrNull()?.let { it > 0 } == true
@@ -292,7 +296,8 @@ fun FormSection(
                 categories = categories,
                 selectedCategoryId = selectedCategoryId,
                 themeColor = themeColor,
-                onCategorySelected = onCategorySelected
+                onCategorySelected = onCategorySelected,
+                onAddCategoryClick = onAddCategoryClick
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -392,22 +397,70 @@ fun CategoryGrid(
     categories: List<CategoryModel>,
     selectedCategoryId: String?,
     themeColor: Color,
-    onCategorySelected: (CategoryModel) -> Unit
+    onCategorySelected: (CategoryModel) -> Unit,
+    onAddCategoryClick: () -> Unit
 ) {
-    // TODO: khi có màn "Xem tất cả danh mục" riêng, giới hạn hiển thị ở đây (vd take(8) + ô "Thêm")
-    // Hiện tại hiển thị toàn bộ để tránh phát sinh phạm vi ngoài yêu cầu ban đầu
+    val totalItems = categories.size + 1
+    val rows = (totalItems + 3) / 4
+
     LazyVerticalGrid(
         columns = GridCells.Fixed(4),
-        modifier = Modifier.height(((categories.size / 4 + 1) * 90).dp)
+        modifier = Modifier.height((rows * 90).dp)
     ) {
-        items(categories, key = { it.id }) { category ->
-            CategoryItem(
-                category = category,
-                themeColor = themeColor,
-                isSelected = category.id == selectedCategoryId,
-                onClick = { onCategorySelected(category) }
+        items(
+            count = totalItems,
+            key = { index -> if (index < categories.size) categories[index].id else "add_category_title" }
+        ){ index ->
+            if(index < categories.size){
+                val category = categories[index]
+                CategoryItem(
+                    category = category,
+                    themeColor = themeColor,
+                    isSelected = category.id == selectedCategoryId,
+                    onClick = { onCategorySelected(category) }
+                )
+            } else {
+                AddCategoryItem(
+                    themeColor = themeColor,
+                    onClick = onAddCategoryClick
+                )
+            }
+
+        }
+    }
+}
+
+@Composable
+fun AddCategoryItem(
+    themeColor: Color,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(4.dp).clickable{ onClick() }.padding(8.dp, 6.dp, 4.dp, 4.dp)
+    ) {
+        Box(
+            modifier = Modifier.size(60.dp).clip(RoundedCornerShape(18.dp))
+                .border(width = 1.5.dp, color = themeColor.copy(0.4f), shape = RoundedCornerShape(18.dp)),
+            contentAlignment = Alignment.Center
+        ){
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = StringResource(StringRes.add_category_title),
+                tint =  themeColor
             )
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = StringResource(StringRes.add_category_title),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            color = themeColor,
+            maxLines = 1
+        )
     }
 }
 

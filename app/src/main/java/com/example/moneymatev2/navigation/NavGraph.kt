@@ -65,7 +65,11 @@ fun NavGraph(
         composable(Screen.AddTransaction.route) {
             AddTransactionScreen(
                 onBack = { navController.popBackStack() },
-                onSaved = { navController.popBackStack() }
+                onSaved = { navController.popBackStack() },
+                onAddCategoryClick = {
+                    // TODO: navigate tới AddCategoryScreen khi màn đó được build
+                    // navController.navigate(Screen.AddCategory.route)
+                }
             )
         }
 
