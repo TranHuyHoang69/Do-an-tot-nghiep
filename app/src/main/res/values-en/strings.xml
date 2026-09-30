@@ -55,4 +55,15 @@
     <string name="thousand">K</string>
     <string name="no_data">No data</string>
     <string name="add_category_title">Add category</string>
+    <string name="category_name">Category name</string>
+    <string name="category_color">Category color</string>
+    <string name="category_icon">Category icon</string>
+    <string name="category_finanace">Finance</string>
+    <string name="category_finance">Finance</string>
+    <string name="category_food">Food</string>
+    <string name="category_health">Health</string>
+    <string name="category_shopping">Shopping</string>
+    <string name="category_transportation">Transportation</string>
+    <string name="save_category">Save category</string>
+    <string name="create">"Create "</string>
 </resources>

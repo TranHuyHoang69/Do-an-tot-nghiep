@@ -51,5 +51,15 @@ object StringRes {
     val thousand = R.string.thousand
     val no_data = R.string.no_data
     val add_category_title = R.string.add_category_title
+    val category_name = R.string.category_name
+    val category_color = R.string.category_color
+    val category_icon = R.string.category_icon
+    val category_finance = R.string.category_finance
+    val category_food = R.string.category_food
+    val category_health = R.string.category_health
+    val category_shopping = R.string.category_shopping
+    val category_transportation = R.string.category_transportation
+    val save_category = R.string.save_category
+    val create = R.string.create
 
 }

@@ -14,4 +14,6 @@ sealed class Screen(val route: String){
         fun createRoute(period: String, anchorDate: Long, type: TransactionType, customEnd: Long = -1L) =
             "history/$period/$anchorDate/$type?${HomeNavKeys.CUSTOM_END}=$customEnd"
     }
+    object AddCategory: Screen("add_category")
+    object CategoryManagement: Screen("category_management")
 }

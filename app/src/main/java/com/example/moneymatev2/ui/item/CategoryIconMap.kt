@@ -60,4 +60,22 @@ object CategoryIconMap{
     fun resolve(iconKey: String): Int = icons[iconKey] ?: android.R.drawable.ic_menu_help
 
     fun allKeys(): List<String> = icons.keys.toList()
+
+    fun groupedKeys(): Map<String, List<String>> {
+        val groups = linkedMapOf<String, MutableList<String>>()
+
+        icons.keys.filter { it.startsWith("ic_cat_") }.forEach { key ->
+            val groupKey = key.removePrefix("ic_cat_").substringBefore("_")
+            val label = when(groupKey){
+                "finance" -> "Tài chính"
+                "food" -> "Ăn uống"
+                "health" -> "Sức khỏe"
+                "shop" -> "Mua sắm"
+                "transport" -> "Di chuyển"
+                else -> "Khác"
+            }
+            groups.getOrPut(label) { mutableListOf() }.add(key)
+        }
+        return groups
+    }
 }

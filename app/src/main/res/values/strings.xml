@@ -63,4 +63,14 @@
 
 <!--    AddCategory-->
     <string name="add_category_title">Thêm danh mục</string>
+    <string name="category_name">Tên danh mục</string>
+    <string name="category_color">Màu danh mục</string>
+    <string name="category_icon">Biểu tượng danh mục</string>
+    <string name="category_finance">Tài chính</string>
+    <string name="category_food">Ăn uống</string>
+    <string name="category_health">Sức khỏe</string>
+    <string name="category_shopping">Mua sắm</string>
+    <string name="category_transportation">Di chuyển</string>
+    <string name="save_category">Lưu danh mục</string>
+    <string name="create">"Tạo "</string>
 </resources>

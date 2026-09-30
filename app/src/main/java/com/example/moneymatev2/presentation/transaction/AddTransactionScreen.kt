@@ -83,7 +83,7 @@ fun AddTransactionScreen(
     viewModel: AddTransactionViewmodel = hiltViewModel(),
     onBack: () -> Unit,
     onSaved: () -> Unit,
-    onAddCategoryClick: () -> Unit
+    onManageCategoryClick: () -> Unit
 ){
 
     val state by viewModel.formState.collectAsState()
@@ -137,7 +137,7 @@ fun AddTransactionScreen(
             onNoteChange = { viewModel.onNoteChange(it) },
             onCategorySelected = { errorMessage = null; viewModel.onCategorySelected(it.id) },
             onDateClicked = { showDatePicker = true },
-            onAddCategoryClick = onAddCategoryClick,
+            onManageCategoryClick = onManageCategoryClick,
             onConfirm = { viewModel.save() }
 
         )
@@ -252,7 +252,7 @@ fun FormSection(
     onCategorySelected: (CategoryModel) -> Unit,
     onDateClicked: () -> Unit,
     onConfirm: () -> Unit,
-    onAddCategoryClick: () -> Unit
+    onManageCategoryClick: () -> Unit
 ){
 
     val canConfirm = amountText.isNotBlank() && amountText.toLongOrNull()?.let { it > 0 } == true
@@ -297,7 +297,7 @@ fun FormSection(
                 selectedCategoryId = selectedCategoryId,
                 themeColor = themeColor,
                 onCategorySelected = onCategorySelected,
-                onAddCategoryClick = onAddCategoryClick
+                onManageCategoryClick = onManageCategoryClick
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -398,7 +398,7 @@ fun CategoryGrid(
     selectedCategoryId: String?,
     themeColor: Color,
     onCategorySelected: (CategoryModel) -> Unit,
-    onAddCategoryClick: () -> Unit
+    onManageCategoryClick: () -> Unit
 ) {
     val totalItems = categories.size + 1
     val rows = (totalItems + 3) / 4
@@ -422,7 +422,7 @@ fun CategoryGrid(
             } else {
                 AddCategoryItem(
                     themeColor = themeColor,
-                    onClick = onAddCategoryClick
+                    onClick = onManageCategoryClick
                 )
             }
 
