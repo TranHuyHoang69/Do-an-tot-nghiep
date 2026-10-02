@@ -66,4 +66,8 @@
     <string name="category_transportation">Transportation</string>
     <string name="save_category">Save category</string>
     <string name="create">"Create "</string>
+    <string name="sort_by">Sort by</string>
+    <string name="sort_by_time">Time</string>
+    <string name="sort_by_amount">Amount</string>
+    <string name="history_title">History transaction</string>
 </resources>

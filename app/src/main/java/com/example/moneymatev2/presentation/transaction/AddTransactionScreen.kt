@@ -400,19 +400,22 @@ fun CategoryGrid(
     onCategorySelected: (CategoryModel) -> Unit,
     onManageCategoryClick: () -> Unit
 ) {
-    val totalItems = categories.size + 1
+
+    val displayCategories = categories.take(7)
+    val totalItems = displayCategories.size + 1
     val rows = (totalItems + 3) / 4
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(4),
-        modifier = Modifier.height((rows * 90).dp)
+        modifier = Modifier.height((rows * 120).dp),
+        userScrollEnabled = false
     ) {
         items(
             count = totalItems,
-            key = { index -> if (index < categories.size) categories[index].id else "add_category_title" }
+            key = { index -> if (index < displayCategories.size) displayCategories[index].id else "add_category_title" }
         ){ index ->
-            if(index < categories.size){
-                val category = categories[index]
+            if(index < displayCategories.size){
+                val category = displayCategories[index]
                 CategoryItem(
                     category = category,
                     themeColor = themeColor,

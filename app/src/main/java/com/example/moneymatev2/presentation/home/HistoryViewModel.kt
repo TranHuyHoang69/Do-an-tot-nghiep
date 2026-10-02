@@ -20,22 +20,30 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
+
+enum class DetailSortType { DATE_DESC, AMOUNT_DESC }
 
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val getTransactionWithCategoryUseCase: GetTransactionWithCategoryUseCase
-): ViewModel(){
+) : ViewModel() {
+
     var selectedPeriod by mutableStateOf(
-        savedStateHandle.get<String>(HomeNavKeys.SELECTED_TYPE)
+        savedStateHandle.get<String>(HomeNavKeys.SELECTED_PERIOD) // sửa: đúng key SELECTED_PERIOD
             ?.let { runCatching { HomePeriod.valueOf(it) }.getOrNull() } ?: HomePeriod.DAY
     )
         private set
+
     var anchorDate by mutableStateOf(
         savedStateHandle.get<Long>(HomeNavKeys.ANCHOR_DATE) ?: System.currentTimeMillis()
     )
         private set
+
     var selectedType by mutableStateOf(
         savedStateHandle.get<String>(HomeNavKeys.SELECTED_TYPE)
             ?.let { runCatching { TransactionType.valueOf(it) }.getOrNull() }
@@ -43,57 +51,109 @@ class HistoryViewModel @Inject constructor(
     )
         private set
 
-    private val allTransaction = getTransactionWithCategoryUseCase()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    private val _groupItems = MutableStateFlow<List<GroupedTransaction>>(emptyList())
-    val groupItems: StateFlow<List<GroupedTransaction>> = _groupItems
-
     var customRangeStart by mutableStateOf<Long?>(
         if (selectedPeriod == HomePeriod.CUSTOM) anchorDate else null
     )
         private set
+
     var customRangeEnd by mutableStateOf<Long?>(
         savedStateHandle.get<Long>(HomeNavKeys.CUSTOM_END)?.takeIf { it != -1L }
     )
         private set
 
-    init{
+    var sortType by mutableStateOf(DetailSortType.DATE_DESC)
+        private set
+
+    private val allTransaction = getTransactionWithCategoryUseCase()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    // Đổi tên groupItems -> groupedItems để khớp với HistoryScreen.kt đang gọi.
+    private val _groupedItems = MutableStateFlow<List<GroupedTransaction>>(emptyList())
+    val groupedItems: StateFlow<List<GroupedTransaction>> = _groupedItems
+
+    init {
         viewModelScope.launch {
-            allTransaction.collect {
-                recompute(it)
-            }
+            allTransaction.collect { recompute(it) }
         }
     }
 
     private fun recompute(source: List<TransactionWithCategory>) {
-        val (start, end) = if(selectedPeriod == HomePeriod.CUSTOM){
+        val (start, end) = if (selectedPeriod == HomePeriod.CUSTOM) {
             (customRangeStart ?: anchorDate) to (customRangeEnd ?: (anchorDate + 24 * 60 * 60 * 1000L))
-        }else{
+        } else {
             TimeRangeCalculator.getTimeRange(selectedPeriod, anchorDate)
         }
 
         val inRange = source.filter { it.transaction.createdAt in start until end }
-        _groupItems.value = inRange.groupByCategory(selectedType)
+        val grouped = inRange.groupByCategory(selectedType)
+
+        _groupedItems.value = when (sortType) {
+            DetailSortType.DATE_DESC -> grouped.sortedByDescending { it.latestTransactionAt }
+            DetailSortType.AMOUNT_DESC -> grouped.sortedByDescending { it.totalAmount }
+        }
     }
 
-    fun onPeriodChange(period: HomePeriod){
+    fun onPeriodChange(period: HomePeriod) {
         selectedPeriod = period
         recompute(allTransaction.value)
     }
 
-    fun onTypeChange(type: TransactionType){
+    fun onTypeChange(type: TransactionType) {
         selectedType = type
         recompute(allTransaction.value)
     }
 
-    fun moveTimeRange(delta: Int){
+    fun moveTimeRange(delta: Int) {
         anchorDate = TimeRangeCalculator.moveAnchor(selectedPeriod, anchorDate, delta)
         recompute(allTransaction.value)
     }
 
-    fun getTransactionInGroup(categoryIdentityKey: String): List<TransactionWithCategory>{
+    fun onSortTypeChange(type: DetailSortType) {
+        sortType = type
+        recompute(allTransaction.value)
+    }
+
+    fun setCustomRange(start: Long, end: Long) {
+        selectedPeriod = HomePeriod.CUSTOM
+        customRangeStart = start
+        customRangeEnd = end + 24 * 60 * 60 * 1000L
+        anchorDate = start
+        recompute(allTransaction.value)
+    }
+
+    fun getDisplayTime(): String {
+        if (selectedPeriod == HomePeriod.CUSTOM) {
+            val sdf = SimpleDateFormat("d/M/yyyy", Locale("vi"))
+            val start = customRangeStart ?: anchorDate
+            val end = (customRangeEnd ?: (anchorDate + 24 * 60 * 60 * 1000L)) - 1
+            return "${sdf.format(Date(start))} - ${sdf.format(Date(end))}"
+        }
         val (start, end) = TimeRangeCalculator.getTimeRange(selectedPeriod, anchorDate)
+        return when (selectedPeriod) {
+            HomePeriod.DAY -> SimpleDateFormat("d 'thg' M, yyyy", Locale("vi")).format(Date(anchorDate))
+            HomePeriod.WEEK -> {
+                val sdf = SimpleDateFormat("d/M", Locale("vi"))
+                "${sdf.format(Date(start))} - ${sdf.format(Date(end - 1))}"
+            }
+            HomePeriod.MONTH -> SimpleDateFormat("'Tháng' M, yyyy", Locale("vi")).format(Date(anchorDate))
+            HomePeriod.YEAR -> SimpleDateFormat("yyyy", Locale("vi")).format(Date(anchorDate))
+            else -> "Toàn bộ thời gian"
+        }
+    }
+
+    fun isNextEnabled(): Boolean {
+        if (selectedPeriod == HomePeriod.CUSTOM) return false
+        val (_, end) = TimeRangeCalculator.getTimeRange(selectedPeriod, anchorDate)
+        return end <= System.currentTimeMillis()
+    }
+
+    // Đổi tên getTransactionInGroup -> getTransactionsInGroup để khớp HistoryScreen.kt.
+    fun getTransactionsInGroup(categoryIdentityKey: String): List<TransactionWithCategory> {
+        val (start, end) = if (selectedPeriod == HomePeriod.CUSTOM) {
+            (customRangeStart ?: anchorDate) to (customRangeEnd ?: (anchorDate + 24 * 60 * 60 * 1000L))
+        } else {
+            TimeRangeCalculator.getTimeRange(selectedPeriod, anchorDate)
+        }
         return allTransaction.value.filter {
             it.transaction.type == selectedType &&
                     it.transaction.createdAt in start until end &&

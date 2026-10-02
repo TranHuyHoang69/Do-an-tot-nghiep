@@ -15,6 +15,7 @@ import com.example.moneymatev2.presentation.auth.LoginScreen
 import com.example.moneymatev2.presentation.auth.RegisterScreen
 import com.example.moneymatev2.presentation.category.AddCategoryScreen
 import com.example.moneymatev2.presentation.category.ManagementCategoryScreen
+import com.example.moneymatev2.presentation.home.HistoryScreen
 import com.example.moneymatev2.presentation.home.HomeScreen
 import com.example.moneymatev2.presentation.transaction.AddTransactionScreen
 import com.example.moneymatev2.presentation.transaction.AddTransactionViewmodel
@@ -58,8 +59,9 @@ fun NavGraph(
             HomeScreen(
                 onAddTransaction = { navController.navigate(Screen.AddTransaction.route) },
                 onSeeMoreDetail = { period, anchorDate, type, customEnd ->
-                    navController.navigate(Screen.History.createRoute(period, anchorDate, type, customEnd))
+                    navController.navigate(Screen.History.createRoute(period, anchorDate, type.name, customEnd))
                 },
+                onOpenHistoryIcon = { navController.navigate(Screen.History.createFreshRoute()) },
                 onMenuClick = {}
             )
         }
@@ -109,13 +111,13 @@ fun NavGraph(
         composable(
             route = Screen.History.route,
             arguments = listOf(
-                navArgument(HomeNavKeys.SELECTED_PERIOD) { type = NavType.StringType },
-                navArgument(HomeNavKeys.ANCHOR_DATE) { type = NavType.LongType },
-                navArgument(HomeNavKeys.SELECTED_TYPE) { type = NavType.StringType },
+                navArgument(HomeNavKeys.SELECTED_PERIOD) { type = NavType.StringType; defaultValue = "DAY" },
+                navArgument(HomeNavKeys.ANCHOR_DATE) { type = NavType.LongType; defaultValue = System.currentTimeMillis() },
+                navArgument(HomeNavKeys.SELECTED_TYPE) { type = NavType.StringType; defaultValue = "EXPENSE" },
                 navArgument(HomeNavKeys.CUSTOM_END) { type = NavType.LongType; defaultValue = -1L }
             )
         ) {
-//            HistoryScreen(onBack = { navController.popBackStack() })
+            HistoryScreen(onBack = { navController.popBackStack() })
         }
     }
 }

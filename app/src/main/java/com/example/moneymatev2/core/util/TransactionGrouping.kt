@@ -20,7 +20,8 @@ fun List<TransactionWithCategory>.groupByCategory(type: TransactionType): List<G
                 category = group.first().category!!,
                 totalAmount =  group.sumOf { it.transaction.money.amountMinor },
                 transactionCount = group.size,
-                type = type
+                type = type,
+                latestTransactionAt = group.maxOf { it.transaction.createdAt }
             )
         }
         .sortedByDescending { it.totalAmount }

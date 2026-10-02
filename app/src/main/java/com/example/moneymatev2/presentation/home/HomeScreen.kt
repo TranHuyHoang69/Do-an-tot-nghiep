@@ -2,6 +2,7 @@ package com.example.moneymatev2.presentation.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
@@ -60,6 +62,7 @@ import com.example.moneymatev2.ui.components.MorphingChartSection
 fun HomeScreen(
     onAddTransaction: () -> Unit,
     onSeeMoreDetail: (period: String, anchorDate: Long, type: TransactionType, customEnd: Long) -> Unit,
+    onOpenHistoryIcon: () -> Unit,
     onMenuClick: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
@@ -98,7 +101,8 @@ fun HomeScreen(
             totalBalance = totalBalance,
             currencyUnit = "đ",
             onTabSelected = { viewModel.onTypeChange(it) },
-            onMenuClick = onMenuClick
+            onMenuClick = onMenuClick,
+            onHistoryClick = onOpenHistoryIcon
         )
 
         Column(
@@ -254,7 +258,8 @@ fun HeaderSection(
     totalBalance: Long,
     currencyUnit: String,
     onTabSelected: (TransactionType) -> Unit,
-    onMenuClick: () -> Unit
+    onMenuClick: () -> Unit,
+    onHistoryClick: () -> Unit
 ) {
 
     val formattedBalance = if (totalBalance == 0L) "0" else CurrencyFormatter.formatFull(totalBalance)
@@ -264,14 +269,26 @@ fun HeaderSection(
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 48.dp)
     ) {
-        IconButton(
-            onClick = onMenuClick
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.Menu,
-                contentDescription = "Menu",
-                tint = Color.White
-            )
+            IconButton(onClick = onMenuClick) {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = "Menu",
+                    tint = Color.White
+                )
+            }
+
+            IconButton(onClick = onHistoryClick) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = StringResource(StringRes.history_title),
+                    tint = Color.White
+                )
+            }
         }
 
         Column(
@@ -326,6 +343,5 @@ fun HeaderSection(
             }
         }
     }
-
 }
 

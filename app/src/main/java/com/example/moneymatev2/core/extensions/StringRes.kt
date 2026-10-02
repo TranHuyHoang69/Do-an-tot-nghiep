@@ -61,5 +61,9 @@ object StringRes {
     val category_transportation = R.string.category_transportation
     val save_category = R.string.save_category
     val create = R.string.create
+    val history_title = R.string.history_title
+    val sort_by = R.string.sort_by
+    val sort_by_time = R.string.sort_by_time
+    val sort_by_amount = R.string.sort_by_amount
 
 }

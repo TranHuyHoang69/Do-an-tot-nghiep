@@ -6,5 +6,6 @@ data class GroupedTransaction(
     val category: CategoryModel,
     val totalAmount: Long,
     val transactionCount: Int,
-    val type: TransactionType
+    val type: TransactionType,
+    val latestTransactionAt: Long
 )

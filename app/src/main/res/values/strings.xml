@@ -73,4 +73,10 @@
     <string name="category_transportation">Di chuyển</string>
     <string name="save_category">Lưu danh mục</string>
     <string name="create">"Tạo "</string>
+
+<!--    HistoryScreen-->
+    <string name="sort_by">Sắp xếp</string>
+    <string name="sort_by_time">Theo thời gian</string>
+    <string name="sort_by_amount">Theo số tiền</string>
+    <string name="history_title">Lịch sử giao dịch</string>
 </resources>
