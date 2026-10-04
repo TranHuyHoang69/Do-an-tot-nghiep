@@ -13,6 +13,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.moneymatev2.presentation.auth.LoginScreen
 import com.example.moneymatev2.presentation.auth.RegisterScreen
+import com.example.moneymatev2.presentation.budget.BudgetScreen
 import com.example.moneymatev2.presentation.category.AddCategoryScreen
 import com.example.moneymatev2.presentation.category.ManagementCategoryScreen
 import com.example.moneymatev2.presentation.home.HistoryScreen
@@ -23,7 +24,8 @@ import com.example.moneymatev2.presentation.transaction.AddTransactionViewmodel
 @Composable
 fun NavGraph(
     navController: NavHostController = rememberNavController(),
-    startDestination: String = Screen.Login.route
+    startDestination: String = Screen.Login.route,
+    onOpenDrawer: () -> Unit = {} // mặc định rỗng -- cho tới khi MainActivity cung cấp DrawerState thật
 ) {
     NavHost(
         navController = navController,
@@ -62,13 +64,11 @@ fun NavGraph(
                     navController.navigate(Screen.History.createRoute(period, anchorDate, type.name, customEnd))
                 },
                 onOpenHistoryIcon = { navController.navigate(Screen.History.createFreshRoute()) },
-                onMenuClick = {}
+                onMenuClick = onOpenDrawer // nối thật vào Drawer, thay cho {} rỗng trước đây
             )
         }
 
         composable(Screen.AddTransaction.route) { backStackEntry ->
-            // Scope theo backStackEntry -> ViewModel không bị tạo lại khi CategoryManagement
-            // push lên trên rồi pop về, form đang nhập dở không bị mất.
             val viewModel: AddTransactionViewmodel = hiltViewModel(backStackEntry)
 
             val selectedCategoryId by backStackEntry.savedStateHandle
@@ -118,6 +118,11 @@ fun NavGraph(
             )
         ) {
             HistoryScreen(onBack = { navController.popBackStack() })
+        }
+
+        // Mới thêm: route Budget
+        composable(Screen.Budget.route) {
+            BudgetScreen(onOpenDrawer = onOpenDrawer)
         }
     }
 }

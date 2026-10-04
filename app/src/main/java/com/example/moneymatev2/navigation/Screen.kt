@@ -28,5 +28,11 @@ sealed class Screen(val route: String){
     }
     object AddCategory: Screen("add_category")
     object CategoryManagement: Screen("category_management")
-
+    object Budget : Screen("budget")
+    object Reminder : Screen("reminder")
+    object RecurringTransactions : Screen("recurring_transactions")
+    object Profile : Screen("profile")
+    object Statistics : Screen("statistics")
+    object SecuritySettings : Screen("security_settings")
+    object Customization : Screen("customization")
 }

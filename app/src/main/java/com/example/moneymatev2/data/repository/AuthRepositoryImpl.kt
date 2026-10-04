@@ -1,9 +1,12 @@
 package com.example.moneymatev2.data.repository
 
+import android.content.Context
 import com.example.moneymatev2.domain.model.AppResult
 import com.example.moneymatev2.domain.model.AuthError
 import com.example.moneymatev2.domain.model.UserModel
 import com.example.moneymatev2.domain.repository.AuthRepository
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
@@ -12,14 +15,15 @@ import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
-
 class AuthRepositoryImpl @Inject constructor(
-    private val firebaseAuth: FirebaseAuth
+    private val firebaseAuth: FirebaseAuth,
+    @ApplicationContext private val context: Context
 ): AuthRepository {
     override fun observeAuthState(): Flow<UserModel?> = callbackFlow {
         val listener = FirebaseAuth.AuthStateListener { auth ->
@@ -76,6 +80,13 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun signOut() {
         firebaseAuth.signOut()
+        try {
+            val credentialManager = CredentialManager.create(context)
+            credentialManager.clearCredentialState(ClearCredentialStateRequest())
+        } catch (e: Exception) {
+            // Không chặn luồng đăng xuất nếu bước này lỗi (VD thiết bị cũ không hỗ trợ) --
+            // signOut() vẫn phải thành công ở phần Firebase dù phần này thất bại.
+        }
     }
 
     private fun FirebaseUser.toUserModel(): UserModel {

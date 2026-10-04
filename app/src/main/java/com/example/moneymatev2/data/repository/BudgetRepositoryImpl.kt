@@ -25,7 +25,7 @@ class BudgetRepositoryImpl @Inject constructor(
     private val syncTrigger: SyncTrigger
 ): BudgetRepository {
     override fun getBudgetForMonth(userId: String, month: Int, year: Int): Flow<List<BudgetModel>> =
-        budgetDao.getActiveBudgetsForMonth(userId, month, year).map { budgets ->
+        budgetDao.getActiveBudgetsForMonth(userId = userId, year = year, month = month).map { budgets ->
             budgets.map { it.toModel() }
         }
 

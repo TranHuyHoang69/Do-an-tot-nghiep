@@ -15,11 +15,13 @@ import com.example.moneymatev2.domain.model.categoryIdentityKey
 import com.example.moneymatev2.domain.usecase.transaction.GetTransactionWithCategoryUseCase
 import com.example.moneymatev2.navigation.HomeNavKeys
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -34,7 +36,7 @@ class HistoryViewModel @Inject constructor(
 ) : ViewModel() {
 
     var selectedPeriod by mutableStateOf(
-        savedStateHandle.get<String>(HomeNavKeys.SELECTED_PERIOD) // sửa: đúng key SELECTED_PERIOD
+        savedStateHandle.get<String>(HomeNavKeys.SELECTED_PERIOD)
             ?.let { runCatching { HomePeriod.valueOf(it) }.getOrNull() } ?: HomePeriod.DAY
     )
         private set
@@ -67,50 +69,58 @@ class HistoryViewModel @Inject constructor(
     private val allTransaction = getTransactionWithCategoryUseCase()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    // Đổi tên groupItems -> groupedItems để khớp với HistoryScreen.kt đang gọi.
     private val _groupedItems = MutableStateFlow<List<GroupedTransaction>>(emptyList())
     val groupedItems: StateFlow<List<GroupedTransaction>> = _groupedItems
 
     init {
         viewModelScope.launch {
-            allTransaction.collect { recompute(it) }
+            allTransaction.collect { recompute(it) } // recompute giờ là suspend fun, gọi trực tiếp trong coroutine đang chạy là hợp lệ
         }
     }
 
-    private fun recompute(source: List<TransactionWithCategory>) {
-        val (start, end) = if (selectedPeriod == HomePeriod.CUSTOM) {
-            (customRangeStart ?: anchorDate) to (customRangeEnd ?: (anchorDate + 24 * 60 * 60 * 1000L))
-        } else {
-            TimeRangeCalculator.getTimeRange(selectedPeriod, anchorDate)
-        }
+    // Chuyển thành suspend + withContext(Dispatchers.Default) -> toàn bộ filter/group/sort
+    // chạy trên thread pool nền, không chiếm main thread khi danh sách giao dịch lớn.
+    private suspend fun recompute(source: List<TransactionWithCategory>) {
+        val result = withContext(Dispatchers.Default) {
+            val (start, end) = if (selectedPeriod == HomePeriod.CUSTOM) {
+                (customRangeStart ?: anchorDate) to (customRangeEnd ?: (anchorDate + 24 * 60 * 60 * 1000L))
+            } else {
+                TimeRangeCalculator.getTimeRange(selectedPeriod, anchorDate)
+            }
 
-        val inRange = source.filter { it.transaction.createdAt in start until end }
-        val grouped = inRange.groupByCategory(selectedType)
+            val inRange = source.filter { it.transaction.createdAt in start until end }
+            val grouped = inRange.groupByCategory(selectedType)
 
-        _groupedItems.value = when (sortType) {
-            DetailSortType.DATE_DESC -> grouped.sortedByDescending { it.latestTransactionAt }
-            DetailSortType.AMOUNT_DESC -> grouped.sortedByDescending { it.totalAmount }
+            when (sortType) {
+                DetailSortType.DATE_DESC -> grouped.sortedByDescending { it.latestTransactionAt }
+                DetailSortType.AMOUNT_DESC -> grouped.sortedByDescending { it.totalAmount }
+            }
         }
+        _groupedItems.value = result
     }
+
+    // Các hàm dưới đây gọi recompute() (suspend) -> phải bọc trong viewModelScope.launch
+    // vì onPeriodChange/onTypeChange/... bản thân KHÔNG phải suspend (được gọi trực tiếp từ UI,
+    // Compose callback không chấp nhận suspend fun).
 
     fun onPeriodChange(period: HomePeriod) {
         selectedPeriod = period
-        recompute(allTransaction.value)
+        viewModelScope.launch { recompute(allTransaction.value) }
     }
 
     fun onTypeChange(type: TransactionType) {
         selectedType = type
-        recompute(allTransaction.value)
+        viewModelScope.launch { recompute(allTransaction.value) }
     }
 
     fun moveTimeRange(delta: Int) {
         anchorDate = TimeRangeCalculator.moveAnchor(selectedPeriod, anchorDate, delta)
-        recompute(allTransaction.value)
+        viewModelScope.launch { recompute(allTransaction.value) }
     }
 
     fun onSortTypeChange(type: DetailSortType) {
         sortType = type
-        recompute(allTransaction.value)
+        viewModelScope.launch { recompute(allTransaction.value) }
     }
 
     fun setCustomRange(start: Long, end: Long) {
@@ -118,7 +128,7 @@ class HistoryViewModel @Inject constructor(
         customRangeStart = start
         customRangeEnd = end + 24 * 60 * 60 * 1000L
         anchorDate = start
-        recompute(allTransaction.value)
+        viewModelScope.launch { recompute(allTransaction.value) }
     }
 
     fun getDisplayTime(): String {
@@ -147,7 +157,6 @@ class HistoryViewModel @Inject constructor(
         return end <= System.currentTimeMillis()
     }
 
-    // Đổi tên getTransactionInGroup -> getTransactionsInGroup để khớp HistoryScreen.kt.
     fun getTransactionsInGroup(categoryIdentityKey: String): List<TransactionWithCategory> {
         val (start, end) = if (selectedPeriod == HomePeriod.CUSTOM) {
             (customRangeStart ?: anchorDate) to (customRangeEnd ?: (anchorDate + 24 * 60 * 60 * 1000L))

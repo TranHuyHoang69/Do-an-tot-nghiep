@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.example.moneymatev2.navigation.NavGraph
+import com.example.moneymatev2.presentation.root.AppRoot
 import com.example.moneymatev2.presentation.theme.MoneyMatev2Theme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -15,9 +15,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MoneyMatev2Theme {
-                NavGraph()
+                AppRoot()
             }
         }
     }
 }
-
