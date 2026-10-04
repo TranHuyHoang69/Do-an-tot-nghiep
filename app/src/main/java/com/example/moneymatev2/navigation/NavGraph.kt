@@ -86,18 +86,23 @@ fun NavGraph(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() },
                 onSaved = { navController.popBackStack() },
-                onManageCategoryClick = { navController.navigate(Screen.CategoryManagement.route) }
+                onManageCategoryClick = { navController.navigate(Screen.CategoryManagement.pickRoute()) }
             )
         }
 
-        composable(Screen.CategoryManagement.route) {
+        composable(
+            route = Screen.CategoryManagement.route,
+            arguments = listOf(navArgument("pick") { type = NavType.BoolType; defaultValue = false })
+        ) { backStackEntry ->
+            val isPickMode = backStackEntry.arguments?.getBoolean("pick") ?: false
+
             ManagementCategoryScreen(
                 onBack = { navController.popBackStack() },
                 onAddCategoryClick = { navController.navigate(Screen.AddCategory.route) },
-                onCategoryClick = { category ->
+                onCategoryClick = if (isPickMode) { category ->
                     navController.previousBackStackEntry?.savedStateHandle?.set("selected_category_id", category.id)
                     navController.popBackStack()
-                }
+                } else null // chế độ quản lý -> tap không làm gì, chỉ long-press mới có tác dụng
             )
         }
 

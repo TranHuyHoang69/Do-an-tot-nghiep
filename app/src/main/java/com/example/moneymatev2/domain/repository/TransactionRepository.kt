@@ -21,5 +21,6 @@ interface TransactionRepository {
 
     suspend fun syncPendingTransactions(userId: String)
 
+    suspend fun reassignCategory(userId: String, oldCategoryId: String, newCategoryId: String)
 
 }

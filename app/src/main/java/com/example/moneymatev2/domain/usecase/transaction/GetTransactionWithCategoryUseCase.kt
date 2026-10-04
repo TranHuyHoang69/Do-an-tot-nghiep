@@ -6,6 +6,7 @@ import com.example.moneymatev2.domain.repository.CategoryRepository
 import com.example.moneymatev2.domain.repository.TransactionRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
 
@@ -14,15 +15,22 @@ class GetTransactionWithCategoryUseCase @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val authRepository: AuthRepository
 ) {
-    operator fun invoke(): Flow<List<TransactionWithCategory>>{
-        val userId = authRepository.getCurrentUserId() ?: return flowOf(emptyList())
+    operator fun invoke(): Flow<List<TransactionWithCategory>> {
+        // Thay getCurrentUserId() (snapshot 1 lần) bằng observeAuthState() + flatMapLatest --
+        // mỗi khi auth state đổi (đăng xuất, đăng nhập lại bằng tài khoản khác), toàn bộ
+        // combine() bên trong được HỦY và CHẠY LẠI với userId mới, không cần tạo lại ViewModel.
+        return authRepository.observeAuthState().flatMapLatest { user ->
+            val userId = user?.userId ?: return@flatMapLatest flowOf(emptyList())
 
-        return combine(
-            transactionRepository.getAllTransactions(userId),
-            categoryRepository.getActiveCategories(userId)
-        ){transaction, catogory ->
-            val categoryId = catogory.associateBy { it.id }
-            transaction.sortedByDescending { it.createdAt }.map { tx -> TransactionWithCategory(tx, categoryId[tx.categoryId]) }
+            combine(
+                transactionRepository.getAllTransactions(userId),
+                categoryRepository.getActiveCategories(userId)
+            ) { transactions, categories ->
+                val categoryById = categories.associateBy { it.id }
+                transactions
+                    .sortedByDescending { it.createdAt }
+                    .map { tx -> TransactionWithCategory(tx, categoryById[tx.categoryId]) }
+            }
         }
     }
 }

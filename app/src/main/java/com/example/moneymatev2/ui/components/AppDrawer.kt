@@ -115,9 +115,9 @@ fun AppDrawer(
 
                     DrawerItem(
                         label = "Quản lý danh mục", icon = Icons.AutoMirrored.Filled.List,
-                        selected = currentRoute == Screen.CategoryManagement.route, colors = drawerItemColors,
+                        selected = currentRoute?.startsWith("category_management") == true, colors = drawerItemColors,
                         enabled = true
-                    ) { scope.launch { drawerState.close() }; onNavigate(Screen.CategoryManagement.route) }
+                    ) { scope.launch { drawerState.close() }; onNavigate(Screen.CategoryManagement.manageRoute()) }
 
                     // --- Mục CHƯA build — hiện placeholder, khoá, không điều hướng ---
                     DrawerItem(

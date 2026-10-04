@@ -107,6 +107,11 @@ class TransactionRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun reassignCategory(userId: String, oldCategoryId: String, newCategoryId: String) {
+        dao.reassignCategory(userId, oldCategoryId, newCategoryId, System.currentTimeMillis())
+        syncTrigger.requestImmediateSync()
+    }
+
     private fun TransactionEntity.toModel() = TransactionModel(
         id = localId,
         userId = userId,

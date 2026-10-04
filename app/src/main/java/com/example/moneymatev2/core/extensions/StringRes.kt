@@ -65,5 +65,6 @@ object StringRes {
     val sort_by = R.string.sort_by
     val sort_by_time = R.string.sort_by_time
     val sort_by_amount = R.string.sort_by_amount
-
+    val error_transaction_not_found = R.string.error_transaction_not_found
+    val error_invalid_category_name = R.string.error_invalid_category_name
 }

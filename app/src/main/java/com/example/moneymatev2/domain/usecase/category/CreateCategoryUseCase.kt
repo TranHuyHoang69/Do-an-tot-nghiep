@@ -6,8 +6,7 @@ import com.example.moneymatev2.domain.model.CategoryModel
 import com.example.moneymatev2.domain.model.TransactionError
 import com.example.moneymatev2.domain.repository.AuthRepository
 import com.example.moneymatev2.domain.repository.CategoryRepository
-import jakarta.inject.Inject
-
+import javax.inject.Inject
 class CreateCategoryUseCase @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val authRepository: AuthRepository
@@ -19,10 +18,10 @@ class CreateCategoryUseCase @Inject constructor(
         colorHex: String
     ): AppResult<Unit>{
         val userId = authRepository.getCurrentUserId()
-            ?: return AppResult.Failure(TransactionError.UnknownError("User not authenticated"))
+            ?: return AppResult.Failure(TransactionError.NotAuthenticated)
 
-        if (name.isBlank()){
-            return AppResult.Failure(TransactionError.CategoryNotSelected)
+        if (name.isBlank()) {
+            return AppResult.Failure(TransactionError.InvalidCategoryName)
         }
 
         val category = CategoryModel(

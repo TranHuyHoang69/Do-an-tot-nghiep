@@ -92,4 +92,14 @@ interface TransactionDao{
 
     @Query("DELETE FROM transactions WHERE userId = :userId")
     suspend fun clearAllForUser(userId: String)
+
+    @Query("""
+    UPDATE transactions
+    SET categoryLocalId = :newCategoryId,
+        syncStatus = 'PENDING',
+        pendingOperation = CASE WHEN pendingOperation = 'NONE' THEN 'UPDATE' ELSE pendingOperation END,
+        updatedAt = :updatedAt
+    WHERE categoryLocalId = :oldCategoryId AND userId = :userId
+""")
+    suspend fun reassignCategory(userId: String, oldCategoryId: String, newCategoryId: String, updatedAt: Long)
 }

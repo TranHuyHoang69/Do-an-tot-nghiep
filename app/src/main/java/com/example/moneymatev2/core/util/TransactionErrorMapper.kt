@@ -10,5 +10,6 @@ fun TransactionError.toUiMessage(): String = when (this) {
     TransactionError.InvalidAmount -> StringResource(StringRes.error_invalid_amount)
     TransactionError.CategoryNotSelected -> StringResource(StringRes.error_category_not_selected)
     TransactionError.NotAuthenticated -> StringResource(StringRes.error_not_authenticated)
+    TransactionError.InvalidCategoryName -> StringResource(StringRes.error_invalid_category_name)
     is TransactionError.UnknownError -> StringResource(StringRes.error_unknown)
 }

@@ -27,7 +27,10 @@ sealed class Screen(val route: String){
         )
     }
     object AddCategory: Screen("add_category")
-    object CategoryManagement: Screen("category_management")
+    object CategoryManagement : Screen("category_management?pick={pick}") {
+        fun pickRoute(): String = "category_management?pick=true"
+        fun manageRoute(): String = "category_management?pick=false"
+    }
     object Budget : Screen("budget")
     object Reminder : Screen("reminder")
     object RecurringTransactions : Screen("recurring_transactions")
