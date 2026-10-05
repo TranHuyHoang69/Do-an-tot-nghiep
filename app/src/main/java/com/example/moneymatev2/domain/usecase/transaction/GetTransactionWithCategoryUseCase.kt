@@ -4,10 +4,12 @@ import com.example.moneymatev2.domain.model.TransactionWithCategory
 import com.example.moneymatev2.domain.repository.AuthRepository
 import com.example.moneymatev2.domain.repository.CategoryRepository
 import com.example.moneymatev2.domain.repository.TransactionRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import javax.inject.Inject
 
 class GetTransactionWithCategoryUseCase @Inject constructor(
@@ -31,6 +33,6 @@ class GetTransactionWithCategoryUseCase @Inject constructor(
                     .sortedByDescending { it.createdAt }
                     .map { tx -> TransactionWithCategory(tx, categoryById[tx.categoryId]) }
             }
-        }
+        }.flowOn(Dispatchers.Default)
     }
 }

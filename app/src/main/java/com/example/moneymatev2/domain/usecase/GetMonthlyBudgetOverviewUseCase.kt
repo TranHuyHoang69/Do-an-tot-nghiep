@@ -6,8 +6,10 @@ import com.example.moneymatev2.domain.model.BudgetOverviewModel
 import com.example.moneymatev2.domain.model.Money
 import com.example.moneymatev2.domain.repository.BudgetRepository
 import com.example.moneymatev2.domain.repository.TransactionRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import javax.inject.Inject
 
 class GetMonthlyBudgetOverviewUseCase @Inject constructor(
@@ -55,6 +57,6 @@ class GetMonthlyBudgetOverviewUseCase @Inject constructor(
                 totalSpent = Money(totalSpent, currency),
                 totalRemaining = Money(totalBudget - totalSpent, currency)
             )
-        }
+        }.flowOn(Dispatchers.Default)
     }
 }
