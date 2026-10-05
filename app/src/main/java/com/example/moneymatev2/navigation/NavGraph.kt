@@ -18,6 +18,7 @@ import com.example.moneymatev2.presentation.category.AddCategoryScreen
 import com.example.moneymatev2.presentation.category.ManagementCategoryScreen
 import com.example.moneymatev2.presentation.home.HistoryScreen
 import com.example.moneymatev2.presentation.home.HomeScreen
+import com.example.moneymatev2.presentation.settings.SettingsScreen
 import com.example.moneymatev2.presentation.transaction.AddTransactionScreen
 import com.example.moneymatev2.presentation.transaction.AddTransactionViewmodel
 
@@ -125,9 +126,15 @@ fun NavGraph(
             HistoryScreen(onBack = { navController.popBackStack() })
         }
 
-        // Mới thêm: route Budget
         composable(Screen.Budget.route) {
             BudgetScreen(onOpenDrawer = onOpenDrawer)
+        }
+
+        composable(Screen.Customization.route) {
+            SettingsScreen(
+                navController = navController,
+                onOpenDrawer = { /* ... */ }
+            )
         }
     }
 }

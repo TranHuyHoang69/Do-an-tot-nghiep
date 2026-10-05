@@ -67,4 +67,13 @@ object StringRes {
     val sort_by_amount = R.string.sort_by_amount
     val error_transaction_not_found = R.string.error_transaction_not_found
     val error_invalid_category_name = R.string.error_invalid_category_name
+    val customization_title = R.string.customization_title
+    val lang_vi = R.string.lang_vi
+    val lang_en = R.string.lang_en
+    val app_language = R.string.app_language
+    val theme_light = R.string.theme_light
+    val theme_dark = R.string.theme_dark
+    val theme_system = R.string.theme_system
+    val theme_settings = R.string.theme_settings
+    val current_language = R.string.current_language
 }

@@ -153,8 +153,9 @@ fun AppDrawer(
 
                     DrawerItem(
                         label = "Tuỳ chỉnh", icon = Icons.Default.Settings,
-                        selected = false, colors = drawerItemColors, enabled = false
-                    ) {}
+                        selected = currentRoute == Screen.Customization.route, colors = drawerItemColors,
+                        enabled = true
+                    ) { scope.launch { drawerState.close() }; onNavigate(Screen.Customization.route) }
 
                     Spacer(modifier = Modifier.weight(1f))
 

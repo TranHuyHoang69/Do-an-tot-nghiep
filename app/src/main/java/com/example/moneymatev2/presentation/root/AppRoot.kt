@@ -1,5 +1,6 @@
 package com.example.moneymatev2.presentation.root
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -18,6 +19,8 @@ import androidx.navigation.compose.rememberNavController
 import com.example.moneymatev2.navigation.NavGraph
 import com.example.moneymatev2.navigation.Screen
 import com.example.moneymatev2.presentation.home.HomeViewModel
+import com.example.moneymatev2.presentation.settings.CustomizationViewModel
+import com.example.moneymatev2.presentation.theme.MoneyMatev2Theme
 import com.example.moneymatev2.ui.components.AppDrawer
 import kotlinx.coroutines.launch
 
@@ -37,8 +40,23 @@ fun AppRoot(
             CircularProgressIndicator()
         }
     } else {
-        AppContent()
-    }
+// Đưa MoneyMatev2Theme vào NGAY ĐÂY -- bọc ngoài AppContent, để toàn bộ
+        // Drawer + NavGraph bên trong đều nằm trong cùng 1 theme áp dụng đúng.
+        val customizationViewModel: CustomizationViewModel = hiltViewModel()
+        val uiState by customizationViewModel.uiState.collectAsState()
+
+        val themeMode = (uiState as? com.example.moneymatev2.presentation.settings.CustomizationUiState.Success)
+            ?.preferences?.themeMode ?: "system"
+
+        val darkTheme = when (themeMode) {
+            "light" -> false
+            "dark" -> true
+            else -> isSystemInDarkTheme() // "system" hoặc giá trị lạ -> theo hệ thống
+        }
+
+        MoneyMatev2Theme(darkTheme = darkTheme) {
+            AppContent()
+        }    }
 }
 
 @Composable

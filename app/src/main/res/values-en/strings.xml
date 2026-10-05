@@ -72,4 +72,13 @@
     <string name="sort_by_amount">Amount</string>
     <string name="history_title">History transaction</string>
     <string name="error_transaction_not_found">Transaction not found</string>
+    <string name="customization_title">Customization</string>
+    <string name="app_language">Language</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_system">System</string>
+    <string name="theme_settings">Theme</string>
+    <string name="current_language">Current language</string>
+    <string name="lang_vi">Vietnamese</string>
+    <string name="lang_en">English</string>
 </resources>

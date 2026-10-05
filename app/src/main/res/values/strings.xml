@@ -81,4 +81,15 @@
     <string name="sort_by_time">Theo thời gian</string>
     <string name="sort_by_amount">Theo số tiền</string>
     <string name="history_title">Lịch sử giao dịch</string>
+
+<!--    SettingsScreen-->
+    <string name="customization_title">Tùy chỉnh</string>
+    <string name="app_language">Ngôn ngữ</string>
+    <string name="theme_light">Sáng</string>
+    <string name="theme_dark">Tối</string>
+    <string name="theme_system">Hệ thống</string>
+    <string name="theme_settings">Giao diện</string>
+    <string name="current_language">Ngôn ngữ hiện tại</string>
+    <string name="lang_vi">Tiếng việt</string>
+    <string name="lang_en">Tiếng anh</string>
 </resources>
