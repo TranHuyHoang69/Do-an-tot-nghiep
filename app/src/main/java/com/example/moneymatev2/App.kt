@@ -19,6 +19,7 @@ class App: Application(), Configuration.Provider{
 
     override fun onCreate() {
         super.onCreate()
+        com.example.moneymatev2.core.util.NightModeSync.applySavedModeOnStartup(this)
         SyncScheduler.schedulePeriodicSync(this)
     }
 }

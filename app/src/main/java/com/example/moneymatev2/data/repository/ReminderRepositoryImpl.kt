@@ -79,7 +79,7 @@ class ReminderRepositoryImpl @Inject constructor(
         for (r in pending) {
             try {
                 firestore.collection("users").document(userId)
-                    .collection("reminders").document(r.userId)
+                    .collection("reminders").document(r.localId)
                     .set(r.toDto()).await()
             }catch (e: Exception) {
                 // Handle error, maybe log it or update the local entity with the error

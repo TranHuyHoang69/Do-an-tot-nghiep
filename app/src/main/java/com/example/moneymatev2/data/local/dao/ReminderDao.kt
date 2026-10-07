@@ -14,7 +14,7 @@ interface ReminderDao {
     fun getActiveReminders(userId: String): Flow<List<ReminderEntity>>
 
     @Query("SELECT * FROM reminders WHERE isActive = 1")
-    fun getAllActiveRemindersOnce(): List<ReminderEntity>
+    suspend fun getAllActiveRemindersOnce(): List<ReminderEntity>
 
 
     @Query("SELECT * FROM reminders WHERE localId = :localId LIMIT 1")
@@ -46,7 +46,7 @@ interface ReminderDao {
         remoteUpdatedAt = :remoteUpdatedAt, lastSyncError = NULL, retryCount = 0
         WHERE localId = :localId
     """)
-    suspend fun markSynced(localId: Long, remoteUpdatedAt: Long)
+    suspend fun markSynced(localId: String, remoteUpdatedAt: Long)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertFromRemote(reminders: List<ReminderEntity>)

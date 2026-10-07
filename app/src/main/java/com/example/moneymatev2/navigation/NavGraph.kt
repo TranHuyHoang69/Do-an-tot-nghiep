@@ -18,7 +18,7 @@ import com.example.moneymatev2.presentation.category.AddCategoryScreen
 import com.example.moneymatev2.presentation.category.ManagementCategoryScreen
 import com.example.moneymatev2.presentation.home.HistoryScreen
 import com.example.moneymatev2.presentation.home.HomeScreen
-import com.example.moneymatev2.presentation.settings.SettingsScreen
+import com.example.moneymatev2.presentation.settings.SettingScreen
 import com.example.moneymatev2.presentation.transaction.AddTransactionScreen
 import com.example.moneymatev2.presentation.transaction.AddTransactionViewmodel
 
@@ -131,7 +131,7 @@ fun NavGraph(
         }
 
         composable(Screen.Customization.route) {
-            SettingsScreen(
+            SettingScreen(
                 navController = navController,
                 onOpenDrawer = { /* ... */ }
             )

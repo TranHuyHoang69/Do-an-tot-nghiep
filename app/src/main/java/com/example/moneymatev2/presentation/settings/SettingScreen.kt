@@ -28,7 +28,7 @@ import com.example.moneymatev2.StringRes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(
+fun SettingScreen(
     navController: NavController,
     viewModel: CustomizationViewModel = hiltViewModel(),
     onOpenDrawer: () -> Unit
@@ -108,8 +108,6 @@ fun LanguageSection(
     preferences: UserPreferences,
     onLanguageChange: (String) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-
     val languages = remember {
         listOf<Pair<String, Int>>(
             "vi" to StringRes.lang_vi,
@@ -117,73 +115,58 @@ fun LanguageSection(
         )
     }
 
-    val currentLanguageResId by remember(preferences.language) {
-        derivedStateOf {
-            languages.find { it.first == preferences.language }?.second ?: StringRes.lang_vi
-        }
-    }
-
-    Column(modifier = Modifier.animateContentSize()) {
+    Column {
         Text(
             text = stringResource(StringRes.app_language),
             fontSize = 12.sp,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold
         )
+
         Spacer(modifier = Modifier.height(8.dp))
+
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { expanded = !expanded },
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                languages.forEach { (code, resId) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                if (preferences.language != code) {
+                                    onLanguageChange(code)
+                                }
+                            }
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
-                            text = stringResource(StringRes.current_language),
+                            text = stringResource(resId),
                             color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 16.sp
                         )
-                        Text(
-                            text = stringResource(currentLanguageResId),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 13.sp
-                        )
-                    }
-                }
-                if (expanded) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    languages.forEach { (code, resId) ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onLanguageChange(code); expanded = false }
-                                .padding(vertical = 12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = stringResource(resId),
-                                color = if (preferences.language == code) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
+
+                        RadioButton(
+                            selected = preferences.language == code,
+                            onClick = {
+                                if (preferences.language != code) {
+                                    onLanguageChange(code)
                                 }
+                            },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colorScheme.primary,
+                                unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            if (preferences.language == code) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
+                        )
                     }
                 }
             }
@@ -199,8 +182,7 @@ fun ThemeSection(
     val modes = remember {
         listOf<Pair<String, Int>>(
             "light" to StringRes.theme_light,
-            "dark" to StringRes.theme_dark,
-            "system" to StringRes.theme_system
+            "dark" to StringRes.theme_dark
         )
     }
 

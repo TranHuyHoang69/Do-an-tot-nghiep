@@ -19,7 +19,6 @@ import androidx.navigation.compose.rememberNavController
 import com.example.moneymatev2.navigation.NavGraph
 import com.example.moneymatev2.navigation.Screen
 import com.example.moneymatev2.presentation.home.HomeViewModel
-import com.example.moneymatev2.presentation.settings.CustomizationViewModel
 import com.example.moneymatev2.presentation.theme.MoneyMatev2Theme
 import com.example.moneymatev2.ui.components.AppDrawer
 import kotlinx.coroutines.launch
@@ -29,34 +28,28 @@ fun AppRoot(
     rootViewModel: AppRootViewModel = hiltViewModel()
 ) {
     val authState by rootViewModel.authState.collectAsState()
+    val themeMode by rootViewModel.themeMode.collectAsState()
 
-    // Chỉ dùng authState để chờ Firebase khôi phục session lúc khởi động (tránh Drawer
-    // chớp nhoáng hiện "Khách" rồi lại đổi thành tên user ngay sau đó). Sau khi qua Loading,
-    // Home LUÔN là startDestination -- không rẽ nhánh theo đăng nhập hay chưa, để tránh
-    // việc Compose coi 2 trạng thái là "nhánh khác nhau" và build lại toàn bộ AppContent
-    // (gây nhảy về Login mỗi khi đăng xuất).
-    if (authState is AuthStartupState.Loading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-    } else {
-// Đưa MoneyMatev2Theme vào NGAY ĐÂY -- bọc ngoài AppContent, để toàn bộ
-        // Drawer + NavGraph bên trong đều nằm trong cùng 1 theme áp dụng đúng.
-        val customizationViewModel: CustomizationViewModel = hiltViewModel()
-        val uiState by customizationViewModel.uiState.collectAsState()
 
-        val themeMode = (uiState as? com.example.moneymatev2.presentation.settings.CustomizationUiState.Success)
-            ?.preferences?.themeMode ?: "system"
+    val darkTheme = when (themeMode) {
+        "dark" -> true
+        else -> false
+    }
 
-        val darkTheme = when (themeMode) {
-            "light" -> false
-            "dark" -> true
-            else -> isSystemInDarkTheme() // "system" hoặc giá trị lạ -> theo hệ thống
-        }
-
-        MoneyMatev2Theme(darkTheme = darkTheme) {
+    MoneyMatev2Theme(
+        darkTheme = darkTheme
+    ) {
+        if (authState is AuthStartupState.Loading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
             AppContent()
-        }    }
+        }
+    }
 }
 
 @Composable
@@ -64,7 +57,12 @@ private fun AppContent() {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
-    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+
+    val currentRoute =
+        navController.currentBackStackEntryAsState()
+            .value
+            ?.destination
+            ?.route
 
     val homeViewModel: HomeViewModel = hiltViewModel()
     val totalBalance by homeViewModel.totalBalance.collectAsState()
@@ -76,17 +74,24 @@ private fun AppContent() {
         themeColor = MaterialTheme.colorScheme.primary,
         currentRoute = currentRoute,
         onLogout = {
-            // Đăng xuất -> về lại Home (ở trạng thái khách), KHÔNG về Login.
             navController.navigate(Screen.Home.route) {
-                popUpTo(0) { inclusive = true }
+                popUpTo(0) {
+                    inclusive = true
+                }
             }
         },
-        onNavigate = { route -> navController.navigate(route) }
+        onNavigate = { route ->
+            navController.navigate(route)
+        }
     ) {
         NavGraph(
             navController = navController,
-            startDestination = Screen.Home.route, // luôn luôn là Home
-            onOpenDrawer = { scope.launch { drawerState.open() } }
+            startDestination = Screen.Home.route,
+            onOpenDrawer = {
+                scope.launch {
+                    drawerState.open()
+                }
+            }
         )
     }
 }
