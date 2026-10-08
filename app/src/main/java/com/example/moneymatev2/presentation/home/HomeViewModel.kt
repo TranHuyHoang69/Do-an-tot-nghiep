@@ -134,12 +134,12 @@ class HomeViewModel @Inject constructor(
         }
         val (start, end) = TimeRangeCalculator.getTimeRange(selectedPeriod, anchorDate)
         return when (selectedPeriod) {
-            HomePeriod.DAY -> SimpleDateFormat("d 'thg' M, yyyy", Locale("vi")).format(Date(anchorDate))
+            HomePeriod.DAY -> SimpleDateFormat("d / M / yyyy", Locale("vi")).format(Date(anchorDate))
             HomePeriod.WEEK -> {
                 val sdf = SimpleDateFormat("d/M", Locale("vi"))
                 "${sdf.format(Date(start))} - ${sdf.format(Date(end - 1))}"
             }
-            HomePeriod.MONTH -> SimpleDateFormat("'Tháng' M, yyyy", Locale("vi")).format(Date(anchorDate))
+            HomePeriod.MONTH -> SimpleDateFormat(" M / yyyy", Locale("vi")).format(Date(anchorDate))
             HomePeriod.YEAR -> SimpleDateFormat("yyyy", Locale("vi")).format(Date(anchorDate))
             else -> "Toàn bộ thời gian"
         }

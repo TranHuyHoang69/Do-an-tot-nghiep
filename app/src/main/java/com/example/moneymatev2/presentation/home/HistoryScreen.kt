@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,7 +40,7 @@ import java.util.Locale
 @Composable
 fun HistoryScreen(
     viewModel: HistoryViewModel = hiltViewModel(),
-    onBack: () -> Unit
+    onOpenDrawer: () -> Unit
 ) {
     val groupedItems by viewModel.groupedItems.collectAsState()
 
@@ -104,11 +105,12 @@ fun HistoryScreen(
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     // Đổi onOpenDrawer -> onBack: app không dùng Navigation Drawer,
                     // History là 1 destination độc lập, cần mũi tên quay lại.
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onOpenDrawer) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Menu",
                             tint = MaterialTheme.colorScheme.onPrimaryContainer,
+
                             modifier = Modifier.size(28.dp)
                         )
                     }

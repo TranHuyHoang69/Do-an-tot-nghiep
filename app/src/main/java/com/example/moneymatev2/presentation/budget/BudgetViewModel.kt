@@ -114,7 +114,7 @@ class BudgetViewModel @Inject constructor(
                             isLoading = false,
                             budgets = progressList,
                             categories = categories,
-                            displayMonth = SimpleDateFormat("'Tháng' M, yyyy", Locale("vi")).format(Date(anchor))
+                            displayMonth = SimpleDateFormat(" M / yyyy", Locale("vi")).format(Date(anchor))
                         )
                     }
                 }

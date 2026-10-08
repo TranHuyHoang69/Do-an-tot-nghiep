@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
@@ -42,7 +43,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun ManagementCategoryScreen(
     viewModel: CategoryManagementViewModel = hiltViewModel(),
-    onBack: () -> Unit,
+    onOpenDrawer: () -> Unit,
     onAddCategoryClick: (TransactionType) -> Unit,
     onCategoryClick: ((CategoryModel) -> Unit)? = null // null = chế độ quản lý (long-press xóa), non-null = chế độ chọn
 ) {
@@ -87,10 +88,10 @@ fun ManagementCategoryScreen(
                     .height(56.dp)
             ) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onOpenDrawer) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Menu",
                             tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.size(28.dp)
                         )

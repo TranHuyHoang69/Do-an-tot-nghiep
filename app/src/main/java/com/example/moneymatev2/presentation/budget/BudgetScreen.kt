@@ -26,9 +26,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.moneymatev2.R
 import com.example.moneymatev2.StringRes
 import com.example.moneymatev2.core.util.CurrencyFormatter
 import com.example.moneymatev2.domain.model.CategoryModel
+import com.example.moneymatev2.presentation.theme.StringResource
 
 @Composable
 fun BudgetScreen(
@@ -38,6 +40,11 @@ fun BudgetScreen(
     val state by viewModel.uiState.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<BudgetProgress?>(null) }
+    val budget_delete = StringResource(StringRes.budget_delete)
+    val budget_confirm_delete = StringResource(StringRes.budget_confirm_delete)
+    val budget = StringResource(StringRes.drawer_budget)
+    val delete = StringResource(StringRes.delete)
+    val cancel = StringResource(StringRes.cancel)
 
     if (showAddDialog) {
         BudgetEditorDialog(
@@ -53,9 +60,9 @@ fun BudgetScreen(
     pendingDelete?.let { progress ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text("Xóa ngân sách?") }, // TODO: StringResource
+            title = { Text(budget_delete) },
             text = {
-                Text("Ngân sách ${progress.categoryName} của tháng này sẽ bị xóa.") // TODO: StringResource
+                Text("$budget ${progress.categoryName} $budget_confirm_delete")
             },
             confirmButton = {
                 Button(
@@ -65,12 +72,12 @@ fun BudgetScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Xóa")
+                    Text(delete)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { pendingDelete = null }) {
-                    Text("Hủy")
+                    Text(cancel)
                 }
             }
         )
@@ -160,6 +167,7 @@ fun BudgetScreen(
 
 @Composable
 private fun BudgetHeader(onOpenDrawer: () -> Unit) {
+    val budget = StringResource(StringRes.drawer_budget)
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -184,7 +192,7 @@ private fun BudgetHeader(onOpenDrawer: () -> Unit) {
             }
             Spacer(modifier = Modifier.width(16.dp))
             Text(
-                text = "Ngân sách", // TODO: StringResource
+                text = budget,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.SemiBold
@@ -242,6 +250,11 @@ private fun BudgetSummaryCard(
 ) {
     val remaining = totalBudget - totalSpent
     val isExceeded = remaining < 0
+    val monthlyOverview = StringResource(StringRes.monthly_overview)
+    val total_budget = StringResource(StringRes.total_budget)
+    val budget_dachi = StringResource(StringRes.budget_dachi)
+    val budget_overpaid = StringResource(StringRes.budget_overpaid)
+    val budget_remaining = StringResource(StringRes.budget_remaining)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -251,16 +264,16 @@ private fun BudgetSummaryCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Tổng quan tháng", // TODO: StringResource
+                text = monthlyOverview,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(12.dp))
-            BudgetSummaryRow("Tổng ngân sách", totalBudget, MaterialTheme.colorScheme.primary)
-            BudgetSummaryRow("Đã chi", totalSpent, MaterialTheme.colorScheme.error)
+            BudgetSummaryRow(total_budget, totalBudget, MaterialTheme.colorScheme.primary)
+            BudgetSummaryRow(budget_dachi, totalSpent, MaterialTheme.colorScheme.error)
             BudgetSummaryRow(
-                label = if (isExceeded) "Vượt ngân sách" else "Còn lại",
+                label = if (isExceeded) budget_overpaid else budget_remaining,
                 amount = kotlin.math.abs(remaining),
                 color = if (isExceeded) MaterialTheme.colorScheme.error else Color(0xFF2E7D32)
             )
@@ -304,6 +317,8 @@ private fun BudgetProgressCard(
     val categoryColor = remember(progress.categoryColorHex) {
         runCatching { Color(progress.categoryColorHex.toColorInt()) }.getOrDefault(Color(0xFF4CB080))
     }
+    val overpaid = StringResource(StringRes.overpaid)
+    val left = StringResource(StringRes.left)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -358,9 +373,9 @@ private fun BudgetProgressCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             val remainingText = if (progress.isExceeded) {
-                "Vượt ${CurrencyFormatter.formatCompact(kotlin.math.abs(progress.remainingAmount))}"
+                "$overpaid ${CurrencyFormatter.formatCompact(kotlin.math.abs(progress.remainingAmount))}"
             } else {
-                "Còn lại ${CurrencyFormatter.formatCompact(progress.remainingAmount)}"
+                "$left ${CurrencyFormatter.formatCompact(progress.remainingAmount)}"
             }
             Text(
                 text = "${(progress.progress * 100).toInt()}% - $remainingText",
@@ -374,6 +389,8 @@ private fun BudgetProgressCard(
 
 @Composable
 private fun EmptyBudgetState() {
+    val no_budget_yet = StringResource(StringRes.no_budget_yet)
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -381,7 +398,7 @@ private fun EmptyBudgetState() {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "Chưa có ngân sách nào cho tháng này", // TODO: StringResource
+            text = no_budget_yet,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 15.sp
         )
@@ -396,13 +413,18 @@ private fun BudgetEditorDialog(
 ) {
     var selectedCategory by remember(categories) { mutableStateOf(categories.firstOrNull()) }
     var amountText by remember { mutableStateOf("") }
-
+    val add_budget = StringResource(StringRes.add_budget)
+    val amount_budget = StringResource(StringRes.amount_budget)
+    val budget_slg = StringResource(StringRes.budget_slg)
+    val budget = StringResource(StringRes.drawer_budget)
+    val save = StringResource(StringRes.save)
+    val cancel = StringResource(StringRes.cancel)
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
         title = {
             Text(
-                text = "Thêm ngân sách", // TODO: StringResource
+                text = add_budget,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -412,7 +434,7 @@ private fun BudgetEditorDialog(
                 OutlinedTextField(
                     value = amountText,
                     onValueChange = { amountText = it.filter { char -> char.isDigit() } },
-                    label = { Text("Số tiền ngân sách") },
+                    label = { Text(amount_budget) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
@@ -420,13 +442,13 @@ private fun BudgetEditorDialog(
 
                 if (categories.isEmpty()) {
                     Text(
-                        text = "Chưa có danh mục Chi tiêu nào. Tạo danh mục trước khi đặt ngân sách.",
+                        text = budget_slg,
                         color = MaterialTheme.colorScheme.error,
                         fontSize = 13.sp
                     )
                 } else {
                     Text(
-                        text = "Danh mục",
+                        text = budget,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -458,12 +480,12 @@ private fun BudgetEditorDialog(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
-                Text("Lưu")
+                Text(save)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Hủy")
+                Text(cancel)
             }
         }
     )

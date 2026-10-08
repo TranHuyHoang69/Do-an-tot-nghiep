@@ -19,8 +19,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.moneymatev2.StringRes
 import com.example.moneymatev2.core.util.CurrencyFormatter
 import com.example.moneymatev2.navigation.Screen
+import com.example.moneymatev2.presentation.theme.StringResource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -38,6 +40,22 @@ fun AppDrawer(
 ) {
     val user by viewModel.currentUser.collectAsState()
     val isLoggedIn = user != null
+
+    val home = StringResource(StringRes.drawer_home)
+    val history = StringResource(StringRes.drawer_history)
+    val categoryManagement = StringResource(StringRes.drawer_manage_categories)
+    val settings = StringResource(StringRes.drawer_settings)
+    val logout = StringResource(StringRes.drawer_logout)
+    val budget = StringResource(StringRes.drawer_budget)
+    val reminders = StringResource(StringRes.drawer_reminders)
+    val statistics = StringResource(StringRes.drawer_statistics)
+    val profile = StringResource(StringRes.drawer_profile)
+    val security = StringResource(StringRes.drawer_security)
+    val recurringTransactions = StringResource(StringRes.drawer_recurring_transactions)
+    val customization = StringResource(StringRes.drawer_customization)
+    val login = StringResource(StringRes.login)
+    val guestMode = StringResource(StringRes.drawer_guest_mode)
+    val notLogin = StringResource(StringRes.drawer_not_login)
 
     val drawerItemColors = NavigationDrawerItemDefaults.colors(
         selectedContainerColor = themeColor.copy(alpha = 0.15f),
@@ -71,13 +89,13 @@ fun AppDrawer(
                             modifier = Modifier.size(64.dp).background(themeColor.copy(0.15f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            // TODO: xác nhận đúng tên field hiển thị tên user trên UserModel (đang giả định displayName)
+
                             val initial = if (isLoggedIn) user?.displayName?.take(1) ?: "U" else "?"
                             Text(initial, fontWeight = FontWeight.Bold, color = themeColor, fontSize = 24.sp)
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = if (isLoggedIn) user?.displayName ?: "..." else "Chế độ khách", // TODO: StringResource
+                            text = if (isLoggedIn) user?.displayName ?: "..." else guestMode,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -90,7 +108,7 @@ fun AppDrawer(
                             )
                         } else {
                             Text(
-                                text = "Chưa đăng nhập", // TODO: StringResource
+                                text = notLogin,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -100,59 +118,59 @@ fun AppDrawer(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // --- Mục ĐÃ build, điều hướng thật ---
+
                     DrawerItem(
-                        label = "Trang chủ", icon = Icons.Default.Home,
+                        label = home, icon = Icons.Default.Home,
                         selected = currentRoute == Screen.Home.route, colors = drawerItemColors,
                         enabled = true
                     ) { scope.launch { drawerState.close() }; onNavigate(Screen.Home.route) }
 
                     DrawerItem(
-                        label = "Lịch sử", icon = Icons.Default.History,
+                        label = history, icon = Icons.Default.History,
                         selected = currentRoute?.startsWith("history") == true, colors = drawerItemColors,
                         enabled = true
                     ) { scope.launch { drawerState.close() }; onNavigate(Screen.History.createFreshRoute()) }
 
                     DrawerItem(
-                        label = "Quản lý danh mục", icon = Icons.AutoMirrored.Filled.List,
+                        label = categoryManagement, icon = Icons.AutoMirrored.Filled.List,
                         selected = currentRoute?.startsWith("category_management") == true, colors = drawerItemColors,
                         enabled = true
                     ) { scope.launch { drawerState.close() }; onNavigate(Screen.CategoryManagement.manageRoute()) }
 
                     // --- Mục CHƯA build — hiện placeholder, khoá, không điều hướng ---
                     DrawerItem(
-                        label = "Ngân sách", icon = Icons.Default.AccountBalanceWallet,
+                        label = budget, icon = Icons.Default.AccountBalanceWallet,
                         selected = currentRoute == Screen.Budget.route, colors = drawerItemColors,
                         enabled = true
                     ) { scope.launch { drawerState.close() }; onNavigate(Screen.Budget.route) }
 
                     DrawerItem(
-                        label = "Nhắc nhở", icon = Icons.Default.Update,
+                        label = reminders, icon = Icons.Default.Update,
                         selected = false, colors = drawerItemColors, enabled = false
                     ) {}
 
                     DrawerItem(
-                        label = "Giao dịch định kỳ", icon = Icons.Default.Repeat,
+                        label = recurringTransactions, icon = Icons.Default.Repeat,
                         selected = false, colors = drawerItemColors, enabled = false
                     ) {}
 
                     DrawerItem(
-                        label = "Thông tin cá nhân", icon = Icons.Default.Person,
+                        label = profile, icon = Icons.Default.Person,
                         selected = false, colors = drawerItemColors, enabled = false
                     ) {}
 
                     DrawerItem(
-                        label = "Thống kê", icon = Icons.Default.BarChart,
+                        label = statistics, icon = Icons.Default.BarChart,
                         selected = false, colors = drawerItemColors, enabled = false
                     ) {}
 
                     DrawerItem(
-                        label = "Bảo mật", icon = Icons.Default.Lock,
+                        label = security, icon = Icons.Default.Lock,
                         selected = false, colors = drawerItemColors, enabled = false
                     ) {}
 
                     DrawerItem(
-                        label = "Tuỳ chỉnh", icon = Icons.Default.Settings,
+                        label = customization, icon = Icons.Default.Settings,
                         selected = currentRoute == Screen.Customization.route, colors = drawerItemColors,
                         enabled = true
                     ) { scope.launch { drawerState.close() }; onNavigate(Screen.Customization.route) }
@@ -161,7 +179,7 @@ fun AppDrawer(
 
                     if (isLoggedIn) {
                         NavigationDrawerItem(
-                            label = { Text(text = "Đăng xuất") }, // TODO: StringResource
+                            label = { Text(text = logout) },
                             selected = false,
                             icon = { Icon(Icons.AutoMirrored.Filled.Logout, null) },
                             onClick = {
@@ -178,7 +196,7 @@ fun AppDrawer(
                     } else {
                         Column(modifier = Modifier.padding(16.dp)) {
                             NavigationDrawerItem(
-                                label = { Text(text = "Đăng nhập") }, // TODO: StringResource
+                                label = { Text(text = login) },
                                 selected = false,
                                 colors = NavigationDrawerItemDefaults.colors(
                                     unselectedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -211,7 +229,7 @@ private fun DrawerItem(
     NavigationDrawerItem(
         label = {
             Text(
-                text = if (enabled) label else "$label (Sắp ra mắt)", // TODO: StringResource
+                text = if (enabled) label else "$label ",
                 color = if (enabled) Color.Unspecified else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
             )
         },

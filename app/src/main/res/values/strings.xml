@@ -92,4 +92,37 @@
     <string name="current_language">Ngôn ngữ hiện tại</string>
     <string name="lang_vi">Tiếng việt</string>
     <string name="lang_en">Tiếng anh</string>
+    
+<!--    Drawer-->
+    <string name="drawer_home">Trang chủ</string>
+    <string name="drawer_history">Lịch sử</string>
+    <string name="drawer_settings">Cài đặt</string>
+    <string name="drawer_logout">Đăng xuất</string>
+    <string name="drawer_manage_categories">Quản lý danh mục</string>
+    <string name="drawer_budget">Ngân sách</string>
+    <string name="drawer_reminders">Nhắc nhở</string>
+    <string name="drawer_statistics">Thống kê</string>
+    <string name="drawer_profile">Hồ sơ</string>
+    <string name="drawer_security">Bảo mật</string>
+    <string name="drawer_recurring_transactions">Giao dịch định kỳ</string>
+    <string name="drawer_customization">Tùy chỉnh</string>
+    <string name="drawer_guest_mode">Chế độ khách</string>
+    <string name="drawer_not_login">Chưa đăng nhập</string>
+    
+<!--    BudgetScreen-->
+    <string name="budget_delete">Xóa ngân sách</string>
+    <string name="budget_confirm_delete">của tháng này sẽ bị xóa</string>
+    <string name="monthly_overview">Tổng quan hàng tháng</string>
+    <string name="no_budget_yet">Chưa có ngân sách nào cho tháng này</string>
+    <string name="add_budget">Thêm ngân sách</string>
+    <string name="amount_budget">Số tiền ngân sách</string>
+    <string name="budget_slg">Chưa có danh mục Chi tiêu nào. Tạo danh mục trước khi đặt ngân sách.</string>
+    <string name="save">Lưu</string>
+    <string name="total_budget">Tổng ngân sách</string>
+    <string name="budget_dachi">Đã chi</string>
+    <string name="budget_overpaid">Vượt ngân sách</string>
+    <string name="budget_remaining">Còn lại</string>
+    <string name="overpaid">Vượt</string>
+    <string name="left">Còn</string>
+    <string name="delete">Xoá</string>
 </resources>

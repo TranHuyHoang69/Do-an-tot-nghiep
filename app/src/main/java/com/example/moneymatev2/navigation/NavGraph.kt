@@ -98,7 +98,7 @@ fun NavGraph(
             val isPickMode = backStackEntry.arguments?.getBoolean("pick") ?: false
 
             ManagementCategoryScreen(
-                onBack = { navController.popBackStack() },
+                onOpenDrawer = onOpenDrawer,
                 onAddCategoryClick = { navController.navigate(Screen.AddCategory.route) },
                 onCategoryClick = if (isPickMode) { category ->
                     navController.previousBackStackEntry?.savedStateHandle?.set("selected_category_id", category.id)
@@ -123,7 +123,7 @@ fun NavGraph(
                 navArgument(HomeNavKeys.CUSTOM_END) { type = NavType.LongType; defaultValue = -1L }
             )
         ) {
-            HistoryScreen(onBack = { navController.popBackStack() })
+            HistoryScreen(onOpenDrawer = onOpenDrawer)
         }
 
         composable(Screen.Budget.route) {
@@ -133,7 +133,7 @@ fun NavGraph(
         composable(Screen.Customization.route) {
             SettingScreen(
                 navController = navController,
-                onOpenDrawer = { /* ... */ }
+                onOpenDrawer = onOpenDrawer
             )
         }
     }
