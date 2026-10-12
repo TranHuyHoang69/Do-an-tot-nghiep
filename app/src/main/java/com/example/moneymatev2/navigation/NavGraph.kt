@@ -140,9 +140,7 @@ fun NavGraph(
 
         composable(Screen.Reminder.route) {
             ReminderScreen(
-                onOpenDrawer = {
-                    navController.popBackStack()
-                }
+                onOpenDrawer = onOpenDrawer
             )
         }
     }

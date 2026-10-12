@@ -7,6 +7,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.example.moneymatev2.data.reminder.ReminderNotificationManager
 import com.example.moneymatev2.presentation.root.AppRoot
 import dagger.hilt.android.AndroidEntryPoint
@@ -34,6 +36,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(
             savedInstanceState
         )
+
+        hideNavigationBar()
 
         /*
          * Trường hợp app chưa chạy.
@@ -111,5 +115,20 @@ class MainActivity : AppCompatActivity() {
             ReminderNotificationManager
                 .EXTRA_REMINDER_ID
         )
+    }
+
+    private fun hideNavigationBar() {
+        val controller = WindowInsetsControllerCompat(
+            window,
+            window.decorView
+        )
+
+        controller.hide(
+            WindowInsetsCompat.Type.navigationBars()
+        )
+
+        controller.systemBarsBehavior =
+            WindowInsetsControllerCompat
+                .BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
     }
 }

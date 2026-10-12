@@ -383,6 +383,43 @@ class ReminderViewModel @Inject constructor(
         }
     }
 
+    fun deleteReminders(
+        reminderIds: Collection<String>
+    ) {
+        if (reminderIds.isEmpty()) {
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                reminderIds.forEach { reminderId ->
+                    deleteReminderUseCase(
+                        reminderId = reminderId
+                    )
+                }
+
+                /*
+                 * Chỉ gửi 1 event sau khi toàn bộ
+                 * reminder được xử lý xong.
+                 *
+                 * Tránh việc xóa 5 reminder
+                 * lại hiện 5 Snackbar.
+                 */
+                _events.send(
+                    ReminderEvent.Deleted
+                )
+
+            } catch (e: Exception) {
+                _events.send(
+                    ReminderEvent.Error(
+                        e.message
+                            ?: "Unable to delete reminders"
+                    )
+                )
+            }
+        }
+    }
+
     private fun buildTriggerAt(
         state: ReminderFormState
     ): Long {

@@ -147,4 +147,5 @@ object StringRes {
     val reminder_open_settings = R.string.reminder_open_settings
 
     val reminder_later = R.string.reminder_later
+    val reminder_selected_count = R.string.reminder_selected_count
 }

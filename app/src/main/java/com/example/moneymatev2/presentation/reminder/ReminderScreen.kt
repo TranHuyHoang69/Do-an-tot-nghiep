@@ -10,7 +10,9 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,20 +22,26 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -43,12 +51,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -57,9 +67,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -90,9 +103,13 @@ fun ReminderScreen(
         mutableStateOf(false)
     }
 
-    var reminderToDelete by remember {
-        mutableStateOf<ReminderModel?>(null)
-    }
+    val selectedReminderIds =
+        remember {
+            mutableStateListOf<String>()
+        }
+
+    val isSelectionMode =
+        selectedReminderIds.isNotEmpty()
 
     val snackbarHostState =
         remember {
@@ -271,6 +288,28 @@ fun ReminderScreen(
         }
     }
 
+    fun toggleReminderSelection(
+        reminderId: String
+    ) {
+        if (
+            selectedReminderIds.contains(
+                reminderId
+            )
+        ) {
+            selectedReminderIds.remove(
+                reminderId
+            )
+        } else {
+            selectedReminderIds.add(
+                reminderId
+            )
+        }
+    }
+
+    fun clearReminderSelection() {
+        selectedReminderIds.clear()
+    }
+
     /*
      * ---------------------------------------------------------
      * One-shot events từ ViewModel
@@ -296,6 +335,9 @@ fun ReminderScreen(
                 }
 
                 ReminderEvent.Deleted -> {
+
+                    clearReminderSelection()
+
                     scope.launch {
                         snackbarHostState.showSnackbar(
                             deletedMessage
@@ -468,18 +510,12 @@ fun ReminderScreen(
 
             if (
                 uiState !is
-                        ReminderUiState.NotAuthenticated
+                        ReminderUiState.NotAuthenticated &&
+                !isSelectionMode
             ) {
                 FloatingActionButton(
                     onClick = {
 
-                        /*
-                         * Android < 12:
-                         * không cần special exact alarm access.
-                         *
-                         * Android >= 12:
-                         * kiểm tra quyền trước.
-                         */
                         if (
                             canScheduleExactAlarm()
                         ) {
@@ -489,24 +525,20 @@ fun ReminderScreen(
                                 true
                         }
                     },
-
                     containerColor =
                         MaterialTheme
                             .colorScheme
                             .primaryContainer,
-
                     contentColor =
                         MaterialTheme
                             .colorScheme
                             .onPrimaryContainer,
-
                     shape =
                         CircleShape
                 ) {
                     Icon(
                         imageVector =
                             Icons.Default.Add,
-
                         contentDescription =
                             stringResource(
                                 StringRes.add_reminder
@@ -514,8 +546,7 @@ fun ReminderScreen(
                     )
                 }
             }
-        }
-    ) { innerPadding ->
+        }    ) { innerPadding ->
 
         Column(
             modifier = Modifier
@@ -526,8 +557,26 @@ fun ReminderScreen(
         ) {
 
             ReminderHeader(
+                selectionCount =
+                    selectedReminderIds.size,
+
                 onOpenDrawer =
-                    onOpenDrawer
+                    onOpenDrawer,
+
+                onCancelSelection = {
+                    clearReminderSelection()
+                },
+
+                onDeleteSelection = {
+
+                    val idsToDelete =
+                        selectedReminderIds.toList()
+
+                    viewModel.deleteReminders(
+                        reminderIds =
+                            idsToDelete
+                    )
+                }
             )
 
             when (
@@ -583,69 +632,57 @@ fun ReminderScreen(
                     } else {
 
                         LazyColumn(
-                            modifier =
-                                Modifier.fillMaxSize(),
+                            modifier = Modifier.fillMaxSize(),
 
-                            contentPadding =
-                                PaddingValues(
-                                    start = 16.dp,
-                                    end = 16.dp,
-                                    top = 20.dp,
-                                    bottom = 100.dp
-                                ),
+                            contentPadding = PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                top = 16.dp,
+                                bottom = 96.dp
+                            ),
 
-                            verticalArrangement =
-                                Arrangement.spacedBy(
-                                    12.dp
-                                )
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
 
-                            items(
-                                items =
-                                    state.reminders,
 
-                                key = {
-                                    it.id
-                                }
+                            items(
+                                items = state.reminders,
+                                key = { it.id }
                             ) { reminder ->
 
                                 ReminderItem(
-                                    reminder =
-                                        reminder,
+                                    reminder = reminder,
+
+                                    isSelectionMode = isSelectionMode,
+
+                                    isSelected = selectedReminderIds.contains(reminder.id),
 
                                     onClick = {
-
-                                        /*
-                                         * Load dữ liệu reminder
-                                         * vào form edit.
-                                         */
-                                        viewModel.startEdit(
-                                            reminder.id
-                                        )
-
-                                        showEditor =
-                                            true
+                                        if (isSelectionMode) {
+                                            toggleReminderSelection(reminder.id)
+                                        } else {
+                                            viewModel.startEdit(reminder.id)
+                                            showEditor = true
+                                        }
                                     },
 
-                                    onActiveChange = {
-                                            isActive ->
+                                    onLongClick = {
+                                        if (!selectedReminderIds.contains(reminder.id)) {
+                                            selectedReminderIds.add(reminder.id)
+                                        }
+                                    },
 
-                                        viewModel
-                                            .toggleReminder(
-                                                reminderId =
-                                                    reminder.id,
-
-                                                isActive =
-                                                    isActive
+                                    onActiveChange = { isActive ->
+                                        if (!isSelectionMode) {
+                                            viewModel.toggleReminder(
+                                                reminderId = reminder.id,
+                                                isActive = isActive
                                             )
-                                    },
-
-                                    onDeleteClick = {
-                                        reminderToDelete =
-                                            reminder
+                                        }
                                     }
                                 )
                             }
+
                         }
                     }
                 }
@@ -653,84 +690,6 @@ fun ReminderScreen(
         }
     }
 
-    /*
-     * ---------------------------------------------------------
-     * Delete confirmation
-     * ---------------------------------------------------------
-     */
-
-    reminderToDelete?.let {
-            reminder ->
-
-        AlertDialog(
-            onDismissRequest = {
-                reminderToDelete =
-                    null
-            },
-
-            title = {
-                Text(
-                    text =
-                        stringResource(
-                            StringRes.delete_reminder_title
-                        )
-                )
-            },
-
-            text = {
-                Text(
-                    text =
-                        stringResource(
-                            StringRes.delete_reminder_message,
-                            reminder.title
-                        )
-                )
-            },
-
-            confirmButton = {
-                TextButton(
-                    onClick = {
-
-                        viewModel
-                            .deleteReminder(
-                                reminder.id
-                            )
-
-                        reminderToDelete =
-                            null
-                    }
-                ) {
-                    Text(
-                        text =
-                            stringResource(
-                                StringRes.delete
-                            ),
-
-                        color =
-                            MaterialTheme
-                                .colorScheme
-                                .error
-                    )
-                }
-            },
-
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        reminderToDelete =
-                            null
-                    }
-                ) {
-                    Text(
-                        text =
-                            stringResource(
-                                StringRes.cancel
-                            )
-                    )
-                }
-            }
-        )
-    }
 }
 
 /*
@@ -741,8 +700,14 @@ fun ReminderScreen(
 
 @Composable
 private fun ReminderHeader(
-    onOpenDrawer: () -> Unit
+    selectionCount: Int,
+    onOpenDrawer: () -> Unit,
+    onCancelSelection: () -> Unit,
+    onDeleteSelection: () -> Unit
 ) {
+    val isSelectionMode =
+        selectionCount > 0
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -751,14 +716,10 @@ private fun ReminderHeader(
                     MaterialTheme
                         .colorScheme
                         .primaryContainer,
-
                 shape =
                     RoundedCornerShape(
-                        bottomStart =
-                            32.dp,
-
-                        bottomEnd =
-                            32.dp
+                        bottomStart = 32.dp,
+                        bottomEnd = 32.dp
                     )
             )
             .padding(
@@ -767,289 +728,61 @@ private fun ReminderHeader(
             )
     ) {
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-
-            verticalAlignment =
-                Alignment.CenterVertically
-        ) {
-
-            IconButton(
-                onClick =
-                    onOpenDrawer
-            ) {
-                Icon(
-                    imageVector =
-                        Icons.Default.Menu,
-
-                    contentDescription =
-                        stringResource(
-                            StringRes.back
-                        ),
-
-                    tint =
-                        MaterialTheme
-                            .colorScheme
-                            .onPrimaryContainer,
-
-                    modifier =
-                        Modifier.size(
-                            28.dp
-                        )
-                )
-            }
-
-            Spacer(
-                modifier =
-                    Modifier.size(
-                        12.dp
-                    )
-            )
-
-            Text(
-                text =
-                    stringResource(
-                        StringRes.reminder_title
-                    ),
-
-                color =
-                    MaterialTheme
-                        .colorScheme
-                        .onPrimaryContainer,
-
-                fontSize =
-                    24.sp,
-
-                fontWeight =
-                    FontWeight.SemiBold
-            )
-        }
-    }
-}
-
-/*
- * =============================================================
- * REMINDER ITEM
- * =============================================================
- */
-
-@Composable
-private fun ReminderItem(
-    reminder: ReminderModel,
-    onClick: () -> Unit,
-    onActiveChange: (Boolean) -> Unit,
-    onDeleteClick: () -> Unit
-) {
-
-    val formattedDate =
-        remember(
-            reminder.triggerAt
-        ) {
-            DateFormat
-                .getDateTimeInstance(
-                    DateFormat.MEDIUM,
-                    DateFormat.SHORT
-                )
-                .format(
-                    Date(
-                        reminder.triggerAt
-                    )
-                )
-        }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .alpha(
-                if (
-                    reminder.isActive
-                ) {
-                    1f
-                } else {
-                    0.6f
-                }
-            ),
-
-        shape =
-            RoundedCornerShape(
-                18.dp
-            ),
-
-        colors =
-            CardDefaults
-                .cardColors(
-                    containerColor =
-                        MaterialTheme
-                            .colorScheme
-                            .surface
-                ),
-
-        elevation =
-            CardDefaults
-                .cardElevation(
-                    defaultElevation =
-                        1.dp
-                ),
-
-        onClick =
-            onClick
-    ) {
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    16.dp
-                )
-        ) {
+        if (isSelectionMode) {
 
             Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
 
                 verticalAlignment =
                     Alignment.CenterVertically
             ) {
 
-                Box(
-                    modifier =
-                        Modifier.size(
-                            44.dp
-                        ),
-
-                    contentAlignment =
-                        Alignment.Center
+                TextButton(
+                    onClick =
+                        onCancelSelection
                 ) {
-                    Icon(
-                        imageVector =
-                            Icons.Default
-                                .Notifications,
-
-                        contentDescription =
-                            null,
-
-                        tint =
-                            MaterialTheme
-                                .colorScheme
-                                .primary
-                    )
-                }
-
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(
-                            horizontal =
-                                12.dp
-                        )
-                ) {
-
-                    Text(
-                        text =
-                            reminder.title,
-
-                        fontSize =
-                            16.sp,
-
-                        fontWeight =
-                            FontWeight
-                                .SemiBold,
-
-                        color =
-                            MaterialTheme
-                                .colorScheme
-                                .onSurface
-                    )
-
-                    Spacer(
-                        modifier =
-                            Modifier.height(
-                                4.dp
-                            )
-                    )
-
-                    Text(
-                        text =
-                            formattedDate,
-
-                        fontSize =
-                            13.sp,
-
-                        color =
-                            MaterialTheme
-                                .colorScheme
-                                .onSurfaceVariant
-                    )
-
                     Text(
                         text =
                             stringResource(
-                                repeatLabelRes(
-                                    reminder
-                                        .repeatRule
-                                )
+                                StringRes.cancel
                             ),
-
-                        fontSize =
-                            13.sp,
-
                         color =
                             MaterialTheme
                                 .colorScheme
-                                .primary
+                                .onPrimaryContainer,
+                        fontSize =
+                            17.sp
                     )
                 }
 
-                Switch(
-                    checked =
-                        reminder.isActive,
-
-                    onCheckedChange =
-                        onActiveChange
-                )
-            }
-
-            if (
-                !reminder.note
-                    .isNullOrBlank()
-            ) {
-
-                Spacer(
-                    modifier =
-                        Modifier.height(
-                            10.dp
-                        )
-                )
-
                 Text(
                     text =
-                        reminder.note,
+                        stringResource(
+                            StringRes.reminder_selected_count,
+                            selectionCount
+                        ),
 
-                    fontSize =
-                        14.sp,
+                    modifier =
+                        Modifier.weight(1f),
 
                     color =
                         MaterialTheme
                             .colorScheme
-                            .onSurfaceVariant
+                            .onPrimaryContainer,
+
+                    fontSize =
+                        22.sp,
+
+                    fontWeight =
+                        FontWeight.SemiBold
                 )
-            }
-
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                horizontalArrangement =
-                    Arrangement.End
-            ) {
 
                 IconButton(
                     onClick =
-                        onDeleteClick
+                        onDeleteSelection
                 ) {
-
                     Icon(
                         imageVector =
                             Icons.Default.Delete,
@@ -1066,9 +799,263 @@ private fun ReminderItem(
                     )
                 }
             }
+
+        } else {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                IconButton(
+                    onClick =
+                        onOpenDrawer
+                ) {
+                    Icon(
+                        imageVector =
+                            Icons.Default.Menu,
+
+                        contentDescription =
+                            stringResource(
+                                StringRes.reminder_title
+                            ),
+
+                        tint =
+                            MaterialTheme
+                                .colorScheme
+                                .onPrimaryContainer,
+
+                        modifier =
+                            Modifier.size(
+                                28.dp
+                            )
+                    )
+                }
+
+                Spacer(
+                    modifier =
+                        Modifier.size(
+                            12.dp
+                        )
+                )
+
+                Text(
+                    text =
+                        stringResource(
+                            StringRes.reminder_title
+                        ),
+
+                    color =
+                        MaterialTheme
+                            .colorScheme
+                            .onPrimaryContainer,
+
+                    fontSize =
+                        24.sp,
+
+                    fontWeight =
+                        FontWeight.SemiBold
+                )
+            }
         }
     }
 }
+/*
+ * =============================================================
+ * REMINDER ITEM
+ * =============================================================
+ */
+
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ReminderItem(
+    reminder: ReminderModel,
+    isSelectionMode: Boolean,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    onActiveChange: (Boolean) -> Unit
+) {
+    val formattedDate = remember(reminder.triggerAt) {
+        DateFormat.getDateTimeInstance(
+            DateFormat.MEDIUM,
+            DateFormat.SHORT
+        ).format(Date(reminder.triggerAt))
+    }
+
+    val colorScheme = MaterialTheme.colorScheme
+
+    // Màu bám theo theme của ứng dụng.
+    // Khi chọn, card chuyển sang tông xanh như ảnh mẫu.
+    val cardColor = when {
+        isSelected ->
+            if (colorScheme.background.luminance() < 0.5f) {
+                Color(0xFF164735)
+            } else {
+                colorScheme.primaryContainer
+            }
+
+        else -> colorScheme.surfaceContainerHigh
+    }
+
+    val textColor = if (
+        isSelected &&
+        colorScheme.background.luminance() < 0.5f
+    ) {
+        Color.White
+    } else {
+        colorScheme.onSurface
+    }
+
+    val secondaryTextColor = textColor.copy(alpha = 0.68f)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(if (reminder.isActive || isSelectionMode) 1f else 0.6f)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = cardColor
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 0.dp
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 94.dp)
+                .padding(
+                    horizontal = if (isSelectionMode) 12.dp else 18.dp,
+                    vertical = 18.dp
+                ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            // Checkbox chỉ xuất hiện khi vào chế độ chọn.
+            if (isSelectionMode) {
+                Checkbox(
+                    checked = isSelected,
+                    onCheckedChange = {
+                        onClick()
+                    },
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = colorScheme.tertiary,
+                        uncheckedColor = secondaryTextColor,
+                        checkmarkColor = colorScheme.onTertiary
+                    )
+                )
+
+                Spacer(
+                    modifier = Modifier.width(12.dp)
+                )
+            }
+
+            // Nội dung lời nhắc.
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = reminder.title,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = textColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(
+                    modifier = Modifier.height(12.dp)
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.CalendarMonth,
+                        contentDescription = null,
+                        modifier = Modifier.size(17.dp),
+                        tint = secondaryTextColor
+                    )
+
+                    Spacer(
+                        modifier = Modifier.width(8.dp)
+                    )
+
+                    Text(
+                        text = formattedDate,
+                        fontSize = 14.sp,
+                        color = secondaryTextColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                // Chỉ hiện nhãn lặp nếu Reminder có lặp.
+                if (reminder.repeatRule != RepeatRule.NONE) {
+                    Spacer(
+                        modifier = Modifier.height(6.dp)
+                    )
+
+                    Text(
+                        text = stringResource(
+                            repeatLabelRes(reminder.repeatRule)
+                        ),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isSelected) {
+                            textColor
+                        } else {
+                            colorScheme.primary
+                        }
+                    )
+                }
+
+                // Chỉ hiện ghi chú khi người dùng đã nhập.
+                if (!reminder.note.isNullOrBlank()) {
+                    Spacer(
+                        modifier = Modifier.height(8.dp)
+                    )
+
+                    Text(
+                        text = reminder.note,
+                        fontSize = 13.sp,
+                        color = secondaryTextColor,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            // Bình thường hiện Switch, khi chọn thì ẩn.
+            if (!isSelectionMode) {
+                Spacer(
+                    modifier = Modifier.width(8.dp)
+                )
+
+                Switch(
+                    checked = reminder.isActive,
+                    onCheckedChange = onActiveChange,
+                    colors = SwitchDefaults.colors(
+                        checkedTrackColor = colorScheme.primary,
+                        checkedThumbColor = colorScheme.onPrimary
+                    )
+                )
+            }
+        }
+    }
+}
+
 
 /*
  * =============================================================
