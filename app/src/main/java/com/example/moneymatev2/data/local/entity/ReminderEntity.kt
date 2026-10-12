@@ -1,5 +1,6 @@
 package com.example.moneymatev2.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -18,7 +19,8 @@ data class ReminderEntity(
     val localId: String,
     val userId: String,
     val title: String,
-    val message: String?,
+    @ColumnInfo(name = "message")
+    val note: String?,
     val triggerAt: Long,
     val repeatRule: RepeatRule,
     val isActive: Boolean,

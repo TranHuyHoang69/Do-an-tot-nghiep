@@ -117,12 +117,60 @@
     <string name="add_budget">Thêm ngân sách</string>
     <string name="amount_budget">Số tiền ngân sách</string>
     <string name="budget_slg">Chưa có danh mục Chi tiêu nào. Tạo danh mục trước khi đặt ngân sách.</string>
-    <string name="save">Lưu</string>
     <string name="total_budget">Tổng ngân sách</string>
     <string name="budget_dachi">Đã chi</string>
     <string name="budget_overpaid">Vượt ngân sách</string>
     <string name="budget_remaining">Còn lại</string>
     <string name="overpaid">Vượt</string>
     <string name="left">Còn</string>
-    <string name="delete">Xoá</string>
+
+<!--    ReminderScreen-->
+    <string name="reminder_title">Nhắc nhở</string>
+    <string name="add_reminder">Thêm nhắc nhở</string>
+    <string name="edit_reminder">Sửa nhắc nhở</string>
+
+    <string name="reminder_name">Tên lời nhắc</string>
+    <string name="reminder_name_hint">Nhập tên lời nhắc</string>
+
+    <string name="reminder_note">Ghi chú</string>
+    <string name="reminder_note_hint">Nhập ghi chú</string>
+
+    <string name="reminder_date">Ngày</string>
+    <string name="reminder_time">Thời gian</string>
+    <string name="set_reminder_time">Chọn thời gian nhắc</string>
+
+    <string name="repeat_type">Lặp lại</string>
+    <string name="repeat_none">Không lặp</string>
+    <string name="repeat_daily">Hằng ngày</string>
+    <string name="repeat_weekly">Hằng tuần</string>
+    <string name="repeat_monthly">Hằng tháng</string>
+
+    <string name="no_reminders">Chưa có nhắc nhở</string>
+    <string name="no_reminders_hint">Nhấn + để tạo lời nhắc đầu tiên</string>
+
+    <string name="delete_reminder_title">Xóa nhắc nhở?</string>
+    <string name="delete_reminder_message">Bạn có muốn xóa “%1$s” không?</string>
+
+    <string name="reminder_saved">Đã lưu nhắc nhở</string>
+    <string name="reminder_deleted">Đã xóa nhắc nhở</string>
+    <string name="reminder_invalid_title">Vui lòng nhập tên lời nhắc</string>
+    <string name="reminder_invalid_time">Thời gian nhắc phải lớn hơn thời gian hiện tại</string>
+    <string name="reminder_login_required">Vui lòng đăng nhập để sử dụng nhắc nhở</string>
+    <string name="reminder_expired">Lời nhắc một lần này đã hết hạn. Vui lòng chọn thời gian mới.</string>
+
+    <string name="save">Lưu</string>
+    <string name="delete">Xóa</string>
+    <string name="reminder_notification_permission_denied">
+    Bạn chưa cấp quyền thông báo. Nhắc nhở vẫn được lưu nhưng sẽ không hiện thông báo.
+        </string>
+    <string name="reminder_exact_alarm_title">Cho phép nhắc nhở đúng giờ</string>
+
+<string name="reminder_exact_alarm_message">
+    MoneyMate cần quyền đặt báo thức và lời nhắc để thông báo xuất hiện gần đúng thời gian bạn đã chọn.
+</string>
+
+<string name="reminder_open_settings">Mở cài đặt</string>
+
+<string name="reminder_later">Để sau</string>
+
 </resources>

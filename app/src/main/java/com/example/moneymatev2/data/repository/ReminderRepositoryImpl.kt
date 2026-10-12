@@ -27,27 +27,32 @@ class ReminderRepositoryImpl @Inject constructor(
     override suspend fun createReminder(
         userId: String,
         title: String,
-        message: String?,
+        note: String?,
         triggerAt: Long,
         repeatRule: RepeatRule
-    ) {
+    ): ReminderModel {
+
         val now = System.currentTimeMillis()
-        dao.insertReminder(
-            ReminderEntity(
-                localId = UUID.randomUUID().toString(),
-                userId = userId,
-                title = title,
-                message = message,
-                triggerAt = triggerAt,
-                repeatRule = repeatRule,
-                isActive = true,
-                syncStatus = SyncStatus.PENDING,
-                pendingOperation = PendingOperation.CREATE,
-                createdAt = now,
-                updatedAt = now
-            )
+
+        val entity = ReminderEntity(
+            localId = UUID.randomUUID().toString(),
+            userId = userId,
+            title = title.trim(),
+            note = note?.trim()?.takeIf { it.isNotBlank() },
+            triggerAt = triggerAt,
+            repeatRule = repeatRule,
+            isActive = true,
+            syncStatus = SyncStatus.PENDING,
+            pendingOperation = PendingOperation.CREATE,
+            createdAt = now,
+            updatedAt = now
         )
+
+        dao.insertReminder(entity)
+
         syncTrigger.requestImmediateSync()
+
+        return entity.toModel()
     }
 
     override suspend fun updateReminder(reminder: ReminderModel){
@@ -55,8 +60,10 @@ class ReminderRepositoryImpl @Inject constructor(
             ?: throw IllegalArgumentException("Reminder with id ${reminder.id} does not exist")
         dao.updateReminder(
             existing.copy(
-                title = reminder.title,
-                message = reminder.message,
+                title = reminder.title.trim(),
+                note = reminder.note
+                    ?.trim()
+                    ?.takeIf { it.isNotBlank() },
                 triggerAt = reminder.triggerAt,
                 repeatRule = reminder.repeatRule,
                 isActive = reminder.isActive,
@@ -68,26 +75,107 @@ class ReminderRepositoryImpl @Inject constructor(
         syncTrigger.requestImmediateSync()
     }
 
-    override suspend fun deactivateReminder(id: String) {
-        val now = System.currentTimeMillis()
-        dao.deactivateReminder(id, now)
+    override suspend fun setReminderActive(
+        id: String,
+        isActive: Boolean
+    ) {
+        dao.setReminderActive(
+            localId = id,
+            isActive = isActive,
+            updatedAt = System.currentTimeMillis()
+        )
+
+        syncTrigger.requestImmediateSync()
+    }
+
+    override suspend fun deleteReminder(id: String) {
+        dao.markReminderForDeletion(
+            localId = id,
+            updatedAt = System.currentTimeMillis()
+        )
+
         syncTrigger.requestImmediateSync()
     }
 
     override suspend fun syncPendingReminders(userId: String) {
         val pending = dao.getPendingRemindersForSync(userId)
+
         for (r in pending) {
             try {
-                firestore.collection("users").document(userId)
-                    .collection("reminders").document(r.localId)
-                    .set(r.toDto()).await()
-            }catch (e: Exception) {
-                // Handle error, maybe log it or update the local entity with the error
+                when (r.pendingOperation) {
+                    PendingOperation.CREATE,
+                    PendingOperation.UPDATE -> {
+                        val remoteUpdatedAt = System.currentTimeMillis()
+
+                        firestore.collection("users")
+                            .document(userId)
+                            .collection("reminders")
+                            .document(r.localId)
+                            .set(r.toDto())
+                            .await()
+
+                        dao.markSynced(
+                            localId = r.localId,
+                            remoteUpdatedAt = remoteUpdatedAt
+                        )
+                    }
+
+                    PendingOperation.DELETE -> {
+                        firestore.collection("users")
+                            .document(userId)
+                            .collection("reminders")
+                            .document(r.localId)
+                            .delete()
+                            .await()
+
+                        dao.deleteReminderPermanently(r.localId)
+                    }
+
+                    PendingOperation.NONE -> Unit
+                }
+            } catch (e: Exception) {
+                // Sau này nên update retryCount / lastSyncError ở đây
             }
         }
     }
 
+    override fun getReminders(
+        userId: String
+    ): Flow<List<ReminderModel>> =
+        dao.getReminders(userId).map { list ->
+            list.map { it.toModel() }
+        }
+    override suspend fun getReminder(
+        id: String
+    ): ReminderModel? {
+        return dao.getReminderByLocalIdOnce(id)?.toModel()
+    }
+    override suspend fun updateReminderTrigger(
+        id: String,
+        triggerAt: Long
+    ) {
+        dao.updateReminderTrigger(
+            localId = id,
+            triggerAt = triggerAt,
+            updatedAt = System.currentTimeMillis()
+        )
+
+        syncTrigger.requestImmediateSync()
+    }
+    override suspend fun getActiveRemindersOnce(
+        userId: String
+    ): List<ReminderModel> =
+        dao.getAllActiveRemindersOnce(userId)
+            .map { entity ->
+                entity.toModel()
+            }
+
     private fun ReminderEntity.toModel() = ReminderModel(
-        localId, title, message, triggerAt, repeatRule, isActive
+        id = localId,
+        title = title,
+        note = note,
+        triggerAt = triggerAt,
+        repeatRule = repeatRule,
+        isActive = isActive
     )
 }

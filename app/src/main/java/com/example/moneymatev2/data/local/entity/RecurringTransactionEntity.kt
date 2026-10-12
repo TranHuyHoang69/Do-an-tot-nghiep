@@ -21,6 +21,5 @@ enum class RepeatRule{
     NONE,
     DAILY,
     WEEKLY,
-    MONTHLY,
-    YEARLY
+    MONTHLY
 }

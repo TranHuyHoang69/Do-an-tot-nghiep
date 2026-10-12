@@ -105,4 +105,46 @@ object StringRes {
     val overpaid = R.string.overpaid
     val left = R.string.left
     val delete = R.string.delete
+    val reminder_title = R.string.reminder_title
+    val add_reminder = R.string.add_reminder
+    val edit_reminder = R.string.edit_reminder
+
+    val reminder_name = R.string.reminder_name
+    val reminder_name_hint = R.string.reminder_name_hint
+
+    val reminder_note = R.string.reminder_note
+    val reminder_note_hint = R.string.reminder_note_hint
+
+    val reminder_date = R.string.reminder_date
+    val reminder_time = R.string.reminder_time
+    val set_reminder_time = R.string.set_reminder_time
+
+    val repeat_type = R.string.repeat_type
+    val repeat_none = R.string.repeat_none
+    val repeat_daily = R.string.repeat_daily
+    val repeat_weekly = R.string.repeat_weekly
+    val repeat_monthly = R.string.repeat_monthly
+
+    val no_reminders = R.string.no_reminders
+    val no_reminders_hint = R.string.no_reminders_hint
+
+    val delete_reminder_title = R.string.delete_reminder_title
+    val delete_reminder_message = R.string.delete_reminder_message
+
+    val reminder_saved = R.string.reminder_saved
+    val reminder_deleted = R.string.reminder_deleted
+    val reminder_invalid_title = R.string.reminder_invalid_title
+    val reminder_invalid_time = R.string.reminder_invalid_time
+    val reminder_login_required = R.string.reminder_login_required
+    val reminder_expired = R.string.reminder_expired
+
+    val reminder_notification_permission_denied = R.string.reminder_notification_permission_denied
+
+    val reminder_exact_alarm_title = R.string.reminder_exact_alarm_title
+
+    val reminder_exact_alarm_message = R.string.reminder_exact_alarm_message
+
+    val reminder_open_settings = R.string.reminder_open_settings
+
+    val reminder_later = R.string.reminder_later
 }

@@ -137,7 +137,6 @@ fun AppDrawer(
                         enabled = true
                     ) { scope.launch { drawerState.close() }; onNavigate(Screen.CategoryManagement.manageRoute()) }
 
-                    // --- Mục CHƯA build — hiện placeholder, khoá, không điều hướng ---
                     DrawerItem(
                         label = budget, icon = Icons.Default.AccountBalanceWallet,
                         selected = currentRoute == Screen.Budget.route, colors = drawerItemColors,
@@ -146,8 +145,8 @@ fun AppDrawer(
 
                     DrawerItem(
                         label = reminders, icon = Icons.Default.Update,
-                        selected = false, colors = drawerItemColors, enabled = false
-                    ) {}
+                        selected = currentRoute == Screen.Reminder.route, colors = drawerItemColors, enabled = true
+                    ) { scope.launch { drawerState.close() }; onNavigate(Screen.Reminder.route) }
 
                     DrawerItem(
                         label = recurringTransactions, icon = Icons.Default.Repeat,

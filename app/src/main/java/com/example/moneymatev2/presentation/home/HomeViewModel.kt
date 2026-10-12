@@ -26,10 +26,9 @@ import javax.inject.Inject
 
 
 enum class HomePeriod {
-    DAY, WEEK, MONTH, YEAR, PERIOD, CUSTOM
+    DAY, WEEK, MONTH, YEAR, CUSTOM
 }
 
-enum class DetailPeriod { DATE, AMOUNT }
 
 sealed class HomeUiState {
     object Loading : HomeUiState()

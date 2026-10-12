@@ -10,11 +10,26 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ReminderDao {
-    @Query("SELECT * FROM reminders WHERE userId = :userId AND isActive = 1 ORDER BY triggerAt ASC")
-    fun getActiveReminders(userId: String): Flow<List<ReminderEntity>>
+    @Query("""
+    SELECT * FROM reminders
+    WHERE userId = :userId
+      AND isActive = 1
+      AND pendingOperation != 'DELETE'
+    ORDER BY triggerAt ASC
+""")
+    fun getActiveReminders(
+        userId: String
+    ): Flow<List<ReminderEntity>>
 
-    @Query("SELECT * FROM reminders WHERE isActive = 1")
-    suspend fun getAllActiveRemindersOnce(): List<ReminderEntity>
+    @Query("""
+    SELECT * FROM reminders
+    WHERE userId = :userId
+      AND isActive = 1
+      AND pendingOperation != 'DELETE'
+""")
+    suspend fun getAllActiveRemindersOnce(
+        userId: String
+    ): List<ReminderEntity>
 
 
     @Query("SELECT * FROM reminders WHERE localId = :localId LIMIT 1")
@@ -34,11 +49,18 @@ interface ReminderDao {
     suspend fun updateReminder(reminder: ReminderEntity)
 
     @Query("""
-        UPDATE reminders
-        SET isActive = 0, pendingOperation = 'UPDATE', updatedAt = :updatedAt
-        WHERE localId = :localId
-    """)
-    suspend fun deactivateReminder(localId: String, updatedAt: Long)
+    UPDATE reminders
+    SET isActive = :isActive,
+        syncStatus = 'PENDING',
+        pendingOperation = 'UPDATE',
+        updatedAt = :updatedAt
+    WHERE localId = :localId
+""")
+    suspend fun setReminderActive(
+        localId: String,
+        isActive: Boolean,
+        updatedAt: Long
+    )
 
     @Query("""
         UPDATE reminders
@@ -50,4 +72,47 @@ interface ReminderDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertFromRemote(reminders: List<ReminderEntity>)
+
+    @Query("""
+    SELECT * FROM reminders
+    WHERE userId = :userId
+      AND pendingOperation != 'DELETE'
+    ORDER BY isActive DESC, triggerAt ASC
+""")
+    fun getReminders(
+        userId: String
+    ): Flow<List<ReminderEntity>>
+
+    @Query("""
+    UPDATE reminders
+    SET isActive = 0,
+        syncStatus = 'PENDING',
+        pendingOperation = 'DELETE',
+        updatedAt = :updatedAt
+    WHERE localId = :localId
+""")
+    suspend fun markReminderForDeletion(
+        localId: String,
+        updatedAt: Long
+    )
+    @Query("""
+    DELETE FROM reminders
+    WHERE localId = :localId
+""")
+    suspend fun deleteReminderPermanently(
+        localId: String
+    )
+    @Query("""
+    UPDATE reminders
+    SET triggerAt = :triggerAt,
+        syncStatus = 'PENDING',
+        pendingOperation = 'UPDATE',
+        updatedAt = :updatedAt
+    WHERE localId = :localId
+""")
+    suspend fun updateReminderTrigger(
+        localId: String,
+        triggerAt: Long,
+        updatedAt: Long
+    )
 }

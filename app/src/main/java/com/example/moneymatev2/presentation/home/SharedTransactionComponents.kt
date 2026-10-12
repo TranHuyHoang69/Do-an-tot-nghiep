@@ -67,7 +67,6 @@ fun TimeNavigationHeader(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
 ) {
-    val visibleModes = listOf(HomePeriod.DAY, HomePeriod.WEEK, HomePeriod.MONTH, HomePeriod.YEAR)
 
     Column(
         modifier = Modifier
@@ -76,37 +75,92 @@ fun TimeNavigationHeader(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            visibleModes.forEach { mode ->
+            val modes = listOf(
+                HomePeriod.DAY to StringResource(StringRes.day),
+                HomePeriod.WEEK to StringResource(StringRes.week),
+                HomePeriod.MONTH to StringResource(StringRes.month),
+                HomePeriod.YEAR to StringResource(StringRes.year)
+            )
+
+            modes.forEach { (mode, label) ->
                 val isSelected = selectedPeriod == mode
+
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .clickable { onPeriodChange(mode) }
+                        .clickable {
+                            onPeriodChange(mode)
+                        }
                         .padding(vertical = 4.dp)
                 ) {
                     Text(
-                        text = when (mode) {
-                            HomePeriod.DAY -> StringResource(StringRes.day)
-                            HomePeriod.WEEK -> StringResource(StringRes.week)
-                            HomePeriod.MONTH -> StringResource(StringRes.month)
-                            HomePeriod.YEAR -> StringResource(StringRes.year)
-                            HomePeriod.PERIOD -> ""
-                            HomePeriod.CUSTOM -> StringResource(StringRes.period)
+                        text = label,
+                        color = if (isSelected) {
+                            themeColor
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
                         },
-                        color = if (isSelected) themeColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        fontWeight = if (isSelected) {
+                            FontWeight.Bold
+                        } else {
+                            FontWeight.Normal
+                        },
                         fontSize = 14.sp
                     )
+
                     if (isSelected) {
                         Box(
                             modifier = Modifier
                                 .padding(top = 2.dp)
                                 .size(16.dp, 2.dp)
-                                .background(themeColor, CircleShape)
+                                .background(
+                                    color = themeColor,
+                                    shape = CircleShape
+                                )
                         )
                     }
+                }
+            }
+
+            // Khoảng thời gian tùy chọn
+            val isCustomSelected = selectedPeriod == HomePeriod.CUSTOM
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .clickable {
+                        onCustomRangeClick()
+                    }
+                    .padding(vertical = 4.dp)
+            ) {
+                Text(
+                    text = StringResource(StringRes.period),
+                    color = if (isCustomSelected) {
+                        themeColor
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    fontWeight = if (isCustomSelected) {
+                        FontWeight.Bold
+                    } else {
+                        FontWeight.Normal
+                    },
+                    fontSize = 14.sp
+                )
+
+                if (isCustomSelected) {
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 2.dp)
+                            .size(16.dp, 2.dp)
+                            .background(
+                                color = themeColor,
+                                shape = CircleShape
+                            )
+                    )
                 }
             }
         }

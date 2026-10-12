@@ -41,9 +41,7 @@ object TimeRangeCalculator {
                 cal.add(Calendar.YEAR, 1)
                 s to cal.timeInMillis
             }
-            HomePeriod.PERIOD -> {
-                0L to Long.MAX_VALUE
-            }
+
             HomePeriod.CUSTOM -> anchor to (anchor + 24 * 60 * 60 * 1000L)
         }
     }
@@ -54,7 +52,6 @@ object TimeRangeCalculator {
             HomePeriod.WEEK -> Calendar.WEEK_OF_YEAR
             HomePeriod.MONTH -> Calendar.MONTH
             HomePeriod.YEAR -> Calendar.YEAR
-            HomePeriod.PERIOD -> return anchor
             HomePeriod.CUSTOM -> return anchor
         }
         return Calendar.getInstance().apply {

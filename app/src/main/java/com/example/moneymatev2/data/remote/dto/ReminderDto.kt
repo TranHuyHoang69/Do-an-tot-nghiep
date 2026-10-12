@@ -10,7 +10,7 @@ import java.util.Date
 
 data class ReminderDto(
     val title: String = "",
-    val message: String? = null,
+    val note: String? = null,
     val triggerAt: Long = 0,
     val repeatRule: String? = RepeatRule.NONE.name,
     val isActive: Boolean = true,
@@ -24,7 +24,7 @@ data class ReminderDto(
 
 fun ReminderEntity.toDto() = ReminderDto(
     title = title,
-    message = message,
+    note = note,
     triggerAt = triggerAt,
     repeatRule = repeatRule.name,
     isActive = isActive,
@@ -40,9 +40,13 @@ fun ReminderDto.toEntity(
     localId = localId,
     userId = userId,
     title = title,
-    message = message,
+    note = note,
     triggerAt = triggerAt,
-    repeatRule = RepeatRule.valueOf(repeatRule ?: RepeatRule.NONE.name),
+    repeatRule = runCatching {
+        RepeatRule.valueOf(
+            repeatRule ?: RepeatRule.NONE.name
+        )
+    }.getOrDefault(RepeatRule.NONE),
     isActive = isActive,
     syncStatus = syncStatus,
     pendingOperation = pendingOperation,

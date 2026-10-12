@@ -47,7 +47,7 @@ object CurrencyFormatter {
         } else {
             String.format("%.1f", rounded).replace('.', ',')
         }
-        return "$text $suffix"
+        return "$text$suffix"
     }
 
     fun formatFull(amount: Long): String {

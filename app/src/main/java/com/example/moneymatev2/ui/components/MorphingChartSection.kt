@@ -128,7 +128,8 @@ private fun MorphingCanvas(
         val barGapPx = 2.dp.toPx()
 
         val circumference = 2f * Math.PI.toFloat() * basePieRadius
-        val gapDegrees = (barGapPx / circumference) * 360f
+        val effectiveGapPx = if(optimizedData.size > 1) barGapPx else 0f
+        val gapDegrees = (effectiveGapPx / circumference) * 360f
 
         if (progress < 1f) {
             drawCircle(
@@ -194,8 +195,8 @@ private fun MorphingCanvas(
                     isLast -> CornerRadius(0f, 6.dp.toPx())
                     else -> CornerRadius.Zero
                 }
-                val drawBarTopLeft = Offset(barTopLeft.x + barGapPx / 2f, barTopLeft.y)
-                val drawBarSize = Size((finalBarWidth - barGapPx).coerceAtLeast(1f), barSize.height)
+                val drawBarTopLeft = Offset(barTopLeft.x + effectiveGapPx / 2f, barTopLeft.y)
+                val drawBarSize = Size((finalBarWidth - effectiveGapPx).coerceAtLeast(1f), barSize.height)
 
                 drawRoundRect(
                     color = segment.color,

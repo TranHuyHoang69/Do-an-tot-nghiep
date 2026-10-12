@@ -6,13 +6,49 @@ import kotlinx.coroutines.flow.Flow
 
 interface ReminderRepository {
 
-    fun getActiveReminders(userId: String): Flow<List<ReminderModel>>
+    fun getActiveReminders(
+        userId: String
+    ): Flow<List<ReminderModel>>
 
-    suspend fun createReminder(userId: String, title: String, message: String?, triggerAt: Long, repeatRule: RepeatRule)
+    suspend fun getActiveRemindersOnce(
+        userId: String
+    ): List<ReminderModel>
 
-    suspend fun updateReminder(reminder: ReminderModel)
+    suspend fun createReminder(
+        userId: String,
+        title: String,
+        note: String?,
+        triggerAt: Long,
+        repeatRule: RepeatRule
+    ): ReminderModel
 
-    suspend fun deactivateReminder(id: String)
+    suspend fun updateReminder(
+        reminder: ReminderModel
+    )
 
-    suspend fun syncPendingReminders(userId: String)
+    suspend fun setReminderActive(
+        id: String,
+        isActive: Boolean
+    )
+
+    suspend fun deleteReminder(
+        id: String
+    )
+
+    fun getReminders(
+        userId: String
+    ): Flow<List<ReminderModel>>
+
+    suspend fun syncPendingReminders(
+        userId: String
+    )
+
+    suspend fun getReminder(
+        id: String
+    ): ReminderModel?
+
+    suspend fun updateReminderTrigger(
+        id: String,
+        triggerAt: Long
+    )
 }
