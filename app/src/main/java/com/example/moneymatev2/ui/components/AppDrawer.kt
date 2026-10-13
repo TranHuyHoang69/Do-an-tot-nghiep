@@ -150,8 +150,8 @@ fun AppDrawer(
 
                     DrawerItem(
                         label = recurringTransactions, icon = Icons.Default.Repeat,
-                        selected = false, colors = drawerItemColors, enabled = false
-                    ) {}
+                        selected = currentRoute == Screen.RecurringTransactions.route, colors = drawerItemColors, enabled = true
+                    ) { scope.launch { drawerState.close() }; onNavigate(Screen.RecurringTransactions.route) }
 
                     DrawerItem(
                         label = profile, icon = Icons.Default.Person,

@@ -102,4 +102,9 @@ interface TransactionDao{
     WHERE categoryLocalId = :oldCategoryId AND userId = :userId
 """)
     suspend fun reassignCategory(userId: String, oldCategoryId: String, newCategoryId: String, updatedAt: Long)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertGeneratedTransaction(
+        transaction: TransactionEntity
+    ): Long
 }

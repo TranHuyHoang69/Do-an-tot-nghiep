@@ -18,6 +18,7 @@ import com.example.moneymatev2.presentation.category.AddCategoryScreen
 import com.example.moneymatev2.presentation.category.ManagementCategoryScreen
 import com.example.moneymatev2.presentation.home.HistoryScreen
 import com.example.moneymatev2.presentation.home.HomeScreen
+import com.example.moneymatev2.presentation.recurring.RecurringTransactionScreen
 import com.example.moneymatev2.presentation.reminder.ReminderScreen
 import com.example.moneymatev2.presentation.settings.SettingScreen
 import com.example.moneymatev2.presentation.transaction.AddTransactionScreen
@@ -140,6 +141,13 @@ fun NavGraph(
 
         composable(Screen.Reminder.route) {
             ReminderScreen(
+                onOpenDrawer = onOpenDrawer
+            )
+        }
+        composable(
+            Screen.RecurringTransactions.route
+        ) {
+            RecurringTransactionScreen(
                 onOpenDrawer = onOpenDrawer
             )
         }

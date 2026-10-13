@@ -173,4 +173,44 @@
 
 <string name="reminder_later">Để sau</string>
     <string name="reminder_selected_count">Đã chọn %1$d</string>
+
+<!--    Reccuring transactions-->
+    <string name="recurring_title">Giao dịch định kỳ</string>
+    <string name="recurring_add">Thêm giao dịch định kỳ</string>
+    <string name="recurring_edit_title">Sửa giao dịch định kỳ</string>
+    <string name="recurring_type">Loại giao dịch</string>
+    <string name="recurring_expense">Chi tiêu</string>
+    <string name="recurring_income">Thu nhập</string>
+    <string name="recurring_category">Danh mục</string>
+    <string name="recurring_choose_category">Chọn danh mục</string>
+    <string name="recurring_amount">Số tiền</string>
+    <string name="recurring_note">Ghi chú</string>
+    <string name="recurring_frequency">Chu kỳ</string>
+    <string name="recurring_start_date">Ngày bắt đầu</string>
+    <string name="recurring_active">Đang hoạt động</string>
+    <string name="recurring_save">Lưu</string>
+    <string name="recurring_on">Bật</string>
+    <string name="recurring_off">Tắt</string>
+    <string name="recurring_next_run">Lần tới</string>
+    <string name="recurring_edit">Sửa</string>
+    <string name="recurring_delete">Xóa</string>
+    <string name="recurring_cancel">Hủy</string>
+    <string name="recurring_select">Chọn</string>
+    <string name="recurring_delete_title">Xóa giao dịch định kỳ?</string>
+    <string name="recurring_delete_message">Các kỳ chưa phát sinh sẽ không được tự tạo nữa. Các giao dịch đã ghi nhận được giữ lại.</string>
+    <string name="recurring_empty">Chưa có giao dịch định kỳ</string>
+    <string name="recurring_empty_hint">Thêm tiền nhà, lương hoặc thuê bao để tự ghi nhận.</string>
+    <string name="recurring_login_required">Đăng nhập để sử dụng giao dịch định kỳ</string>
+    <string name="recurring_unknown_category">Danh mục không xác định</string>
+    <string name="recurring_daily">Hàng ngày</string>
+    <string name="recurring_weekly">Hàng tuần</string>
+    <string name="recurring_2weeks">Mỗi 2 tuần</string>
+    <string name="recurring_4weeks">Mỗi 4 tuần</string>
+    <string name="recurring_monthly">Hàng tháng</string>
+    <string name="recurring_2months">Mỗi 2 tháng</string>
+    <string name="recurring_quarterly">Hàng quý</string>
+    <string name="recurring_6months">Mỗi 6 tháng</string>
+    <string name="recurring_yearly">Hàng năm</string>
+    <string name="recurring_saved">Đã lưu giao dịch định kỳ</string>
+    <string name="recurring_deleted">Đã xóa giao dịch định kỳ</string>
 </resources>

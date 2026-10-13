@@ -6,6 +6,7 @@ import com.example.moneymatev2.data.local.AppDatabase
 import com.example.moneymatev2.data.local.dao.CategoryDao
 import com.example.moneymatev2.data.local.dao.TransactionDao
 import com.example.moneymatev2.data.local.dao.UserDao
+import com.example.moneymatev2.data.local.migration.MIGRATION_1_2
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -24,7 +25,9 @@ object DatabaseModule{
             context,
             AppDatabase::class.java,
             AppDatabase.DATABASE_NAME
-        ).build()
+        )
+            .addMigrations(MIGRATION_1_2)
+            .build()
     }
 
     @Provides
@@ -41,4 +44,6 @@ object DatabaseModule{
 
     @Provides
     fun provideBudgetDao(db: AppDatabase) = db.budgetDao()
+
+
 }
