@@ -7,8 +7,11 @@ import com.example.moneymatev2.data.local.entity.RepeatRule
 import com.example.moneymatev2.data.local.entity.SyncStatus
 import com.example.moneymatev2.data.remote.dto.toDto
 import com.example.moneymatev2.data.remote.sync.SyncTrigger
+import com.example.moneymatev2.data.remote.sync.PendingUploadRunner
+import com.example.moneymatev2.data.remote.sync.syncFailureSummary
 import com.example.moneymatev2.domain.model.ReminderModel
 import com.example.moneymatev2.domain.repository.ReminderRepository
+import com.example.moneymatev2.domain.repository.AuthRepository
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -19,7 +22,9 @@ import javax.inject.Inject
 class ReminderRepositoryImpl @Inject constructor(
     private val dao: ReminderDao,
     private val firestore: FirebaseFirestore,
-    private val syncTrigger: SyncTrigger
+    private val syncTrigger: SyncTrigger,
+    private val uploadRunner: PendingUploadRunner,
+    private val authRepository: AuthRepository
 ): ReminderRepository {
     override fun getActiveReminders(userId: String): Flow<List<ReminderModel>> =
         dao.getActiveReminders(userId).map { list -> list.map { it.toModel() } }
@@ -58,6 +63,7 @@ class ReminderRepositoryImpl @Inject constructor(
     override suspend fun updateReminder(reminder: ReminderModel){
         val existing = dao.getReminderByLocalIdOnce(reminder.id)
             ?: throw IllegalArgumentException("Reminder with id ${reminder.id} does not exist")
+        if (existing.userId != authRepository.getCurrentUserId()) return
         dao.updateReminder(
             existing.copy(
                 title = reminder.title.trim(),
@@ -79,6 +85,7 @@ class ReminderRepositoryImpl @Inject constructor(
         id: String,
         isActive: Boolean
     ) {
+        if (getReminder(id) == null) return
         dao.setReminderActive(
             localId = id,
             isActive = isActive,
@@ -89,6 +96,7 @@ class ReminderRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteReminder(id: String) {
+        if (getReminder(id) == null) return
         dao.markReminderForDeletion(
             localId = id,
             updatedAt = System.currentTimeMillis()
@@ -97,47 +105,47 @@ class ReminderRepositoryImpl @Inject constructor(
         syncTrigger.requestImmediateSync()
     }
 
+
     override suspend fun syncPendingReminders(userId: String) {
+        val session = uploadRunner.capture(userId)
         val pending = dao.getPendingRemindersForSync(userId)
-
-        for (r in pending) {
+        var firstError: Exception? = null
+        for (row in pending) {
             try {
-                when (r.pendingOperation) {
-                    PendingOperation.CREATE,
-                    PendingOperation.UPDATE -> {
-                        val remoteUpdatedAt = System.currentTimeMillis()
-
-                        firestore.collection("users")
-                            .document(userId)
-                            .collection("reminders")
-                            .document(r.localId)
-                            .set(r.toDto())
-                            .await()
-
-                        dao.markSynced(
-                            localId = r.localId,
-                            remoteUpdatedAt = remoteUpdatedAt
+                uploadRunner.run(
+                    session = session,
+                    snapshot = row,
+                    readCurrent = { dao.getReminderByLocalIdOnce(row.localId) },
+                    upload = {
+                        val doc = firestore.collection("users").document(userId)
+                            .collection("reminders").document(row.localId)
+                        if (row.pendingOperation == PendingOperation.DELETE) doc.delete().await()
+                        else doc.set(row.toDto()).await()
+                    },
+                    acknowledge = {
+                        if (row.pendingOperation == PendingOperation.DELETE) {
+                            dao.deleteReminderIfUnchanged(row.localId, userId, row.updatedAt)
+                        } else {
+                            dao.markSyncedIfUnchanged(row.localId, userId, row.updatedAt, System.currentTimeMillis())
+                        }
+                    },
+                    recordFailure = { error ->
+                        dao.markSyncFailedIfUnchanged(
+                            row.localId, userId, row.updatedAt,
+                            error.syncFailureSummary(), System.currentTimeMillis()
                         )
                     }
-
-                    PendingOperation.DELETE -> {
-                        firestore.collection("users")
-                            .document(userId)
-                            .collection("reminders")
-                            .document(r.localId)
-                            .delete()
-                            .await()
-
-                        dao.deleteReminderPermanently(r.localId)
-                    }
-
-                    PendingOperation.NONE -> Unit
-                }
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
-                // Sau này nên update retryCount / lastSyncError ở đây
+                android.util.Log.e("SyncUpload", "SYNC_FAILED collection=reminders ${e.syncFailureSummary()}")
+                if (firstError == null) firstError = e else if (firstError !== e) firstError.addSuppressed(e)
             }
         }
+        firstError?.let { throw it }
     }
+
 
     override fun getReminders(
         userId: String
@@ -148,12 +156,16 @@ class ReminderRepositoryImpl @Inject constructor(
     override suspend fun getReminder(
         id: String
     ): ReminderModel? {
-        return dao.getReminderByLocalIdOnce(id)?.toModel()
+        val row = dao.getReminderByLocalIdOnce(id) ?: return null
+        return row.takeIf {
+            it.userId == authRepository.getCurrentUserId() && it.pendingOperation != PendingOperation.DELETE
+        }?.toModel()
     }
     override suspend fun updateReminderTrigger(
         id: String,
         triggerAt: Long
     ) {
+        if (getReminder(id) == null) return
         dao.updateReminderTrigger(
             localId = id,
             triggerAt = triggerAt,

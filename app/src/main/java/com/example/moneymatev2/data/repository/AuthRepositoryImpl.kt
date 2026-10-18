@@ -5,6 +5,9 @@ import com.example.moneymatev2.domain.model.AppResult
 import com.example.moneymatev2.domain.model.AuthError
 import com.example.moneymatev2.domain.model.UserModel
 import com.example.moneymatev2.domain.repository.AuthRepository
+import com.example.moneymatev2.data.remote.sync.AuthSessionVersion
+import com.example.moneymatev2.data.remote.sync.SyncTrigger
+import kotlinx.coroutines.CancellationException
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import com.google.firebase.FirebaseNetworkException
@@ -23,6 +26,8 @@ import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 class AuthRepositoryImpl @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
+    private val sessionVersion: AuthSessionVersion,
+    private val syncTrigger: SyncTrigger,
     @ApplicationContext private val context: Context
 ): AuthRepository {
     override fun observeAuthState(): Flow<UserModel?> = callbackFlow {
@@ -37,17 +42,21 @@ class AuthRepositoryImpl @Inject constructor(
     override fun getCurrentUserId(): String? = firebaseAuth.currentUser?.uid
 
     override suspend fun signIn(email: String, password: String): AppResult<UserModel> {
+        sessionVersion.invalidate()
         return try{
             val authResult = firebaseAuth.signInWithEmailAndPassword(email, password).await()
             val user = authResult.user?.toUserModel()
                 ?: return AppResult.Failure(AuthError.Unknown("FireBase trả về user null"))
             AppResult.Success(user)
-        }catch (e: Exception) {
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
             AppResult.Failure(e.toAuthError())
         }
     }
 
     override suspend fun signUp(email: String, password: String, displayName: String): AppResult<UserModel> {
+        sessionVersion.invalidate()
         return try {
             val authResult = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
             val firebaseUser = authResult.user
@@ -61,28 +70,37 @@ class AuthRepositoryImpl @Inject constructor(
             }
 
             AppResult.Success(firebaseUser.toUserModel().copy(displayName = displayName.ifBlank { null }))
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             AppResult.Failure(e.toAuthError())
         }
     }
 
     override suspend fun signInWithGoogle(idToken: String): AppResult<UserModel> {
+        sessionVersion.invalidate()
         return try{
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             val authResult = firebaseAuth.signInWithCredential(credential).await()
             val user = authResult.user?.toUserModel()
                 ?: return AppResult.Failure(AuthError.Unknown("FireBase trả về user null"))
             AppResult.Success(user)
-        }catch (e: Exception) {
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
             AppResult.Failure(e.toAuthError())
         }
     }
 
     override suspend fun signOut() {
+        sessionVersion.invalidate()
+        syncTrigger.cancelImmediateSync()
         firebaseAuth.signOut()
         try {
             val credentialManager = CredentialManager.create(context)
             credentialManager.clearCredentialState(ClearCredentialStateRequest())
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             // Không chặn luồng đăng xuất nếu bước này lỗi (VD thiết bị cũ không hỗ trợ) --
             // signOut() vẫn phải thành công ở phần Firebase dù phần này thất bại.

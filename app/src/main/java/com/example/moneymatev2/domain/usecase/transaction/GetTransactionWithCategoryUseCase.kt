@@ -1,6 +1,7 @@
 package com.example.moneymatev2.domain.usecase.transaction
 
 import com.example.moneymatev2.domain.model.TransactionWithCategory
+import com.example.moneymatev2.domain.model.missingCategory
 import com.example.moneymatev2.domain.repository.AuthRepository
 import com.example.moneymatev2.domain.repository.CategoryRepository
 import com.example.moneymatev2.domain.repository.TransactionRepository
@@ -26,12 +27,13 @@ class GetTransactionWithCategoryUseCase @Inject constructor(
 
             combine(
                 transactionRepository.getAllTransactions(userId),
-                categoryRepository.getActiveCategories(userId)
+                categoryRepository.getAllCategories(userId)
             ) { transactions, categories ->
                 val categoryById = categories.associateBy { it.id }
                 transactions
                     .sortedByDescending { it.createdAt }
-                    .map { tx -> TransactionWithCategory(tx, categoryById[tx.categoryId]) }
+                    .map { tx -> TransactionWithCategory(tx, categoryById[tx.categoryId]
+                        ?: missingCategory(tx.userId, tx.categoryId, tx.type)) }
             }
         }.flowOn(Dispatchers.Default)
     }

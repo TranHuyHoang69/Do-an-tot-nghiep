@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.moneymatev2.domain.model.UserModel
 import com.example.moneymatev2.domain.repository.AuthRepository
+import com.example.moneymatev2.domain.usecase.auth.SignOutUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +15,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DrawerViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val signOutUseCase: SignOutUseCase
 ) : ViewModel() {
 
     val currentUser: StateFlow<UserModel?> =
@@ -22,6 +24,6 @@ class DrawerViewModel @Inject constructor(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun logout() {
-        viewModelScope.launch { authRepository.signOut() }
+        viewModelScope.launch { signOutUseCase() }
     }
 }

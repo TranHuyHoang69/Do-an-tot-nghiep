@@ -11,13 +11,13 @@ interface TransactionRepository {
 
     fun getTransactionByCategory(userId: String, categoryId: String): Flow<List<TransactionModel>>
 
-    fun getTransactionById(localId: String): Flow<TransactionModel?>
+    fun getTransactionById(userId: String, localId: String): Flow<TransactionModel?>
 
     suspend fun createTransaction(transaction: TransactionModel)
 
     suspend fun updateTransaction(transaction: TransactionModel)
 
-    suspend fun deleteTransaction(id: String)
+    suspend fun deleteTransaction(userId: String, id: String)
 
     suspend fun syncPendingTransactions(userId: String)
 

@@ -28,12 +28,56 @@ interface RecurringTransactionDao {
     @Update
     suspend fun update(item: RecurringTransactionEntity)
 
-    @Query("UPDATE recurring_transactions SET syncStatus = 'SYNCED', pendingOperation = 'NONE', remoteUpdatedAt = :remoteTime, lastSyncError = NULL, retryCount = 0 WHERE localId = :id AND userId = :userId AND updatedAt = :expectedUpdatedAt")
-    suspend fun markSynced(id: String, userId: String, expectedUpdatedAt: Long, remoteTime: Long)
+    @Query("""
+    UPDATE recurring_transactions
+    SET syncStatus = 'SYNCED',
+        pendingOperation = 'NONE',
+        remoteUpdatedAt = :remoteTime,
+        lastSyncError = NULL,
+        retryCount = 0
+    WHERE localId = :id
+      AND userId = :userId
+      AND updatedAt = :expectedUpdatedAt
+      AND pendingOperation IN ('CREATE', 'UPDATE')
+""")
+    suspend fun markSynced(
+        id: String,
+        userId: String,
+        expectedUpdatedAt: Long,
+        remoteTime: Long
+    ): Int
 
     @Query("DELETE FROM recurring_transactions WHERE localId = :id AND userId = :userId AND updatedAt = :expectedUpdatedAt AND pendingOperation = 'DELETE'")
-    suspend fun hardDeleteIfUnchanged(id: String, userId: String, expectedUpdatedAt: Long)
+    suspend fun hardDeleteIfUnchanged(id: String, userId: String, expectedUpdatedAt: Long): Int
 
-    @Query("UPDATE recurring_transactions SET syncStatus = 'FAILED', lastSyncError = :error, retryCount = retryCount + 1, lastSyncAttemptAt = :at WHERE localId = :id AND userId = :userId")
-    suspend fun markSyncFailed(id: String, userId: String, error: String, at: Long)
+    @Query("""
+    UPDATE recurring_transactions
+    SET syncStatus = 'FAILED',
+        lastSyncError = :error,
+        retryCount = retryCount + 1,
+        lastSyncAttemptAt = :at
+    WHERE localId = :id
+      AND userId = :userId
+      AND updatedAt = :expectedUpdatedAt
+      AND pendingOperation != 'NONE'
+""")
+    suspend fun markSyncFailedIfUnchanged(
+        id: String,
+        userId: String,
+        expectedUpdatedAt: Long,
+        error: String,
+        at: Long
+    ): Int
+
+    @Query("SELECT * FROM recurring_transactions WHERE localId = :localId LIMIT 1")
+    suspend fun getRowForCloudMerge(localId: String): RecurringTransactionEntity?
+
+    @Query("SELECT * FROM recurring_transactions WHERE userId = :userId AND pendingOperation = 'NONE'")
+    suspend fun getCleanRowsForCloudMerge(userId: String): List<RecurringTransactionEntity>
+
+    @Query("DELETE FROM recurring_transactions WHERE localId = :id AND userId = :userId AND pendingOperation = 'NONE'")
+    suspend fun deleteCleanRowForCloudMerge(id: String, userId: String)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertFromRemote(row: RecurringTransactionEntity)
 }

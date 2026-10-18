@@ -393,7 +393,7 @@ fun ExpenseItem(
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
-                    Text(text = group.category.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    Text(text = if (group.category.isMissing) androidx.compose.ui.res.stringResource(com.example.moneymatev2.R.string.category_missing_reference) else group.category.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                     Text(
                         text = "${group.transactionCount} ${stringResource(StringRes.transaction)}",
                         fontSize = 12.sp,

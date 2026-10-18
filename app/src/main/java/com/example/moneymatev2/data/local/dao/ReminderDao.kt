@@ -115,4 +115,61 @@ interface ReminderDao {
         triggerAt: Long,
         updatedAt: Long
     )
+
+    @Query("SELECT * FROM reminders WHERE userId = :userId AND pendingOperation = 'NONE'")
+    suspend fun getCleanRowsForCloudMerge(userId: String): List<ReminderEntity>
+
+    @Query("DELETE FROM reminders WHERE localId = :id AND userId = :userId AND pendingOperation = 'NONE'")
+    suspend fun deleteCleanRowForCloudMerge(id: String, userId: String)
+
+    @Query("""
+    UPDATE reminders
+    SET syncStatus = 'SYNCED',
+        pendingOperation = 'NONE',
+        remoteUpdatedAt = :remoteUpdatedAt,
+        lastSyncError = NULL,
+        retryCount = 0
+    WHERE localId = :localId
+      AND userId = :userId
+      AND updatedAt = :expectedUpdatedAt
+      AND pendingOperation != 'NONE'
+""")
+    suspend fun markSyncedIfUnchanged(
+        localId: String,
+        userId: String,
+        expectedUpdatedAt: Long,
+        remoteUpdatedAt: Long
+    ): Int
+
+    @Query("""
+    DELETE FROM reminders
+    WHERE localId = :localId
+      AND userId = :userId
+      AND pendingOperation = 'DELETE'
+      AND updatedAt = :expectedUpdatedAt
+""")
+    suspend fun deleteReminderIfUnchanged(
+        localId: String,
+        userId: String,
+        expectedUpdatedAt: Long
+    ): Int
+
+    @Query("""
+    UPDATE reminders
+    SET syncStatus = 'FAILED',
+        lastSyncError = :error,
+        retryCount = retryCount + 1,
+        lastSyncAttemptAt = :attemptAt
+    WHERE localId = :localId
+      AND userId = :userId
+      AND updatedAt = :expectedUpdatedAt
+      AND pendingOperation != 'NONE'
+""")
+    suspend fun markSyncFailedIfUnchanged(
+        localId: String,
+        userId: String,
+        expectedUpdatedAt: Long,
+        error: String,
+        attemptAt: Long
+    ): Int
 }

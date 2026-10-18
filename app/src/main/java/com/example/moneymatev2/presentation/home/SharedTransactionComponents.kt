@@ -244,7 +244,7 @@ fun TransactionListItem(
                 ){
                     Icon(
                         painter = categoryIcon,
-                        contentDescription = group.category.name,
+                        contentDescription = if (group.category.isMissing) androidx.compose.ui.res.stringResource(com.example.moneymatev2.R.string.category_missing_reference) else group.category.name,
                         tint =  categoryColor,
                         modifier = Modifier.size(22.dp)
                     )
@@ -253,7 +253,7 @@ fun TransactionListItem(
 
                 Column {
                     Text(
-                        text = group.category.name,
+                        text = if (group.category.isMissing) androidx.compose.ui.res.stringResource(com.example.moneymatev2.R.string.category_missing_reference) else group.category.name,
                         fontWeight = FontWeight.Medium
                     )
 

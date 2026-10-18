@@ -202,6 +202,8 @@
     <string name="recurring_empty_hint">Thêm tiền nhà, lương hoặc thuê bao để tự ghi nhận.</string>
     <string name="recurring_login_required">Đăng nhập để sử dụng giao dịch định kỳ</string>
     <string name="recurring_unknown_category">Danh mục không xác định</string>
+    <string name="category_missing_reference">Danh mục không còn trên thiết bị</string>
+    <string name="category_selection_unavailable">Danh mục đã thay đổi. Vui lòng chọn lại.</string>
     <string name="recurring_daily">Hàng ngày</string>
     <string name="recurring_weekly">Hàng tuần</string>
     <string name="recurring_2weeks">Mỗi 2 tuần</string>

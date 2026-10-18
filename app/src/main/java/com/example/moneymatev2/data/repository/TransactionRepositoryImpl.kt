@@ -1,11 +1,14 @@
 package com.example.moneymatev2.data.repository
 
 import com.example.moneymatev2.data.local.dao.TransactionDao
+import com.example.moneymatev2.data.local.dao.CategoryDao
 import com.example.moneymatev2.data.local.entity.PendingOperation
 import com.example.moneymatev2.data.local.entity.SyncStatus
 import com.example.moneymatev2.data.local.entity.TransactionEntity
 import com.example.moneymatev2.data.remote.dto.toDto
 import com.example.moneymatev2.data.remote.sync.SyncTrigger
+import com.example.moneymatev2.data.remote.sync.PendingUploadRunner
+import com.example.moneymatev2.data.remote.sync.syncFailureSummary
 import com.example.moneymatev2.domain.model.Money
 import com.example.moneymatev2.domain.model.TransactionModel
 import com.example.moneymatev2.domain.repository.TransactionRepository
@@ -18,8 +21,10 @@ import javax.inject.Inject
 
 class TransactionRepositoryImpl @Inject constructor(
     private val dao: TransactionDao,
+    private val categoryDao: CategoryDao,
     private val firestore: FirebaseFirestore,
-    private val syncTrigger: SyncTrigger
+    private val syncTrigger: SyncTrigger,
+    private val uploadRunner: PendingUploadRunner
 ): TransactionRepository{
     override fun getAllTransactions(userId: String): Flow<List<TransactionModel>> =
         dao.getAllTransactions(userId).map { list -> list.map { it.toModel() } }
@@ -30,8 +35,8 @@ class TransactionRepositoryImpl @Inject constructor(
         end: Long): Flow<List<TransactionModel>> =
         dao.getTransactionByPeriod(userId, start, end).map { list -> list.map { it.toModel() } }
 
-    override fun getTransactionById(localId: String): Flow<TransactionModel?> =
-        dao.getTransactionByLocalId(localId).map { it?.toModel() }
+    override fun getTransactionById(userId: String, localId: String): Flow<TransactionModel?> =
+        dao.getTransactionByLocalId(userId, localId).map { it?.toModel() }
 
 
     override fun getTransactionByCategory(
@@ -41,6 +46,9 @@ class TransactionRepositoryImpl @Inject constructor(
         dao.getTransactionByCategory(userId, categoryId).map { list -> list.map { it.toModel() } }
 
     override suspend fun createTransaction(transaction: TransactionModel) {
+        uploadRunner.capture(transaction.userId)
+        val category = categoryDao.getCategoryByLocalIdOnce(transaction.userId, transaction.categoryId)
+        require(category != null && !category.isArchived && category.type == transaction.type) { "Invalid category" }
         val now = System.currentTimeMillis()
         val entity = TransactionEntity(
             localId = transaction.id.ifEmpty { UUID.randomUUID().toString() },
@@ -60,7 +68,9 @@ class TransactionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateTransaction(transaction: TransactionModel) {
-        val existing = dao.getTransactionByLocalId(transaction.id)
+        uploadRunner.capture(transaction.userId)
+        val existing = dao.getRowForCloudMerge(transaction.id)
+        require(existing?.userId == transaction.userId) { "Transaction owner mismatch" }
         val entity = TransactionEntity(
             localId = transaction.id,
             userId = transaction.userId,
@@ -71,43 +81,66 @@ class TransactionRepositoryImpl @Inject constructor(
             note = transaction.note,
             syncStatus = SyncStatus.PENDING,
             pendingOperation = PendingOperation.UPDATE,
-            createdAt = transaction.updatedAt,
+            createdAt = transaction.createdAt,
             updatedAt = System.currentTimeMillis()
         )
         dao.updateTransaction(entity)
         syncTrigger.requestImmediateSync()
     }
 
-    override suspend fun deleteTransaction(id: String) {
-        dao.softDeleteTransaction(id, System.currentTimeMillis())
+    override suspend fun deleteTransaction(userId: String, id: String) {
+        uploadRunner.capture(userId)
+        dao.softDeleteTransaction(userId, id, System.currentTimeMillis())
         syncTrigger.requestImmediateSync()
     }
 
-    override suspend fun syncPendingTransactions(userId: String) {
-        val pending = dao.getPendingTransactionsForSync(userId)
-        for (tx in pending) {
-            try {
-                val docRef = firestore.collection("users").document(userId)
-                    .collection("transactions").document(tx.localId)
 
-                when (tx.pendingOperation) {
-                    PendingOperation.CREATE, PendingOperation.UPDATE -> {
-                        docRef.set(tx.toDto()).await()
-                        dao.markSynced(tx.localId, System.currentTimeMillis())
+    override suspend fun syncPendingTransactions(userId: String) {
+        val session = uploadRunner.capture(userId)
+        val pending = dao.getPendingTransactionsForSync(userId)
+        var firstError: Exception? = null
+        for (row in pending) {
+            try {
+                uploadRunner.run(
+                    session = session,
+                    snapshot = row,
+                    readCurrent = { dao.getRowForCloudMerge(row.localId) },
+                    upload = {
+                        val doc = firestore.collection("users").document(userId)
+                            .collection("transactions").document(row.localId)
+                        if (row.pendingOperation == PendingOperation.DELETE) doc.delete().await()
+                        else doc.set(row.toDto()).await()
+                    },
+                    acknowledge = {
+                        if (row.pendingOperation == PendingOperation.DELETE) {
+                            dao.hardDeleteIfUnchanged(row.localId, userId, row.updatedAt)
+                        } else {
+                            dao.markSyncedIfUnchanged(row.localId, userId, row.updatedAt, System.currentTimeMillis())
+                        }
+                    },
+                    recordFailure = { error ->
+                        dao.markSyncFailedIfUnchanged(
+                            row.localId, userId, row.updatedAt,
+                            error.syncFailureSummary(), System.currentTimeMillis()
+                        )
                     }
-                    PendingOperation.DELETE -> {
-                        docRef.delete().await()
-                        dao.hardDeleteTransaction(tx.localId)
-                    }
-                    PendingOperation.NONE -> Unit
-                }
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
-                dao.markSyncFailed(tx.localId, e.message ?: "unknown error", System.currentTimeMillis())
+                android.util.Log.e("SyncUpload", "SYNC_FAILED collection=transactions ${e.syncFailureSummary()}")
+                if (firstError == null) firstError = e else if (firstError !== e) firstError.addSuppressed(e)
             }
         }
+        firstError?.let { throw it }
     }
 
+
     override suspend fun reassignCategory(userId: String, oldCategoryId: String, newCategoryId: String) {
+        uploadRunner.capture(userId)
+        val source = categoryDao.getCategoryByLocalIdOnce(userId, oldCategoryId)
+        val replacement = categoryDao.getCategoryByLocalIdOnce(userId, newCategoryId)
+        require(source != null && replacement != null && !replacement.isArchived && source.type == replacement.type) { "Invalid category reassignment" }
         dao.reassignCategory(userId, oldCategoryId, newCategoryId, System.currentTimeMillis())
         syncTrigger.requestImmediateSync()
     }

@@ -3,29 +3,48 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     match /users/{userId} {
-      allow read, update: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
+      allow read, update: if isOwner(userId);
+      allow create: if isOwner(userId);
       allow delete: if false;
 
       match /transactions/{txId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
           && isValidTransaction(request.resource.data);
+        allow delete: if isOwner(userId);
       }
 
       match /categories/{catId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
           && isValidCategory(request.resource.data);
+        allow delete: if isOwner(userId);
       }
 
       match /budgets/{budgetId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
           && isValidBudget(request.resource.data);
+        allow delete: if isOwner(userId);
       }
 
       match /reminders/{reminderId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
           && isValidReminder(request.resource.data);
+        allow delete: if isOwner(userId);
       }
+
+      match /recurring_transactions/{recurringId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && isValidRecurringTransaction(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
 
     function isValidTransaction(data) {
@@ -50,6 +69,27 @@ service cloud.firestore {
       return data.title is string && data.title.size() > 0
         && data.triggerAt is int
         && data.repeatRule in ['NONE', 'DAILY', 'WEEKLY', 'MONTHLY'];
+    }
+
+    function isValidRecurringTransaction(data) {
+      return data.localId is string && data.localId.size() > 0
+        && data.userId is string && data.userId == request.auth.uid
+        && data.type in ['INCOME', 'EXPENSE']
+        && data.amountMinor is int && data.amountMinor > 0
+        && data.currency is string && data.currency.size() > 0
+        && data.categoryLocalId is string && data.categoryLocalId.size() > 0
+        && data.frequency in [
+          'DAILY', 'WEEKLY', 'EVERY_TWO_WEEKS', 'EVERY_FOUR_WEEKS',
+          'MONTHLY', 'EVERY_TWO_MONTHS', 'QUARTERLY',
+          'EVERY_SIX_MONTHS', 'YEARLY'
+        ]
+        && data.startAt is int
+        && data.timeZoneId is string && data.timeZoneId.size() > 0
+        && data.nextOccurrenceIndex is int
+        && data.nextRunAt is int
+        && data.isActive is bool
+        && data.createdAt is int
+        && data.updatedAt is int;
     }
   }
 }

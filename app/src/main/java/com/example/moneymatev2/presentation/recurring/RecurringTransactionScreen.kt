@@ -50,11 +50,12 @@ fun RecurringTransactionScreen(
     viewModel: RecurringTransactionViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    val ownerId = state.userId
     val saving by viewModel.isSaving.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    var editorKey by remember { mutableStateOf<String?>(null) } // null=list; ""=create; id=edit
-    var pendingDelete by remember { mutableStateOf<RecurringTransactionModel?>(null) }
+    var editorKey by remember(state.userId) { mutableStateOf<String?>(null) } // null=list; ""=create; id=edit
+    var pendingDelete by remember(state.userId) { mutableStateOf<RecurringTransactionModel?>(null) }
 
     val savedMessage = stringResource(R.string.recurring_saved)
     val deletedMessage = stringResource(R.string.recurring_deleted)
@@ -100,11 +101,11 @@ fun RecurringTransactionScreen(
         RecurringEditor(
             existing = editingItem,
             snackbar = snackbar,
-            categories = state.categories,
+            categories = state.categories.filter { !it.isArchived },
             saving = saving,
             onBack = { editorKey = null },
             onSave = { type, amount, categoryId, note, frequency, date, zoneId, active ->
-                viewModel.save(editingItem, type, amount, categoryId, note, frequency, date, zoneId, active)
+                viewModel.save(ownerId, editingItem, type, amount, categoryId, note, frequency, date, zoneId, active)
             }
         )
         return

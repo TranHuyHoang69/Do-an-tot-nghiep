@@ -12,19 +12,22 @@ class CreateCategoryUseCase @Inject constructor(
     private val authRepository: AuthRepository
 ) {
     suspend operator fun invoke(
+        userId: String,
         name: String,
         type: TransactionType,
         iconKey: String,
         colorHex: String
     ): AppResult<Unit>{
-        val userId = authRepository.getCurrentUserId()
-            ?: return AppResult.Failure(TransactionError.NotAuthenticated)
+        if (userId.isBlank() || userId != authRepository.getCurrentUserId()) {
+            return AppResult.Failure(TransactionError.NotAuthenticated)
+        }
 
         if (name.isBlank()) {
             return AppResult.Failure(TransactionError.InvalidCategoryName)
         }
 
         val category = CategoryModel(
+            userId = userId,
             id = "",
             stableId = null,
             name = name.trim(),

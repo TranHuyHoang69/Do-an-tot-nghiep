@@ -18,6 +18,7 @@ import com.example.moneymatev2.domain.repository.BudgetRepository
 import com.example.moneymatev2.presentation.home.HomePeriod
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -27,9 +28,11 @@ import javax.inject.Inject
 
 /** Model trình bày cho UI — BudgetModel (Domain) không biết tên/màu category, phải join thêm CategoryModel. */
 data class BudgetProgress(
+    val userId: String,
     val budget: BudgetModel,
     val categoryName: String,
-    val categoryColorHex: String
+    val categoryColorHex: String,
+    val categoryMissing: Boolean = false
 ) {
     val progress: Float
         get() = if (budget.budgetAmount.amountMinor == 0L) 0f
@@ -43,6 +46,7 @@ data class BudgetProgress(
 }
 
 data class BudgetUiState(
+    val userId: String? = null,
     val isLoading: Boolean = true,
     val budgets: List<BudgetProgress> = emptyList(),
     val categories: List<CategoryModel> = emptyList(), // cho dialog "+" chọn category để đặt ngân sách
@@ -56,6 +60,9 @@ class BudgetViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
+
+    private val _categoryUnavailable = Channel<String>(Channel.BUFFERED)
+    val categoryUnavailable = _categoryUnavailable.receiveAsFlow()
 
     var anchorDate by mutableStateOf(System.currentTimeMillis())
         private set
@@ -73,25 +80,12 @@ class BudgetViewModel @Inject constructor(
                     now.get(Calendar.MONTH) == viewing.get(Calendar.MONTH)
         }
 
-    private val allCategories: Flow<List<CategoryModel>> =
-        authRepository.observeAuthState().flatMapLatest { user ->
-            val userId = user?.userId
-            if (userId == null) flowOf(emptyList())
-            else categoryRepository.getActiveCategoriesByType(userId, TransactionType.EXPENSE)
-        }
     private val _anchorDateFlow = MutableStateFlow(anchorDate)
 
     val uiState: StateFlow<BudgetUiState> =
-        combine(
-            authRepository.observeAuthState(),
-            snapshotFlowOfAnchor(), // xem bên dưới — cầu nối anchorDate (Compose state) sang Flow
-            allCategories
-        ) { user, anchor, categories -> Triple(user, anchor, categories) }
-            .flatMapLatest { (user, anchor, categories) ->
-                val userId = user?.userId
-                if (userId == null) {
-                    flowOf(BudgetUiState(isLoading = false))
-                } else {
+        authRepository.observeAuthState().flatMapLatest { user ->
+            val userId = user?.userId ?: return@flatMapLatest flowOf(BudgetUiState(isLoading = false))
+            snapshotFlowOfAnchor().flatMapLatest { anchor ->
                     val cal = Calendar.getInstance().apply { timeInMillis = anchor }
                     val month = cal.get(Calendar.MONTH) + 1
                     val year = cal.get(Calendar.YEAR)
@@ -100,25 +94,31 @@ class BudgetViewModel @Inject constructor(
                     // rồi truyền xuống UseCase -- đúng theo fix đã chốt trước đó.
                     val (periodStart, periodEnd) = TimeRangeCalculator.getTimeRange(HomePeriod.MONTH, anchor)
 
-                    getMonthlyBudgetOverviewUseCase(userId , month, year, periodStart, periodEnd).map { overview ->
+                    combine(
+                        getMonthlyBudgetOverviewUseCase(userId, month, year, periodStart, periodEnd),
+                        categoryRepository.getAllCategories(userId)
+                    ) { overview, categories ->
                         val categoryById = categories.associateBy { it.id }
-                        val progressList = overview.budgets.mapNotNull { budget ->
-                            val category = categoryById[budget.categoryId] ?: return@mapNotNull null
+                        val progressList = overview.budgets.map { budget ->
+                            val category = categoryById[budget.categoryId]
                             BudgetProgress(
+                                userId = userId,
                                 budget = budget,
-                                categoryName = category.name,
-                                categoryColorHex = category.colorHex
+                                categoryName = category?.name ?: "Missing category",
+                                categoryColorHex = category?.colorHex ?: "#9E9E9E",
+                                categoryMissing = category == null
                             )
                         }
                         BudgetUiState(
+                            userId = userId,
                             isLoading = false,
                             budgets = progressList,
-                            categories = categories,
+                            categories = categories.filter { !it.isArchived && it.type == TransactionType.EXPENSE },
                             displayMonth = SimpleDateFormat(" M / yyyy", Locale("vi")).format(Date(anchor))
                         )
                     }
-                }
-            }
+            }.onStart { emit(BudgetUiState()) }
+        }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BudgetUiState())
 
     // mutableStateOf (Compose state) không tự phát Flow -> cần cầu nối để dùng combine().
@@ -144,15 +144,21 @@ class BudgetViewModel @Inject constructor(
         val amount = amountText.toLongOrNull() ?: return
         if (!canModifyBudget) return // chặn double-check phía logic, phòng khi UI lỡ không khoá kịp
         viewModelScope.launch {
-            val userId = authRepository.getCurrentUserId() ?: return@launch
-            budgetRepository.setBudget(userId, category.id, amount, DefaultCurrency.CODE)
+            val userId = category.userId
+            if (authRepository.getCurrentUserId() != userId || category.isArchived || category.isMissing) return@launch
+            try {
+                budgetRepository.setBudget(userId, category.id, amount, DefaultCurrency.CODE)
+            } catch (error: IllegalArgumentException) {
+                _categoryUnavailable.send(userId)
+            }
         }
     }
 
     fun deleteBudget(progress: BudgetProgress) {
         if (!canModifyBudget) return
         viewModelScope.launch {
-            val userId = authRepository.getCurrentUserId() ?: return@launch
+            val userId = progress.userId
+            if (authRepository.getCurrentUserId() != userId) return@launch
             budgetRepository.deleteBudget(userId, progress.budget.categoryId)
         }
     }

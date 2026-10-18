@@ -5,6 +5,7 @@ import com.example.moneymatev2.domain.model.TransactionError
 import com.example.moneymatev2.domain.model.AppResult
 import com.example.moneymatev2.domain.model.Money
 import com.example.moneymatev2.domain.model.TransactionModel
+import com.example.moneymatev2.domain.model.CategoryModel
 import com.example.moneymatev2.domain.repository.AuthRepository
 import com.example.moneymatev2.domain.repository.TransactionRepository
 import javax.inject.Inject
@@ -16,7 +17,7 @@ class CreateTransactionUseCase @Inject constructor(
     suspend operator fun invoke(
         type: TransactionType,
         amountMinor: Long,
-        categoryId: String?,
+        category: CategoryModel?,
         note: String?,
         date: Long,
         currency: String = "VND"
@@ -28,7 +29,7 @@ class CreateTransactionUseCase @Inject constructor(
             return AppResult.Failure(TransactionError.InvalidAmount)
         }
 
-        if(categoryId.isNullOrBlank()){
+        if(category == null || category.userId != userId || category.isArchived || category.isMissing || category.type != type){
             return AppResult.Failure(TransactionError.CategoryNotSelected)
         }
 
@@ -39,7 +40,7 @@ class CreateTransactionUseCase @Inject constructor(
                     userId = userId,
                     type = type,
                     money = Money(amountMinor, currency),
-                    categoryId = categoryId,
+                    categoryId = category.id,
                     note = note?.ifBlank { null },
                     createdAt = date,
                     updatedAt = System.currentTimeMillis(),
@@ -47,6 +48,8 @@ class CreateTransactionUseCase @Inject constructor(
                 )
             )
             AppResult.Success(Unit)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         }catch (e : Exception){
             AppResult.Failure(TransactionError.UnknownError(e.message ?: "Unknown error"))
         }

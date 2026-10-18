@@ -1,12 +1,16 @@
 package com.example.moneymatev2.data.repository
 
 import com.example.moneymatev2.data.local.dao.BudgetDao
+import com.example.moneymatev2.data.local.dao.CategoryDao
+import com.example.moneymatev2.data.local.entity.TransactionType
 import com.example.moneymatev2.data.local.dao.TransactionDao
 import com.example.moneymatev2.data.local.entity.BudgetEntity
 import com.example.moneymatev2.data.local.entity.PendingOperation
 import com.example.moneymatev2.data.local.entity.SyncStatus
 import com.example.moneymatev2.data.remote.dto.toDto
 import com.example.moneymatev2.data.remote.sync.SyncTrigger
+import com.example.moneymatev2.data.remote.sync.PendingUploadRunner
+import com.example.moneymatev2.data.remote.sync.syncFailureSummary
 import com.example.moneymatev2.domain.model.BudgetModel
 import com.example.moneymatev2.domain.model.Money
 import com.example.moneymatev2.domain.repository.BudgetRepository
@@ -21,8 +25,10 @@ import javax.inject.Inject
 class BudgetRepositoryImpl @Inject constructor(
     private val budgetDao: BudgetDao,
     private val transactionDao: TransactionDao,
+    private val categoryDao: CategoryDao,
     private val firestore: FirebaseFirestore,
-    private val syncTrigger: SyncTrigger
+    private val syncTrigger: SyncTrigger,
+    private val uploadRunner: PendingUploadRunner
 ): BudgetRepository {
     override fun getBudgetForMonth(userId: String, month: Int, year: Int): Flow<List<BudgetModel>> =
         budgetDao.getActiveBudgetsForMonth(userId = userId, year = year, month = month).map { budgets ->
@@ -35,6 +41,9 @@ class BudgetRepositoryImpl @Inject constructor(
         amountMinor: Long,
         currency: String
     ) {
+        uploadRunner.capture(userId)
+        val category = categoryDao.getCategoryByLocalIdOnce(userId, categoryId)
+        require(category != null && !category.isArchived && category.type == TransactionType.EXPENSE) { "Invalid budget category" }
         val cal = Calendar.getInstance()
         val month = cal.get(Calendar.MONTH) + 1
         val year = cal.get(Calendar.YEAR)
@@ -73,6 +82,7 @@ class BudgetRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteBudget(userId: String, categoryId: String) {
+        uploadRunner.capture(userId)
         val cal = Calendar.getInstance()
         val month = cal.get(Calendar.MONTH) + 1
         val year = cal.get(Calendar.YEAR)
@@ -109,21 +119,42 @@ class BudgetRepositoryImpl @Inject constructor(
         syncTrigger.requestImmediateSync()
     }
 
+
     override suspend fun syncPendingBudgets(userId: String) {
+        val session = uploadRunner.capture(userId)
         val pending = budgetDao.getPendingBudgetsForSync(userId)
-        for (b in pending) {
+        var firstError: Exception? = null
+        for (row in pending) {
             try {
-                firestore.collection("users").document(userId)
-                    .collection("budgets").document(b.localId)
-                    .set(b.toDto()).await()
-                budgetDao.markSynced(b.localId, System.currentTimeMillis())
-            }catch (e: Exception) {
-                // Handle error, maybe log it or update the budget with the error message
-                // For simplicity, we will just print the error here
-                println("Error syncing budget ${b.localId}: ${e.message}")
+                uploadRunner.run(
+                    session = session,
+                    snapshot = row,
+                    readCurrent = { budgetDao.getRowForCloudMerge(row.localId) },
+                    upload = {
+                        val doc = firestore.collection("users").document(userId)
+                            .collection("budgets").document(row.localId)
+                        doc.set(row.toDto()).await()
+                    },
+                    acknowledge = {
+                        budgetDao.markSyncedIfUnchanged(row.localId, userId, row.updatedAt, System.currentTimeMillis())
+                    },
+                    recordFailure = { error ->
+                        budgetDao.markSyncFailedIfUnchanged(
+                            row.localId, userId, row.updatedAt,
+                            error.syncFailureSummary(), System.currentTimeMillis()
+                        )
+                    }
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("SyncUpload", "SYNC_FAILED collection=budgets ${e.syncFailureSummary()}")
+                if (firstError == null) firstError = e else if (firstError !== e) firstError.addSuppressed(e)
             }
         }
+        firstError?.let { throw it }
     }
+
 
     private fun BudgetEntity.toModel() = BudgetModel(
         id = localId,

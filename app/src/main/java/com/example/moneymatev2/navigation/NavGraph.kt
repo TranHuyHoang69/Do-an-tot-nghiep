@@ -74,14 +74,14 @@ fun NavGraph(
         composable(Screen.AddTransaction.route) { backStackEntry ->
             val viewModel: AddTransactionViewmodel = hiltViewModel(backStackEntry)
 
-            val selectedCategoryId by backStackEntry.savedStateHandle
-                .getStateFlow<String?>("selected_category_id", null)
+            val selectedCategory by backStackEntry.savedStateHandle
+                .getStateFlow<ArrayList<String>?>("selected_category_owner_and_id", null)
                 .collectAsState()
 
-            LaunchedEffect(selectedCategoryId) {
-                selectedCategoryId?.let { id ->
-                    viewModel.onCategorySelected(id)
-                    backStackEntry.savedStateHandle["selected_category_id"] = null
+            LaunchedEffect(selectedCategory) {
+                selectedCategory?.takeIf { it.size == 2 }?.let { selection ->
+                    viewModel.onCategoryResult(selection[0], selection[1])
+                    backStackEntry.savedStateHandle["selected_category_owner_and_id"] = null
                 }
             }
 
@@ -103,7 +103,8 @@ fun NavGraph(
                 onOpenDrawer = onOpenDrawer,
                 onAddCategoryClick = { navController.navigate(Screen.AddCategory.route) },
                 onCategoryClick = if (isPickMode) { category ->
-                    navController.previousBackStackEntry?.savedStateHandle?.set("selected_category_id", category.id)
+                    navController.previousBackStackEntry?.savedStateHandle?.set(
+                        "selected_category_owner_and_id", arrayListOf(category.userId, category.id))
                     navController.popBackStack()
                 } else null // chế độ quản lý -> tap không làm gì, chỉ long-press mới có tác dụng
             )

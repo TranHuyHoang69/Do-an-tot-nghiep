@@ -22,10 +22,14 @@ class App: Application(), Configuration.Provider{
             .setWorkerFactory(workerFactory)
             .build()
 
+    @Inject lateinit var authSyncSessionManager: com.example.moneymatev2.data.remote.sync.AuthSyncSessionManager
+
     override fun onCreate() {
+
         super.onCreate()
         com.example.moneymatev2.core.util.NightModeSync.applySavedModeOnStartup(this)
         SyncScheduler.schedulePeriodicSync(this)
         reminderAuthSessionManager.start()
+        authSyncSessionManager.start()
     }
 }

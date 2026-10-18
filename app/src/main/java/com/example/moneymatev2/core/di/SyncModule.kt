@@ -39,8 +39,13 @@ object SyncScheduler {
 
         WorkManager.getInstance(context).enqueueUniqueWork(
             ONE_TIME_WORK_NAME,
-            ExistingWorkPolicy.REPLACE,
+            // Preserve a trailing run when a local edit happens during an upload.
+            ExistingWorkPolicy.APPEND_OR_REPLACE,
             request
         )
+    }
+
+    fun cancelImmediateSync(context: Context) {
+        WorkManager.getInstance(context).cancelUniqueWork(ONE_TIME_WORK_NAME)
     }
 }

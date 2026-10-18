@@ -57,4 +57,48 @@ interface BudgetDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertFromRemote(budget: List<BudgetEntity>)
+
+    @Query("SELECT * FROM budgets WHERE localId = :localId LIMIT 1")
+    suspend fun getRowForCloudMerge(localId: String): BudgetEntity?
+
+    @Query("DELETE FROM budgets WHERE localId = :id AND userId = :userId AND pendingOperation = 'NONE'")
+    suspend fun deleteCleanRowForCloudMerge(id: String, userId: String)
+
+    @Query("""
+    UPDATE budgets
+    SET syncStatus = 'SYNCED',
+        pendingOperation = 'NONE',
+        remoteUpdatedAt = :remoteUpdatedAt,
+        lastSyncError = NULL,
+        retryCount = 0
+    WHERE localId = :localId
+      AND userId = :userId
+      AND updatedAt = :expectedUpdatedAt
+      AND pendingOperation != 'NONE'
+""")
+    suspend fun markSyncedIfUnchanged(
+        localId: String,
+        userId: String,
+        expectedUpdatedAt: Long,
+        remoteUpdatedAt: Long
+    ): Int
+
+    @Query("""
+    UPDATE budgets
+    SET syncStatus = 'FAILED',
+        lastSyncError = :error,
+        retryCount = retryCount + 1,
+        lastSyncAttemptAt = :attemptAt
+    WHERE localId = :localId
+      AND userId = :userId
+      AND updatedAt = :expectedUpdatedAt
+      AND pendingOperation != 'NONE'
+""")
+    suspend fun markSyncFailedIfUnchanged(
+        localId: String,
+        userId: String,
+        expectedUpdatedAt: Long,
+        error: String,
+        attemptAt: Long
+    ): Int
 }

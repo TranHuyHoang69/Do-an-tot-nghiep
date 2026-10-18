@@ -32,7 +32,7 @@ class UserRepositoryImpl @Inject constructor(
     }
 
     override suspend fun signOut() {
-        TODO("Not yet implemented")
+        // Local rows, including pending writes, belong to their stored owner and survive logout.
     }
 
     private fun UserEntity.toModel() = UserModel(

@@ -22,6 +22,7 @@ sealed interface RecurringEvent {
 }
 
 data class RecurringUiState(
+    val userId: String? = null,
     val loading: Boolean = true,
     val signedIn: Boolean = false,
     val templates: List<RecurringTransactionModel> = emptyList(),
@@ -42,9 +43,10 @@ class RecurringTransactionViewModel @Inject constructor(
             } else {
                 combine(
                     recurringRepository.observe(user.userId),
-                    categoryRepository.getActiveCategories(user.userId)
+                    categoryRepository.getAllCategories(user.userId)
                 ) { templates, categories ->
                     RecurringUiState(
+                        userId = user.userId,
                         loading = false,
                         signedIn = true,
                         templates = templates,
@@ -81,6 +83,7 @@ class RecurringTransactionViewModel @Inject constructor(
 
     /** Validation is repeated inside the repository to protect non-UI callers. */
     fun save(
+        ownerId: String?,
         existing: RecurringTransactionModel?,
         type: TransactionType,
         amountText: String,
@@ -93,7 +96,9 @@ class RecurringTransactionViewModel @Inject constructor(
     ) {
         if (_isSaving.value) return
         viewModelScope.launch {
-            val userId = authRepository.getCurrentUserId()
+            val userId = ownerId
+            if (userId == null || authRepository.getCurrentUserId() != userId ||
+                (existing != null && existing.userId != userId)) return@launch
             val amount = amountText.toLongOrNull()
             if (userId.isNullOrBlank() || amount == null || amount <= 0L || categoryId.isBlank()) {
                 _events.send(RecurringEvent.Error("Vui lòng nhập số tiền và chọn danh mục hợp lệ"))
@@ -120,6 +125,8 @@ class RecurringTransactionViewModel @Inject constructor(
                     updatedAt = now
                 ))
                 _events.send(RecurringEvent.Saved)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _events.send(RecurringEvent.Error(e.message ?: "Không thể lưu giao dịch định kỳ"))
             } finally {
@@ -132,6 +139,7 @@ class RecurringTransactionViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val uid = authRepository.getCurrentUserId() ?: return@launch
+                if (uid != item.userId) return@launch
                 recurringRepository.setActive(uid, item.id, active)
             } catch (e: Exception) {
                 _events.send(RecurringEvent.Error(e.message ?: "Không thể thay đổi trạng thái"))
@@ -143,6 +151,7 @@ class RecurringTransactionViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val uid = authRepository.getCurrentUserId() ?: return@launch
+                if (uid != item.userId) return@launch
                 recurringRepository.delete(uid, item.id)
                 _events.send(RecurringEvent.Deleted)
             } catch (e: Exception) {

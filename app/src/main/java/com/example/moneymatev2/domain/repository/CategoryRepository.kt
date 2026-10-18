@@ -6,6 +6,10 @@ import kotlinx.coroutines.flow.Flow
 
 interface CategoryRepository {
 
+    fun getAllCategories(userId: String): Flow<List<CategoryModel>>
+
+    suspend fun getCategory(userId: String, id: String): CategoryModel?
+
     fun getActiveCategories(userId: String): Flow<List<CategoryModel>>
 
     fun getActiveCategoriesByType(userId: String, type: TransactionType): Flow<List<CategoryModel>>
@@ -14,7 +18,7 @@ interface CategoryRepository {
 
     suspend fun updateCategory(category: CategoryModel)
 
-    suspend fun archiveCategory(id: String)
+    suspend fun archiveCategory(userId: String, id: String)
 
     suspend fun seedDefaultCategoriesIfNeeded(userId: String)
 

@@ -252,7 +252,7 @@ fun ManagementCategoryScreen(
                             Spacer(modifier = Modifier.height(12.dp))
                             Button(
                                 onClick = {
-                                    viewModel.deleteCategory(categoryToDelete.id, selectedReplacement!!.id)
+                                    viewModel.deleteCategory(categoryToDelete, selectedReplacement!!)
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {

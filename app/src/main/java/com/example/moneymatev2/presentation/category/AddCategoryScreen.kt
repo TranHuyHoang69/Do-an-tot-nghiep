@@ -40,6 +40,7 @@ fun AddCategoryScreen(
     onSaved: () -> Unit
 ) {
     val state by viewModel.formState.collectAsState()
+    val ownerId = state.userId
     val groupedIcons = remember { CategoryIconMap.groupedKeys() }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedIcon by remember { mutableStateOf<String?>(null) }
@@ -86,7 +87,7 @@ fun AddCategoryScreen(
                 item(span = { GridItemSpan(6) }, key = "input_field") {
                     OutlinedTextField(
                         value = state.name,
-                        onValueChange = { viewModel.onNameChange(it) },
+                        onValueChange = { viewModel.onNameChange(it, ownerId) },
                         label = { Text(text = stringResource(StringRes.category_name)) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
@@ -109,7 +110,7 @@ fun AddCategoryScreen(
                     ) {
                         RadioButton(
                             selected = state.type == TransactionType.EXPENSE,
-                            onClick = { viewModel.onTypeChange(TransactionType.EXPENSE) },
+                            onClick = { viewModel.onTypeChange(TransactionType.EXPENSE, ownerId) },
                             colors = RadioButtonDefaults.colors(selectedColor = themeColor)
                         )
                         Text(text = stringResource(StringRes.expense), fontWeight = FontWeight.Medium, fontSize = 14.sp)
@@ -118,7 +119,7 @@ fun AddCategoryScreen(
 
                         RadioButton(
                             selected = state.type == TransactionType.INCOME,
-                            onClick = { viewModel.onTypeChange(TransactionType.INCOME) },
+                            onClick = { viewModel.onTypeChange(TransactionType.INCOME, ownerId) },
                             colors = RadioButtonDefaults.colors(selectedColor = themeColor)
                         )
                         Text(text = stringResource(StringRes.income), fontWeight = FontWeight.Medium, fontSize = 14.sp)
@@ -146,7 +147,7 @@ fun AddCategoryScreen(
                             .size(38.dp)
                             .clip(CircleShape)
                             .background(composeColor)
-                            .clickable { viewModel.onColorChange(colorHex) }
+                            .clickable { viewModel.onColorChange(colorHex, ownerId) }
                             .border(
                                 width = if (isSelected) 3.dp else 0.dp,
                                 color = if (isSelected) MaterialTheme.colorScheme.onBackground else Color.Transparent,
@@ -181,7 +182,7 @@ fun AddCategoryScreen(
                             iconKey = iconKey,
                             isSelected = state.selectedIconKey == iconKey,
                             themeColor = themeColor,
-                            onClick = { viewModel.onIconChange(iconKey) }
+                            onClick = { viewModel.onIconChange(iconKey, ownerId) }
                         )
                     }
                 }
@@ -193,7 +194,7 @@ fun AddCategoryScreen(
                 shadowElevation = 8.dp
             ) {
                 Button(
-                    onClick = { viewModel.save() },
+                    onClick = { viewModel.save(ownerId) },
                     modifier = Modifier.fillMaxWidth().padding(16.dp).height(54.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = themeColor),

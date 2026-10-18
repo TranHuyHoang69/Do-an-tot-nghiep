@@ -87,8 +87,9 @@ fun AddTransactionScreen(
 ){
 
     val state by viewModel.formState.collectAsState()
-    var errorMessage by remember { mutableStateOf<TransactionError?>(null) }
-    var showDatePicker by remember { mutableStateOf(false) }
+    val ownerId = state.userId
+    var errorMessage by remember(ownerId) { mutableStateOf<TransactionError?>(null) }
+    var showDatePicker by remember(ownerId) { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -118,7 +119,7 @@ fun AddTransactionScreen(
         HeaderAdd(
             themeColor = themeColor,
             selectedType = state.type,
-            onTabSelected = {viewModel.onTypeChange(it)},
+            onTabSelected = {viewModel.onTypeChange(it, ownerId)},
             onBack = onBack
         )
 
@@ -133,12 +134,12 @@ fun AddTransactionScreen(
             generalError = errorMessage?.takeIf { it != TransactionError.InvalidAmount },
             themeColor = themeColor,
             currency = "đ",
-            onAmountChange = { errorMessage = null; viewModel.onAmountChange(it) },
-            onNoteChange = { viewModel.onNoteChange(it) },
-            onCategorySelected = { errorMessage = null; viewModel.onCategorySelected(it.id) },
+            onAmountChange = { errorMessage = null; viewModel.onAmountChange(it, ownerId) },
+            onNoteChange = { viewModel.onNoteChange(it, ownerId) },
+            onCategorySelected = { errorMessage = null; viewModel.onCategorySelected(it) },
             onDateClicked = { showDatePicker = true },
             onManageCategoryClick = onManageCategoryClick,
-            onConfirm = { viewModel.save() }
+            onConfirm = { viewModel.save(ownerId) }
 
         )
     }
@@ -149,7 +150,7 @@ fun AddTransactionScreen(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { viewModel.onDateChange(it) }
+                    datePickerState.selectedDateMillis?.let { viewModel.onDateChange(it, ownerId) }
                     showDatePicker = false
                 }) { Text(StringResource(StringRes.confirm)) }
             },

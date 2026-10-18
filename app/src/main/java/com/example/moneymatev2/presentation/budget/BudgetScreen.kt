@@ -38,8 +38,15 @@ fun BudgetScreen(
     onOpenDrawer: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
-    var showAddDialog by remember { mutableStateOf(false) }
-    var pendingDelete by remember { mutableStateOf<BudgetProgress?>(null) }
+    val snackbar = remember { SnackbarHostState() }
+    val categoryUnavailableMessage = stringResource(R.string.category_selection_unavailable)
+    LaunchedEffect(viewModel, categoryUnavailableMessage) {
+        viewModel.categoryUnavailable.collect { ownerId ->
+            if (ownerId == viewModel.uiState.value.userId) snackbar.showSnackbar(categoryUnavailableMessage)
+        }
+    }
+    var showAddDialog by remember(state.userId) { mutableStateOf(false) }
+    var pendingDelete by remember(state.userId) { mutableStateOf<BudgetProgress?>(null) }
     val budget_delete = StringResource(StringRes.budget_delete)
     val budget_confirm_delete = StringResource(StringRes.budget_confirm_delete)
     val budget = StringResource(StringRes.drawer_budget)
@@ -62,7 +69,8 @@ fun BudgetScreen(
             onDismissRequest = { pendingDelete = null },
             title = { Text(budget_delete) },
             text = {
-                Text("$budget ${progress.categoryName} $budget_confirm_delete")
+                val name = if (progress.categoryMissing) stringResource(R.string.category_missing_reference) else progress.categoryName
+                Text("$budget $name $budget_confirm_delete")
             },
             confirmButton = {
                 Button(
@@ -84,6 +92,7 @@ fun BudgetScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
@@ -337,7 +346,7 @@ private fun BudgetProgressCard(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = progress.categoryName,
+                        text = if (progress.categoryMissing) stringResource(R.string.category_missing_reference) else progress.categoryName,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface

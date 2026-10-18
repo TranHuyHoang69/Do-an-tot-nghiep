@@ -24,6 +24,7 @@ import javax.inject.Inject
 import kotlin.collections.emptyList
 
 data class AddTransactionFormState(
+    val userId: String? = null,
     val type: TransactionType = TransactionType.EXPENSE,
     val amountText: String = "",
     val note: String = "",
@@ -56,16 +57,18 @@ class AddTransactionViewmodel @Inject constructor(
 
     private fun obserCategoryByType() {
         viewModelScope.launch {
-            _formState.map { it.type }
-                .distinctUntilChanged()
-                .flatMapLatest { type ->
-                    val userId = authRepository.getCurrentUserId()
-                    if (userId == null) flowOf(emptyList())
-                    else categoryRepository.getActiveCategoriesByType(userId, type)
+            authRepository.observeAuthState().map { it?.userId }.distinctUntilChanged()
+                .flatMapLatest { userId ->
+                    _formState.update { AddTransactionFormState(userId = userId) }
+                    _formState.map { it.type }.distinctUntilChanged().flatMapLatest { type ->
+                        if (userId == null) flowOf(emptyList())
+                        else categoryRepository.getActiveCategoriesByType(userId, type)
+                    }.map { userId to it }
                 }
-                .collect { categories ->
+                .collect { (userId, categories) ->
+                    if (userId != _formState.value.userId || userId != authRepository.getCurrentUserId()) return@collect
                     _formState.update { current ->
-                        val stillValid = categories.any { it.id == current.selectedCategoryId }
+                        val stillValid = categories.any { it.userId == userId && it.id == current.selectedCategoryId }
                         current.copy(
                             categories = categories,
                             selectedCategoryId = if (stillValid) current.selectedCategoryId else categories.firstOrNull()?.id
@@ -75,29 +78,46 @@ class AddTransactionViewmodel @Inject constructor(
         }
     }
 
-    fun onTypeChange(type: TransactionType) {
+    private fun ownsForm(userId: String?) = userId != null &&
+        userId == _formState.value.userId && userId == authRepository.getCurrentUserId()
+
+    fun onTypeChange(type: TransactionType, userId: String?) {
+        if (!ownsForm(userId)) return
         _formState.update { it.copy(type = type, selectedCategoryId = null) }
     }
 
-    fun onAmountChange(text: String) {
+    fun onAmountChange(text: String, userId: String?) {
+        if (!ownsForm(userId)) return
         val digitsOnly = text.filter { it.isDigit() }
         _formState.update { it.copy(amountText = digitsOnly) }
     }
 
-    fun onNoteChange(text: String) {
+    fun onNoteChange(text: String, userId: String?) {
+        if (!ownsForm(userId)) return
         _formState.update { it.copy(note = text) }
     }
 
-    fun onCategorySelected(categoryId: String) {
-        _formState.update { it.copy(selectedCategoryId = categoryId) }
+    fun onCategorySelected(category: CategoryModel) {
+        if (category.userId != authRepository.getCurrentUserId() || category.userId != _formState.value.userId) return
+        if (category.isArchived || category.isMissing) return
+        _formState.update { it.copy(type = category.type, selectedCategoryId = category.id) }
     }
 
-    fun onDateChange(dateMillis: Long) {
+    fun onCategoryResult(userId: String, categoryId: String) {
+        if (userId != authRepository.getCurrentUserId()) return
+        viewModelScope.launch {
+            categoryRepository.getCategory(userId, categoryId)?.let(::onCategorySelected)
+        }
+    }
+
+    fun onDateChange(dateMillis: Long, userId: String?) {
+        if (!ownsForm(userId)) return
         _formState.update { it.copy(selectedDate = dateMillis) }
     }
 
-    fun save() {
+    fun save(expectedUserId: String?) {
         val state = _formState.value
+        if (expectedUserId == null || expectedUserId != state.userId || expectedUserId != authRepository.getCurrentUserId()) return
         val amountMinor = state.amountText.toLongOrNull() ?: 0L
 
         viewModelScope.launch {
@@ -106,16 +126,18 @@ class AddTransactionViewmodel @Inject constructor(
             val result = createTransactionUseCase(
                 type = state.type,
                 amountMinor = amountMinor,
-                categoryId = state.selectedCategoryId,
+                category = state.categories.firstOrNull { it.id == state.selectedCategoryId },
                 note = state.note,
                 date = state.selectedDate
             )
+
+            if (_formState.value.userId != expectedUserId || authRepository.getCurrentUserId() != expectedUserId) return@launch
 
             _formState.update { it.copy(isSaving = false) }
 
             when (result) {
                 is AppResult.Success -> {
-                    _formState.value = AddTransactionFormState()
+                    _formState.value = AddTransactionFormState(userId = expectedUserId, categories = state.categories)
                     _events.send(AddTransactionEvent.SaveSuccessfully)
                 }
 
@@ -127,10 +149,4 @@ class AddTransactionViewmodel @Inject constructor(
             }
         }
     }
-}
-
-private fun MutableStateFlow<AddTransactionFormState>.update(
-    transform: (AddTransactionFormState) -> AddTransactionFormState
-) {
-    value = transform(value)
 }

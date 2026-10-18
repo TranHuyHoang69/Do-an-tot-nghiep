@@ -34,8 +34,8 @@ interface TransactionDao{
     """)
     fun getTransactionByCategory(userId: String, categoryLocalId: String): Flow<List<TransactionEntity>>
 
-    @Query("SELECT * FROM transactions WHERE localId = :localId AND isDeleted = 0")
-    fun getTransactionByLocalId(localId: String): Flow<TransactionEntity?>
+    @Query("SELECT * FROM transactions WHERE userId = :userId AND localId = :localId AND isDeleted = 0")
+    fun getTransactionByLocalId(userId: String, localId: String): Flow<TransactionEntity?>
 
     //sync
     @Query("""
@@ -58,10 +58,10 @@ interface TransactionDao{
     //soft delete
     @Query("""
         UPDATE transactions
-        SET isDeleted = 1, pendingOperation = 'DELETE', updatedAt = :updatedAt
-        WHERE localId = :localId
+        SET isDeleted = 1, syncStatus = 'PENDING', pendingOperation = 'DELETE', updatedAt = :updatedAt
+        WHERE userId = :userId AND localId = :localId
     """)
-    suspend fun softDeleteTransaction(localId: String, updatedAt: Long)
+    suspend fun softDeleteTransaction(userId: String, localId: String, updatedAt: Long)
 
     @Query("DELETE FROM transactions WHERE localId = :localId")
     suspend fun hardDeleteTransaction(localId: String)
@@ -107,4 +107,38 @@ interface TransactionDao{
     suspend fun insertGeneratedTransaction(
         transaction: TransactionEntity
     ): Long
+
+    @Query("SELECT * FROM transactions WHERE localId = :localId LIMIT 1")
+    suspend fun getRowForCloudMerge(localId: String): TransactionEntity?
+
+    @Query("SELECT * FROM transactions WHERE userId = :userId AND pendingOperation = 'NONE'")
+    suspend fun getCleanRowsForCloudMerge(userId: String): List<TransactionEntity>
+
+    @Query("DELETE FROM transactions WHERE localId = :id AND userId = :userId AND pendingOperation = 'NONE'")
+    suspend fun deleteCleanRowForCloudMerge(id: String, userId: String)
+
+    @Query("""UPDATE transactions SET syncStatus='SYNCED',pendingOperation='NONE',remoteUpdatedAt=:remoteUpdatedAt,lastSyncError=NULL,retryCount=0 WHERE localId=:localId AND userId=:userId AND updatedAt=:expectedUpdatedAt AND pendingOperation!='NONE'""")
+    suspend fun markSyncedIfUnchanged(localId: String, userId: String, expectedUpdatedAt: Long, remoteUpdatedAt: Long): Int
+
+    @Query("DELETE FROM transactions WHERE localId=:id AND userId=:userId AND pendingOperation='DELETE' AND updatedAt=:expectedUpdatedAt")
+    suspend fun hardDeleteIfUnchanged(id:String,userId:String,expectedUpdatedAt:Long):Int
+
+    @Query("""
+    UPDATE transactions
+    SET syncStatus = 'FAILED',
+        lastSyncError = :error,
+        retryCount = retryCount + 1,
+        lastSyncAttemptAt = :attemptAt
+    WHERE localId = :localId
+      AND userId = :userId
+      AND updatedAt = :expectedUpdatedAt
+      AND pendingOperation != 'NONE'
+""")
+    suspend fun markSyncFailedIfUnchanged(
+        localId: String,
+        userId: String,
+        expectedUpdatedAt: Long,
+        error: String,
+        attemptAt: Long
+    ): Int
 }

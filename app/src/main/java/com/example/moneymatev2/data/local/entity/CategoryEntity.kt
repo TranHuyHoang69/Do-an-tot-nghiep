@@ -2,10 +2,10 @@ package com.example.moneymatev2.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.Index
-import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "categories",
+    primaryKeys = ["userId", "localId"],
     indices = [
         Index(value =  ["userId"]),
         Index(value = ["stableId"]),
@@ -14,7 +14,6 @@ import androidx.room.PrimaryKey
     ]
 )
 data class CategoryEntity(
-    @PrimaryKey
     val localId: String,
     val stableId: String?,
     val userId: String,

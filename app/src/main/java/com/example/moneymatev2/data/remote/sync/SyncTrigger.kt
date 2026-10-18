@@ -13,4 +13,8 @@ class SyncTrigger @Inject constructor(
     fun requestImmediateSync(){
         SyncScheduler.triggerImmediateSync(context)
     }
+
+    fun cancelImmediateSync() {
+        SyncScheduler.cancelImmediateSync(context)
+    }
 }

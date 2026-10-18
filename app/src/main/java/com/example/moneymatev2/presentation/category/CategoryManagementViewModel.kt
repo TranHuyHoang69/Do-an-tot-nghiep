@@ -53,10 +53,11 @@ class CategoryManagementViewModel @Inject constructor(
     private val _deleteEvents = Channel<DeleteCategoryEvent>(Channel.BUFFERED)
     val deleteEvents = _deleteEvents.receiveAsFlow()
 
-    fun deleteCategory(categoryId: String, replacementCategoryId: String) {
+    fun deleteCategory(category: CategoryModel, replacement: CategoryModel) {
         viewModelScope.launch {
-            val userId = authRepository.getCurrentUserId() ?: return@launch
-            val result = deleteCategoryUseCase(userId, categoryId, replacementCategoryId)
+            val userId = category.userId
+            if (authRepository.getCurrentUserId() != userId || replacement.userId != userId) return@launch
+            val result = deleteCategoryUseCase(userId, category.id, replacement.id)
             when (result) {
                 is AppResult.Success -> _deleteEvents.send(DeleteCategoryEvent.Success)
                 is AppResult.Failure -> _deleteEvents.send(
@@ -70,7 +71,7 @@ class CategoryManagementViewModel @Inject constructor(
     /** Danh sách category có thể chọn làm thay thế: cùng loại, không phải chính nó, chưa bị archive. */
     fun getReplacementOptions(categoryToDelete: CategoryModel): List<CategoryModel> {
         val source = if (categoryToDelete.type == TransactionType.EXPENSE) expenseCategories.value else incomeCategories.value
-        return source.filter { it.id != categoryToDelete.id }
+        return source.filter { it.userId == categoryToDelete.userId && it.id != categoryToDelete.id }
     }
 
     sealed class DeleteCategoryEvent {

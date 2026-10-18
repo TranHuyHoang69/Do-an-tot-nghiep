@@ -3,18 +3,20 @@ package com.example.moneymatev2.domain.usecase.reminder
 import com.example.moneymatev2.domain.reminder.ReminderRepeatCalculator
 import com.example.moneymatev2.domain.reminder.ReminderScheduler
 import com.example.moneymatev2.domain.repository.ReminderRepository
+import com.example.moneymatev2.domain.repository.AuthRepository
 import javax.inject.Inject
 
 class RescheduleRemindersUseCase @Inject constructor(
     private val repository: ReminderRepository,
     private val scheduler: ReminderScheduler,
-    private val repeatCalculator: ReminderRepeatCalculator
+    private val repeatCalculator: ReminderRepeatCalculator,
+    private val authRepository: AuthRepository
 ) {
 
     suspend operator fun invoke(
         userId: String
     ) {
-        if (userId.isBlank()) {
+        if (userId.isBlank() || authRepository.getCurrentUserId() != userId) {
             return
         }
 
@@ -27,6 +29,7 @@ class RescheduleRemindersUseCase @Inject constructor(
             )
 
         reminders.forEach { reminder ->
+            if (authRepository.getCurrentUserId() != userId) return
 
             if (!reminder.isActive) {
                 return@forEach
@@ -88,6 +91,7 @@ class RescheduleRemindersUseCase @Inject constructor(
                     triggerAt = nextTrigger
                 )
 
+                if (authRepository.getCurrentUserId() != userId) return
                 scheduler.schedule(
                     reminder.copy(
                         triggerAt = nextTrigger

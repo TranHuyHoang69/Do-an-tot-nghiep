@@ -11,6 +11,8 @@ import com.example.moneymatev2.data.local.entity.RecurringTransactionEntity
 import com.example.moneymatev2.data.local.entity.SyncStatus
 import com.example.moneymatev2.data.local.entity.TransactionEntity
 import com.example.moneymatev2.data.remote.sync.SyncTrigger
+import com.example.moneymatev2.data.remote.sync.PendingUploadRunner
+import com.example.moneymatev2.data.remote.sync.syncFailureSummary
 import com.example.moneymatev2.domain.model.RecurringFrequency
 import com.example.moneymatev2.domain.model.RecurringTransactionModel
 import com.example.moneymatev2.domain.repository.RecurringTransactionRepository
@@ -29,7 +31,8 @@ class RecurringTransactionRepositoryImpl @Inject constructor(
     private val categoryDao: CategoryDao,
     private val calculator: RecurringScheduleCalculator,
     private val firestore: FirebaseFirestore,
-    private val syncTrigger: SyncTrigger
+    private val syncTrigger: SyncTrigger,
+    private val uploadRunner: PendingUploadRunner
 ) : RecurringTransactionRepository {
 
     override fun observe(userId: String): Flow<List<RecurringTransactionModel>> =
@@ -41,7 +44,8 @@ class RecurringTransactionRepositoryImpl @Inject constructor(
     override suspend fun save(userId: String, model: RecurringTransactionModel) {
         require(userId.isNotBlank() && model.userId == userId)
         require(model.amountMinor > 0L && model.currency == "VND")
-        val category = categoryDao.getCategoryByLocalIdOnce(model.categoryId)
+        uploadRunner.capture(userId)
+        val category = categoryDao.getCategoryByLocalIdOnce(userId, model.categoryId)
             ?: throw IllegalArgumentException("Category not found")
         require(category.userId == userId && !category.isArchived && category.type == model.type) {
             "Invalid category for transaction type"
@@ -136,7 +140,7 @@ class RecurringTransactionRepositoryImpl @Inject constructor(
             val now = System.currentTimeMillis()
             val found = db.withTransaction {
                 val due = recurringDao.nextDue(userId, now) ?: return@withTransaction null
-                val category = categoryDao.getCategoryByLocalIdOnce(due.categoryLocalId)
+                val category = categoryDao.getCategoryByLocalIdOnce(userId, due.categoryLocalId)
                 if (category == null || category.isArchived || category.userId != userId || category.type != due.type) {
                     // Pauses broken templates rather than silently miscategorizing money.
                     recurringDao.update(due.copy(
@@ -182,37 +186,52 @@ class RecurringTransactionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun syncPending(userId: String) {
-        for (item in recurringDao.getPending(userId)) {
+        val session = uploadRunner.capture(userId)
+        val pending = recurringDao.getPending(userId)
+        var firstError: Exception? = null
+        for (row in pending) {
             try {
-                val doc = firestore.collection("users").document(userId)
-                    .collection("recurring_transactions").document(item.localId)
-                if (item.pendingOperation == PendingOperation.DELETE) {
-                    doc.delete().await()
-                    recurringDao.hardDeleteIfUnchanged(item.localId, userId, item.updatedAt)
-                } else if (item.pendingOperation != PendingOperation.NONE) {
-                    doc.set(mapOf(
-                        "localId" to item.localId,
-                        "userId" to item.userId,
-                        "type" to item.type.name,
-                        "amountMinor" to item.amountMinor,
-                        "currency" to item.currency,
-                        "categoryLocalId" to item.categoryLocalId,
-                        "note" to item.note,
-                        "frequency" to item.frequency,
-                        "startAt" to item.startAt,
-                        "timeZoneId" to item.timeZoneId,
-                        "nextOccurrenceIndex" to item.nextOccurrenceIndex,
-                        "nextRunAt" to item.nextRunAt,
-                        "isActive" to item.isActive,
-                        "updatedAt" to item.updatedAt,
-                        "createdAt" to item.createdAt
-                    )).await()
-                    recurringDao.markSynced(item.localId, userId, item.updatedAt, System.currentTimeMillis())
-                }
+                uploadRunner.run(
+                    session = session,
+                    snapshot = row,
+                    readCurrent = { recurringDao.getRowForCloudMerge(row.localId) },
+                    upload = {
+                        val doc = firestore.collection("users").document(userId)
+                            .collection("recurring_transactions").document(row.localId)
+                        if (row.pendingOperation == PendingOperation.DELETE) doc.delete().await()
+                        else doc.set(mapOf(
+                            "localId" to row.localId, "userId" to row.userId,
+                            "type" to row.type.name, "amountMinor" to row.amountMinor,
+                            "currency" to row.currency, "categoryLocalId" to row.categoryLocalId,
+                            "note" to row.note, "frequency" to row.frequency,
+                            "startAt" to row.startAt, "timeZoneId" to row.timeZoneId,
+                            "nextOccurrenceIndex" to row.nextOccurrenceIndex,
+                            "nextRunAt" to row.nextRunAt, "isActive" to row.isActive,
+                            "updatedAt" to row.updatedAt, "createdAt" to row.createdAt
+                        )).await()
+                    },
+                    acknowledge = {
+                        if (row.pendingOperation == PendingOperation.DELETE) {
+                            recurringDao.hardDeleteIfUnchanged(row.localId, userId, row.updatedAt)
+                        } else {
+                            recurringDao.markSynced(row.localId, userId, row.updatedAt, System.currentTimeMillis())
+                        }
+                    },
+                    recordFailure = { error ->
+                        recurringDao.markSyncFailedIfUnchanged(
+                            row.localId, userId, row.updatedAt,
+                            error.syncFailureSummary(), System.currentTimeMillis()
+                        )
+                    }
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
-                recurringDao.markSyncFailed(item.localId, userId, e.message ?: "Sync failed", System.currentTimeMillis())
+                android.util.Log.e("SyncUpload", "SYNC_FAILED collection=recurring_transactions ${e.syncFailureSummary()}")
+                if (firstError == null) firstError = e else if (firstError !== e) firstError.addSuppressed(e)
             }
         }
+        firstError?.let { throw it }
     }
 
     private fun RecurringTransactionEntity.nextWriteOperation(): PendingOperation =

@@ -7,6 +7,10 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 android {
     namespace = "com.example.moneymatev2"
     compileSdk {
@@ -43,6 +47,11 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+    sourceSets.getByName("test").resources.srcDir("schemas")
+    sourceSets.getByName("androidTest").assets.srcDir("schemas")
 }
 
 dependencies {
@@ -99,13 +108,18 @@ dependencies {
 
     // Test
     testImplementation(libs.junit)
+    testImplementation("org.robolectric:robolectric:4.16.1")
+    testImplementation("org.mockito:mockito-core:5.14.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
     androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation("androidx.room:room-testing:2.8.4")
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    debugImplementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1")
 
 
     implementation("androidx.appcompat:appcompat:1.7.0")
