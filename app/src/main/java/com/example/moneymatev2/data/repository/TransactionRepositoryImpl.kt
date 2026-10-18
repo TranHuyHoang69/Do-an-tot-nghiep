@@ -60,7 +60,7 @@ class TransactionRepositoryImpl @Inject constructor(
             note = transaction.note,
             syncStatus = SyncStatus.PENDING,
             pendingOperation = PendingOperation.CREATE,
-            createdAt = now,
+            createdAt = transaction.createdAt,
             updatedAt = now
         )
         dao.insertTransaction(entity)
@@ -68,29 +68,29 @@ class TransactionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateTransaction(transaction: TransactionModel) {
-        uploadRunner.capture(transaction.userId)
+        val session = uploadRunner.capture(transaction.userId)
         val existing = dao.getRowForCloudMerge(transaction.id)
-        require(existing?.userId == transaction.userId) { "Transaction owner mismatch" }
-        val entity = TransactionEntity(
-            localId = transaction.id,
-            userId = transaction.userId,
-            type = transaction.type,
-            amountMinor = transaction.money.amountMinor,
-            currency = transaction.money.currency,
-            categoryLocalId = transaction.categoryId,
-            note = transaction.note,
-            syncStatus = SyncStatus.PENDING,
-            pendingOperation = PendingOperation.UPDATE,
-            createdAt = transaction.createdAt,
-            updatedAt = System.currentTimeMillis()
+        require(existing?.userId == transaction.userId && !existing.isDeleted && existing.pendingOperation != PendingOperation.DELETE) { "Transaction unavailable" }
+        require(transaction.money.amountMinor > 0 && transaction.money.currency == existing.currency) { "Invalid amount" }
+        val category = categoryDao.getCategoryByLocalIdOnce(transaction.userId, transaction.categoryId)
+        require(category != null && category.type == transaction.type &&
+            (transaction.categoryId == existing.categoryLocalId || !category.isArchived)) { "Invalid category" }
+        uploadRunner.check(session)
+        val changed = dao.updateEditableFields(
+            transaction.userId, transaction.id, transaction.type, transaction.money.amountMinor,
+            transaction.categoryId, transaction.note, transaction.createdAt,
+            maxOf(System.currentTimeMillis(), existing.updatedAt + 1), existing.updatedAt
         )
-        dao.updateTransaction(entity)
+        check(changed == 1) { "Transaction changed or deleted" }
         syncTrigger.requestImmediateSync()
     }
 
     override suspend fun deleteTransaction(userId: String, id: String) {
-        uploadRunner.capture(userId)
-        dao.softDeleteTransaction(userId, id, System.currentTimeMillis())
+        val session = uploadRunner.capture(userId)
+        val existing = dao.getRowForCloudMerge(id)
+        require(existing?.userId == userId && !existing.isDeleted && existing.pendingOperation != PendingOperation.DELETE) { "Transaction unavailable" }
+        uploadRunner.check(session)
+        check(dao.softDeleteTransaction(userId, id, maxOf(System.currentTimeMillis(), existing.updatedAt + 1)) == 1) { "Transaction changed or deleted" }
         syncTrigger.requestImmediateSync()
     }
 

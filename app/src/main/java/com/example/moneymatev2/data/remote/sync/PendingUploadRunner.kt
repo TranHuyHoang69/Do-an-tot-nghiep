@@ -13,6 +13,7 @@ class PendingUploadRunner @Inject constructor(
     private val sessions: SyncSessionGuard
 ) {
     fun capture(userId: String) = sessions.capture(userId)
+    fun check(session: SyncSessionGuard.Session) = sessions.check(session)
 
     suspend fun <T : Any> run(
         session: SyncSessionGuard.Session,

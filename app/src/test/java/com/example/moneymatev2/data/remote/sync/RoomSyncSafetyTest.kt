@@ -121,6 +121,15 @@ class RoomSyncSafetyTest {
         assertEquals(pendingDefault, db.categoryDao().getCategoryByLocalIdOnce("account-a", "default"))
     }
 
+    @Test fun cloudPullDoesNotRestorePendingTransactionDelete() = runBlocking {
+        val tombstone = transaction().copy(isDeleted = true, pendingOperation = PendingOperation.DELETE)
+        db.transactionDao().insertTransaction(tombstone)
+        snapshots(mapOf("transactions" to listOf(remoteTransaction(tombstone.localId))))
+        pull().pull("account-a")
+        assertEquals(tombstone, db.transactionDao().getRowForCloudMerge(tombstone.localId))
+        assertTrue(db.transactionDao().getAllTransactions("account-a").first().isEmpty())
+    }
+
     @Test fun failedCollectionDoesNotPruneLocal_andOtherCollectionsMerge() = runBlocking {
         val clean = transaction().copy(pendingOperation = PendingOperation.NONE, syncStatus = SyncStatus.SYNCED)
         db.transactionDao().insertTransaction(clean)

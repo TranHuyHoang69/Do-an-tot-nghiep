@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -31,6 +32,7 @@ import com.example.moneymatev2.StringRes
 import com.example.moneymatev2.core.util.CurrencyFormatter
 import com.example.moneymatev2.domain.model.GroupedTransaction
 import com.example.moneymatev2.presentation.theme.StringResource
+import java.util.Locale
 
 private data class ChartSegment(
     val group: GroupedTransaction,
@@ -86,8 +88,9 @@ fun MorphingChartSection(
                     val millionLabel = stringResource(StringRes.million)
                     val billionLabel = stringResource(StringRes.billion)
                     val thousandLabel = stringResource(StringRes.thousand)
-                    val formattedTotal = remember(totalAmount, millionLabel, billionLabel, thousandLabel) {
-                        "${CurrencyFormatter.formatCompact(totalAmount, millionLabel, billionLabel, thousandLabel)} đ"
+                    val locale = LocalConfiguration.current.locales.get(0) ?: Locale.getDefault()
+                    val formattedTotal = remember(totalAmount, millionLabel, billionLabel, thousandLabel, locale) {
+                        "${CurrencyFormatter.formatCompact(totalAmount, millionLabel, billionLabel, thousandLabel, locale)} đ"
                     }
 
                     Text(

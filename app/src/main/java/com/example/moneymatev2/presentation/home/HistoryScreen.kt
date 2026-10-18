@@ -40,7 +40,8 @@ import java.util.Locale
 @Composable
 fun HistoryScreen(
     viewModel: HistoryViewModel = hiltViewModel(),
-    onOpenDrawer: () -> Unit
+    onOpenDrawer: () -> Unit,
+    onTransactionClick: (String) -> Unit = {}
 ) {
     val groupedItems by viewModel.groupedItems.collectAsState()
 
@@ -211,7 +212,8 @@ fun HistoryScreen(
 
     expandedGroupKey?.let { key ->
         val transactions = remember(key, groupedItems) { viewModel.getTransactionsInGroup(key) }
-        TransactionDetailDialog(transactions = transactions, onDismiss = { expandedGroupKey = null })
+        TransactionDetailDialog(transactions = transactions, onDismiss = { expandedGroupKey = null },
+            onTransactionClick = { id -> expandedGroupKey = null; onTransactionClick(id) })
     }
 }
 
@@ -414,7 +416,8 @@ fun ExpenseItem(
 @Composable
 private fun TransactionDetailDialog(
     transactions: List<TransactionWithCategory>,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onTransactionClick: (String) -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -426,7 +429,7 @@ private fun TransactionDetailDialog(
                 itemsIndexed(transactions, key = { _, item -> item.transaction.id }) { _, item ->
                     val sdf = remember { SimpleDateFormat("d/M/yyyy", Locale("vi")) }
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        modifier = Modifier.fillMaxWidth().clickable { onTransactionClick(item.transaction.id) }.padding(vertical = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {

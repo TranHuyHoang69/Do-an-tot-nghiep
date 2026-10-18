@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="transaction_detail_title">Transaction details</string>
+    <string name="transaction_edit_title">Update transaction</string>
+    <string name="transaction_save_update">Save changes</string>
+    <string name="transaction_edit">Edit</string>
+    <string name="transaction_delete_title">Confirm deletion</string>
+    <string name="transaction_delete_message">Are you sure you want to delete this transaction?</string>
+    <string name="transaction_category">Category</string>
+    <string name="transaction_type">Type</string>
+    <string name="transaction_time">Time</string>
+    <string name="transaction_no_note">No note</string>
+    <string name="transaction_archived_category">This category is archived. Choose another category if you want to change it.</string>
+    <string name="transaction_missing_category_warning">The original category no longer exists. Choose a valid category to save.</string>
+    <string name="transaction_action_failed">Action failed. Please try again.</string>
     <string name="error_empty_credentials">Please enter your email and password</string>
     <string name="error_invalid_email">Invalid email address</string>
     <string name="error_weak_password">Password must be at least 6 characters</string>

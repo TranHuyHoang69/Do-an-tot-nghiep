@@ -55,13 +55,23 @@ interface TransactionDao{
     @Update
     suspend fun updateTransaction(transaction: TransactionEntity)
 
+    @Query("""UPDATE transactions SET type=:type, amountMinor=:amountMinor, categoryLocalId=:categoryId,
+        note=:note, createdAt=:createdAt, updatedAt=:updatedAt, syncStatus='PENDING',
+        pendingOperation=CASE WHEN pendingOperation='CREATE' THEN 'CREATE' ELSE 'UPDATE' END,
+        lastSyncError=NULL, retryCount=0
+        WHERE userId=:userId AND localId=:localId AND isDeleted=0 AND pendingOperation!='DELETE'
+        AND updatedAt=:expectedUpdatedAt""")
+    suspend fun updateEditableFields(userId: String, localId: String, type: com.example.moneymatev2.data.local.entity.TransactionType,
+        amountMinor: Long, categoryId: String, note: String?, createdAt: Long,
+        updatedAt: Long, expectedUpdatedAt: Long): Int
+
     //soft delete
     @Query("""
         UPDATE transactions
         SET isDeleted = 1, syncStatus = 'PENDING', pendingOperation = 'DELETE', updatedAt = :updatedAt
-        WHERE userId = :userId AND localId = :localId
+        WHERE userId = :userId AND localId = :localId AND isDeleted = 0 AND pendingOperation != 'DELETE'
     """)
-    suspend fun softDeleteTransaction(userId: String, localId: String, updatedAt: Long)
+    suspend fun softDeleteTransaction(userId: String, localId: String, updatedAt: Long): Int
 
     @Query("DELETE FROM transactions WHERE localId = :localId")
     suspend fun hardDeleteTransaction(localId: String)

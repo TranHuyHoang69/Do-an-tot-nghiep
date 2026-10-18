@@ -23,6 +23,9 @@ import com.example.moneymatev2.presentation.reminder.ReminderScreen
 import com.example.moneymatev2.presentation.settings.SettingScreen
 import com.example.moneymatev2.presentation.transaction.AddTransactionScreen
 import com.example.moneymatev2.presentation.transaction.AddTransactionViewmodel
+import com.example.moneymatev2.presentation.transaction.TransactionDetailScreen
+import com.example.moneymatev2.presentation.transaction.EditTransactionScreen
+import com.example.moneymatev2.presentation.transaction.TransactionEntryViewModel
 
 @Composable
 fun NavGraph(
@@ -93,6 +96,35 @@ fun NavGraph(
             )
         }
 
+        composable(Screen.TransactionDetail.route) { entry ->
+            val id = checkNotNull(entry.arguments?.getString("transactionId"))
+            TransactionDetailScreen(
+                onBack = { navController.popBackStack() },
+                onEdit = { navController.navigate(Screen.EditTransaction.createRoute(id)) { launchSingleTop = true } },
+                onDeleted = { navController.popBackStack() },
+                viewModel = hiltViewModel(entry)
+            )
+        }
+
+        composable(Screen.EditTransaction.route) { entry ->
+            val viewModel: TransactionEntryViewModel = hiltViewModel(entry)
+            val selectedCategory by entry.savedStateHandle
+                .getStateFlow<ArrayList<String>?>("selected_category_owner_and_id", null)
+                .collectAsState()
+            LaunchedEffect(selectedCategory) {
+                selectedCategory?.takeIf { it.size == 2 }?.let {
+                    viewModel.categoryResult(it[0], it[1])
+                    entry.savedStateHandle["selected_category_owner_and_id"] = null
+                }
+            }
+            EditTransactionScreen(
+                onBack = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() },
+                onManageCategoryClick = { navController.navigate(Screen.CategoryManagement.pickRoute()) },
+                viewModel = viewModel
+            )
+        }
+
         composable(
             route = Screen.CategoryManagement.route,
             arguments = listOf(navArgument("pick") { type = NavType.BoolType; defaultValue = false })
@@ -126,7 +158,8 @@ fun NavGraph(
                 navArgument(HomeNavKeys.CUSTOM_END) { type = NavType.LongType; defaultValue = -1L }
             )
         ) {
-            HistoryScreen(onOpenDrawer = onOpenDrawer)
+            HistoryScreen(onOpenDrawer = onOpenDrawer,
+                onTransactionClick = { id -> navController.navigate(Screen.TransactionDetail.createRoute(id)) { launchSingleTop = true } })
         }
 
         composable(Screen.Budget.route) {

@@ -170,7 +170,8 @@ fun HeaderAdd(
     themeColor: Color,
     selectedType: TransactionType,
     onTabSelected: (TransactionType) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    titleRes: Int = StringRes.add_transaction_title
 ){
     val expenseText = stringResource(StringRes.expense).uppercase()
     val incomeText = stringResource(StringRes.income).uppercase()
@@ -199,7 +200,7 @@ fun HeaderAdd(
             )
             Spacer(modifier = Modifier.width(16.dp))
             Text(
-                text = StringResource(StringRes.add_transaction_title),
+                text = StringResource(titleRes),
                 color = Color.White,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
@@ -253,7 +254,9 @@ fun FormSection(
     onCategorySelected: (CategoryModel) -> Unit,
     onDateClicked: () -> Unit,
     onConfirm: () -> Unit,
-    onManageCategoryClick: () -> Unit
+    onManageCategoryClick: () -> Unit,
+    confirmTextRes: Int = StringRes.confirm,
+    categoryWarning: String? = null
 ){
 
     val canConfirm = amountText.isNotBlank() && amountText.toLongOrNull()?.let { it > 0 } == true
@@ -301,6 +304,11 @@ fun FormSection(
                 onManageCategoryClick = onManageCategoryClick
             )
 
+            if (categoryWarning != null) {
+                Text(categoryWarning, color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall)
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
         }
 
@@ -315,6 +323,11 @@ fun FormSection(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            if (generalError != null) {
+                Text(generalError.toUiMessage(), color = MaterialTheme.colorScheme.error)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
             Button(
                 onClick = onConfirm,
                 modifier = Modifier.fillMaxWidth().height(60.dp),
@@ -322,11 +335,10 @@ fun FormSection(
                 colors = ButtonDefaults.buttonColors(containerColor = themeColor),
                 enabled = canConfirm
             ) {
-                Text(
-                    text = StringResource(StringRes.confirm),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
+                if (isSaving) androidx.compose.material3.CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp
+                ) else Text(text = StringResource(confirmTextRes), fontSize = 16.sp,
+                    fontWeight = FontWeight.ExtraBold)
             }
         }
     }
@@ -402,7 +414,11 @@ fun CategoryGrid(
     onManageCategoryClick: () -> Unit
 ) {
 
-    val displayCategories = categories.take(7)
+    val displayCategories = categories.take(7).let { first ->
+        if (selectedCategoryId != null && first.none { it.id == selectedCategoryId }) {
+            categories.firstOrNull { it.id == selectedCategoryId }?.let { selected -> first.take(6) + selected } ?: first
+        } else first
+    }
     val totalItems = displayCategories.size + 1
     val rows = (totalItems + 3) / 4
 

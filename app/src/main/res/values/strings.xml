@@ -1,4 +1,17 @@
 <resources>
+    <string name="transaction_detail_title">Chi tiết giao dịch</string>
+    <string name="transaction_edit_title">Cập nhật giao dịch</string>
+    <string name="transaction_save_update">Lưu cập nhật</string>
+    <string name="transaction_edit">Sửa</string>
+    <string name="transaction_delete_title">Xác nhận xóa</string>
+    <string name="transaction_delete_message">Bạn có chắc muốn xóa giao dịch này không?</string>
+    <string name="transaction_category">Danh mục</string>
+    <string name="transaction_type">Loại</string>
+    <string name="transaction_time">Thời gian</string>
+    <string name="transaction_no_note">Không có ghi chú</string>
+    <string name="transaction_archived_category">Danh mục này đã lưu trữ. Hãy chọn danh mục khác nếu muốn đổi.</string>
+    <string name="transaction_missing_category_warning">Danh mục cũ không còn tồn tại. Hãy chọn danh mục hợp lệ để lưu.</string>
+    <string name="transaction_action_failed">Thao tác thất bại. Vui lòng thử lại.</string>
     <string name="app_name">MoneyMate</string>
     <string name="app_slogan">Quản lý thông minh - Tương lai vững chắc</string>
     <string name="default_web_client_id" translatable="false">966238100003-hlau1vl60gaijnmkracsm1i0ul5o8dg7.apps.googleusercontent.com</string>

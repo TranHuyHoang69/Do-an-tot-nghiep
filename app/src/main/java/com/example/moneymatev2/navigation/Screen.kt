@@ -8,6 +8,12 @@ sealed class Screen(val route: String){
     object Register: Screen("register")
     object Home: Screen("home")
     object AddTransaction: Screen("add_transaction")
+    object TransactionDetail: Screen("transaction_detail/{transactionId}") {
+        fun createRoute(id: String) = "transaction_detail/$id"
+    }
+    object EditTransaction: Screen("edit_transaction/{transactionId}") {
+        fun createRoute(id: String) = "edit_transaction/$id"
+    }
     object History : Screen(
         "history?${HomeNavKeys.SELECTED_PERIOD}={${HomeNavKeys.SELECTED_PERIOD}}" +
                 "&${HomeNavKeys.ANCHOR_DATE}={${HomeNavKeys.ANCHOR_DATE}}" +

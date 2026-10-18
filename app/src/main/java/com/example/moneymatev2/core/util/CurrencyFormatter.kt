@@ -1,11 +1,13 @@
 package com.example.moneymatev2.core.util
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import com.example.moneymatev2.StringRes
 import com.example.moneymatev2.presentation.theme.StringResource
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
+import java.util.Locale
 import kotlin.math.abs
 
 object CurrencyFormatter {
@@ -14,14 +16,17 @@ object CurrencyFormatter {
      * Hàm THUẦN, không @Composable -- gọi được từ bất kỳ đâu (ViewModel, remember{}, hàm thường).
      * Nhận nhãn đơn vị làm tham số thay vì tự gọi stringResource() bên trong.
      */
-    fun formatCompact(amount: Long, millionLabel: String, billionLabel: String, thousandLabel: String): String {
+    @Suppress("UNUSED_PARAMETER")
+    fun formatCompact(amount: Long, millionLabel: String, billionLabel: String, thousandLabel: String,
+                      locale: Locale = Locale.getDefault()): String {
+        // Keep the pre-existing Long.MIN_VALUE output; abs() cannot represent its magnitude.
+        if (amount == Long.MIN_VALUE) return amount.toString()
         val absAmount = abs(amount)
         val sign = if (amount < 0) "-" else ""
         return when {
             absAmount >= 1_000_000_000L -> sign + formatUnit(absAmount, 1_000_000_000.0, billionLabel)
             absAmount >= 1_000_000L -> sign + formatUnit(absAmount, 1_000_000.0, millionLabel)
-            absAmount >= 1_000L -> sign + formatUnit(absAmount, 1_000.0, thousandLabel) // khôi phục nhánh bị mất
-            else -> amount.toString()
+            else -> DecimalFormat("#,##0", DecimalFormatSymbols.getInstance(locale)).format(amount)
         }
     }
 
@@ -36,7 +41,8 @@ object CurrencyFormatter {
         val million = stringResource(StringRes.million)
         val billion = stringResource(StringRes.billion)
         val thousand = stringResource(StringRes.thousand) // cần xác nhận key này đã có trong StringRes
-        return formatCompact(amount, million, billion, thousand)
+        val locale = LocalConfiguration.current.locales.get(0) ?: Locale.getDefault()
+        return formatCompact(amount, million, billion, thousand, locale)
     }
 
     private fun formatUnit(amount: Long, divisor: Double, suffix: String): String {
