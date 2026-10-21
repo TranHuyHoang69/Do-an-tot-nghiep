@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BudgetDao {
+    @Query("SELECT COUNT(*) FROM budgets WHERE userId = :userId AND categoryLocalId = :categoryId AND isArchived = 0")
+    suspend fun countActiveByCategory(userId: String, categoryId: String): Int
+
     @Query("""
         SELECT b.* FROM budgets b
         INNER JOIN (

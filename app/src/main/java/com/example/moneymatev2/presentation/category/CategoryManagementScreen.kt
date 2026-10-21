@@ -36,6 +36,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.moneymatev2.StringRes
 import com.example.moneymatev2.data.local.entity.TransactionType
 import com.example.moneymatev2.domain.model.CategoryModel
+import com.example.moneymatev2.domain.model.TransactionError
 import com.example.moneymatev2.ui.item.rememberCategoryIcon
 import kotlinx.coroutines.launch
 
@@ -49,36 +50,72 @@ fun ManagementCategoryScreen(
 ) {
     val expenseCategories by viewModel.expenseCategories.collectAsState()
     val incomeCategories by viewModel.incomeCategories.collectAsState()
+    val isDeleting by viewModel.isDeleting.collectAsState()
+    val deletePreview by viewModel.deletePreview.collectAsState()
     val isManageMode = onCategoryClick == null
 
     val pagerState = rememberPagerState(pageCount = { 2 })
     val scope = rememberCoroutineScope()
     val tabs = remember { listOf(StringRes.expense, StringRes.income) }
+    val snackbar = remember { SnackbarHostState() }
+    val successMessage = stringResource(StringRes.category_delete_success)
+    val failedMessage = stringResource(StringRes.category_delete_failed)
+    val invalidMessage = stringResource(StringRes.category_delete_invalid)
+    val inUseMessage = stringResource(StringRes.category_delete_in_use)
+    val loginMessage = stringResource(StringRes.error_not_authenticated)
+    val replacementRequiredMessage = stringResource(StringRes.category_delete_changed_need_replacement)
 
     // --- State cho luồng xóa (chỉ dùng khi isManageMode) ---
     var categoryPendingDelete by remember { mutableStateOf<CategoryModel?>(null) } // đang hiện dialog cảnh báo
     var showReplacementPicker by remember { mutableStateOf(false) } // đang hiện dialog chọn category thay thế
     var selectedReplacement by remember { mutableStateOf<CategoryModel?>(null) }
+    var deleteFailure by remember { mutableStateOf<TransactionError?>(null) }
+    val closeDeleteDialog = {
+        if (!isDeleting) {
+            categoryPendingDelete = null
+            showReplacementPicker = false
+            selectedReplacement = null
+            deleteFailure = null
+            viewModel.cancelCategoryDeletion()
+        }
+    }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel, successMessage, failedMessage, invalidMessage, inUseMessage,
+        loginMessage, replacementRequiredMessage) {
         viewModel.deleteEvents.collect { event ->
             when (event) {
                 is CategoryManagementViewModel.DeleteCategoryEvent.Success -> {
                     showReplacementPicker = false
                     categoryPendingDelete = null
                     selectedReplacement = null
+                    deleteFailure = null
+                    viewModel.cancelCategoryDeletion()
+                    scope.launch { snackbar.showSnackbar(successMessage) }
                 }
                 is CategoryManagementViewModel.DeleteCategoryEvent.Failed -> {
-                    // TODO: hiện Snackbar báo lỗi nếu cần, hiện tại chỉ đóng dialog
-                    showReplacementPicker = false
-                    categoryPendingDelete = null
-                    selectedReplacement = null
+                    deleteFailure = event.error
+                    if (event.error == TransactionError.CategoryReplacementRequired ||
+                        event.error == TransactionError.CategoryInUse ||
+                        event.error == TransactionError.CategoryNotSelected ||
+                        event.error == TransactionError.NotAuthenticated) {
+                        showReplacementPicker = false
+                        categoryPendingDelete?.let(viewModel::inspectCategoryDeletion)
+                    }
+                    val message = when (event.error) {
+                        TransactionError.CategoryInUse -> inUseMessage
+                        TransactionError.CategoryReplacementRequired -> replacementRequiredMessage
+                        TransactionError.CategoryNotSelected -> invalidMessage
+                        TransactionError.NotAuthenticated -> loginMessage
+                        else -> failedMessage
+                    }
+                    scope.launch { snackbar.showSnackbar(message) }
                 }
             }
         }
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             Box(
                 modifier = Modifier
@@ -143,7 +180,13 @@ fun ManagementCategoryScreen(
                     categories = currentList,
                     isManageMode = isManageMode,
                     onTap = { category -> onCategoryClick?.invoke(category) },
-                    onLongPress = { category -> categoryPendingDelete = category },
+                    onLongPress = { category ->
+                        deleteFailure = null
+                        selectedReplacement = null
+                        showReplacementPicker = false
+                        categoryPendingDelete = category
+                        viewModel.inspectCategoryDeletion(category)
+                    },
                     onAddClick = { onAddCategoryClick(currentType) }
                 )
             }
@@ -153,20 +196,77 @@ fun ManagementCategoryScreen(
     // --- Dialog 1: cảnh báo trước khi xóa ---
     categoryPendingDelete?.let { category ->
         if (!showReplacementPicker) {
+            val ready = (deletePreview as? CategoryDeletePreview.Ready)
+                ?.takeIf { it.userId == category.userId && it.categoryId == category.id }
+            val previewFailed = (deletePreview as? CategoryDeletePreview.Failed)
+                ?.takeIf { it.userId == category.userId && it.categoryId == category.id }
             AlertDialog(
-                onDismissRequest = { categoryPendingDelete = null },
-                title = { Text("Xóa danh mục") },
+                onDismissRequest = closeDeleteDialog,
+                title = { Text(stringResource(StringRes.category_delete_title)) },
                 text = {
-                    Text("Vui lòng chọn danh mục thay thế cho các giao dịch thuộc danh mục sắp xóa")
+                    Column {
+                        when {
+                            ready?.usage?.isBlocked == true -> Text(stringResource(when {
+                                ready.usage.hasActiveBudget && ready.usage.hasRecurringTransaction ->
+                                    StringRes.category_delete_in_budget_and_recurring
+                                ready.usage.hasActiveBudget -> StringRes.category_delete_in_budget
+                                else -> StringRes.category_delete_in_recurring
+                            }))
+                            ready != null && ready.usage.transactionCount > 0 -> Text(
+                                stringResource(StringRes.category_delete_transactions_warning,
+                                    ready.usage.transactionCount)
+                            )
+                            ready != null -> Text(stringResource(StringRes.category_delete_confirm_empty))
+                            previewFailed != null -> Text(
+                                stringResource(when (previewFailed.error) {
+                                    TransactionError.NotAuthenticated -> StringRes.error_not_authenticated
+                                    TransactionError.CategoryNotSelected -> StringRes.category_delete_invalid
+                                    else -> StringRes.category_delete_failed
+                                }),
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            else -> Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                                Spacer(Modifier.width(12.dp))
+                                Text(stringResource(StringRes.category_delete_loading))
+                            }
+                        }
+                        if (ready != null && deleteFailure != null && !ready.usage.isBlocked) {
+                            val messageRes = when (deleteFailure) {
+                                TransactionError.CategoryInUse -> StringRes.category_delete_in_use
+                                TransactionError.CategoryReplacementRequired -> StringRes.category_delete_changed_need_replacement
+                                TransactionError.CategoryNotSelected -> StringRes.category_delete_invalid
+                                TransactionError.NotAuthenticated -> StringRes.error_not_authenticated
+                                else -> StringRes.category_delete_failed
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Text(stringResource(messageRes),
+                                color = MaterialTheme.colorScheme.error)
+                        }
+                    }
                 },
                 confirmButton = {
-                    TextButton(onClick = { showReplacementPicker = true }) {
-                        Text("Xóa", color = MaterialTheme.colorScheme.error)
+                    when {
+                        previewFailed != null -> TextButton(onClick = {
+                            viewModel.inspectCategoryDeletion(category)
+                        }, enabled = !isDeleting) {
+                            Text(stringResource(StringRes.category_delete_retry))
+                        }
+                        ready != null && !ready.usage.isBlocked -> TextButton(onClick = {
+                            deleteFailure = null
+                            if (ready.usage.transactionCount == 0) viewModel.deleteCategory(category)
+                            else showReplacementPicker = true
+                        }, enabled = !isDeleting) {
+                            if (isDeleting) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                            else Text(stringResource(if (ready.usage.transactionCount == 0)
+                                StringRes.delete else StringRes.category_choose_replacement),
+                                color = MaterialTheme.colorScheme.error)
+                        }
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { categoryPendingDelete = null }) {
-                        Text("Hủy")
+                    TextButton(onClick = closeDeleteDialog, enabled = !isDeleting) {
+                        Text(stringResource(StringRes.cancel))
                     }
                 }
             )
@@ -176,13 +276,12 @@ fun ManagementCategoryScreen(
     // --- Dialog 2: chọn danh mục thay thế ---
     if (showReplacementPicker && categoryPendingDelete != null) {
         val categoryToDelete = categoryPendingDelete!!
-        val options = remember(categoryToDelete) { viewModel.getReplacementOptions(categoryToDelete) }
+        val options = viewModel.getReplacementOptions(categoryToDelete)
+        val validSelection = selectedReplacement?.takeIf { selected ->
+            options.any { it.userId == selected.userId && it.id == selected.id }
+        }
 
-        Dialog(onDismissRequest = {
-            showReplacementPicker = false
-            categoryPendingDelete = null
-            selectedReplacement = null
-        }) {
+        Dialog(onDismissRequest = closeDeleteDialog) {
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = MaterialTheme.colorScheme.surface,
@@ -193,16 +292,12 @@ fun ManagementCategoryScreen(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(onClick = {
-                            showReplacementPicker = false
-                            categoryPendingDelete = null
-                            selectedReplacement = null
-                        }) {
-                            Icon(Icons.Default.Close, contentDescription = "Hủy")
+                        IconButton(enabled = !isDeleting, onClick = closeDeleteDialog) {
+                            Icon(Icons.Default.Close, contentDescription = stringResource(StringRes.cancel))
                         }
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Chọn danh mục",
+                            text = stringResource(StringRes.category_choose_replacement),
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp
                         )
@@ -212,7 +307,7 @@ fun ManagementCategoryScreen(
 
                     if (options.isEmpty()) {
                         Text(
-                            text = "Không có danh mục khác cùng loại để thay thế. Hãy tạo thêm danh mục trước.",
+                            text = stringResource(StringRes.category_no_replacement),
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(16.dp)
                         )
@@ -231,7 +326,12 @@ fun ManagementCategoryScreen(
                                             else Color.Transparent,
                                             shape = RoundedCornerShape(10.dp)
                                         )
-                                        .combinedClickable(onClick = { selectedReplacement = option })
+                                        .combinedClickable(onClick = {
+                                            if (!isDeleting) {
+                                                selectedReplacement = option
+                                                deleteFailure = null
+                                            }
+                                        })
                                         .padding(horizontal = 12.dp, vertical = 10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -247,17 +347,31 @@ fun ManagementCategoryScreen(
                             }
                         }
 
-                        // Nút xác nhận chỉ hiện khi đã chọn xong -- không chỉ disable, mà ẨN hẳn.
-                        if (selectedReplacement != null) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Button(
-                                onClick = {
-                                    viewModel.deleteCategory(categoryToDelete, selectedReplacement!!)
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Xác nhận")
-                            }
+                    }
+                    deleteFailure?.let { error ->
+                        val messageRes = when (error) {
+                            TransactionError.CategoryInUse -> StringRes.category_delete_in_use
+                            TransactionError.CategoryReplacementRequired -> StringRes.category_delete_changed_need_replacement
+                            TransactionError.CategoryNotSelected -> StringRes.category_delete_invalid
+                            TransactionError.NotAuthenticated -> StringRes.error_not_authenticated
+                            else -> StringRes.category_delete_failed
+                        }
+                        Text(stringResource(messageRes),
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 12.dp))
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = closeDeleteDialog, enabled = !isDeleting) {
+                            Text(stringResource(StringRes.cancel))
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Button(onClick = {
+                            validSelection?.let { viewModel.deleteCategory(categoryToDelete, it) }
+                        }, enabled = validSelection != null && !isDeleting) {
+                            if (isDeleting) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                            else Text(stringResource(StringRes.category_move_and_delete))
                         }
                     }
                 }

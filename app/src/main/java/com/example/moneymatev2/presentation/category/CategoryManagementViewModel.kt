@@ -10,6 +10,9 @@ import com.example.moneymatev2.domain.repository.AuthRepository
 import com.example.moneymatev2.domain.repository.CategoryRepository
 import com.example.moneymatev2.domain.usecase.category.DeleteCategoryUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +26,17 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+sealed interface CategoryDeletePreview {
+    data object Idle : CategoryDeletePreview
+    data class Loading(val userId: String, val categoryId: String) : CategoryDeletePreview
+    data class Ready(
+        val userId: String,
+        val categoryId: String,
+        val usage: CategoryRepository.DeletionUsage
+    ) : CategoryDeletePreview
+    data class Failed(val userId: String, val categoryId: String, val error: TransactionError) : CategoryDeletePreview
+}
 
 @HiltViewModel
 class CategoryManagementViewModel @Inject constructor(
@@ -52,18 +66,71 @@ class CategoryManagementViewModel @Inject constructor(
 
     private val _deleteEvents = Channel<DeleteCategoryEvent>(Channel.BUFFERED)
     val deleteEvents = _deleteEvents.receiveAsFlow()
+    private val _isDeleting = MutableStateFlow(false)
+    val isDeleting: StateFlow<Boolean> = _isDeleting
+    private val _deletePreview = MutableStateFlow<CategoryDeletePreview>(CategoryDeletePreview.Idle)
+    val deletePreview: StateFlow<CategoryDeletePreview> = _deletePreview
 
-    fun deleteCategory(category: CategoryModel, replacement: CategoryModel) {
+    fun inspectCategoryDeletion(category: CategoryModel) {
+        val loading = CategoryDeletePreview.Loading(category.userId, category.id)
+        _deletePreview.value = loading
         viewModelScope.launch {
-            val userId = category.userId
-            if (authRepository.getCurrentUserId() != userId || replacement.userId != userId) return@launch
-            val result = deleteCategoryUseCase(userId, category.id, replacement.id)
-            when (result) {
-                is AppResult.Success -> _deleteEvents.send(DeleteCategoryEvent.Success)
-                is AppResult.Failure -> _deleteEvents.send(
-                    DeleteCategoryEvent.Failed(result.error as TransactionError) // thêm "as TransactionError"
-                )
-                else -> {}
+            try {
+                if (authRepository.getCurrentUserId() != category.userId) {
+                    if (_deletePreview.value == loading) _deletePreview.value =
+                        CategoryDeletePreview.Failed(category.userId, category.id, TransactionError.NotAuthenticated)
+                    return@launch
+                }
+                val usage = categoryRepository.getDeletionUsage(category.userId, category.id)
+                if (_deletePreview.value == loading) {
+                    _deletePreview.value = if (authRepository.getCurrentUserId() == category.userId)
+                        CategoryDeletePreview.Ready(category.userId, category.id, usage)
+                    else CategoryDeletePreview.Failed(category.userId, category.id, TransactionError.NotAuthenticated)
+                }
+            } catch (e: CancellationException) {
+                if (!currentCoroutineContext().isActive) throw e
+                if (_deletePreview.value == loading) _deletePreview.value =
+                    CategoryDeletePreview.Failed(category.userId, category.id, TransactionError.NotAuthenticated)
+            } catch (e: IllegalArgumentException) {
+                if (_deletePreview.value == loading) _deletePreview.value =
+                    CategoryDeletePreview.Failed(category.userId, category.id, TransactionError.CategoryNotSelected)
+            } catch (e: Exception) {
+                if (_deletePreview.value == loading) _deletePreview.value =
+                    CategoryDeletePreview.Failed(category.userId, category.id, TransactionError.UnknownError(e.message.orEmpty()))
+            }
+        }
+    }
+
+    fun cancelCategoryDeletion() {
+        if (!_isDeleting.value) _deletePreview.value = CategoryDeletePreview.Idle
+    }
+
+    fun deleteCategory(category: CategoryModel, replacement: CategoryModel? = null) {
+        if (_isDeleting.value) return
+        _isDeleting.value = true
+        viewModelScope.launch {
+            try {
+                val userId = category.userId
+                if (authRepository.getCurrentUserId() != userId ||
+                    (replacement != null && replacement.userId != userId)) {
+                    _deleteEvents.send(DeleteCategoryEvent.Failed(TransactionError.NotAuthenticated))
+                    return@launch
+                }
+                when (val result = deleteCategoryUseCase(userId, category.id, replacement?.id)) {
+                    is AppResult.Success -> {
+                        _deletePreview.value = CategoryDeletePreview.Idle
+                        _deleteEvents.send(DeleteCategoryEvent.Success)
+                    }
+                    is AppResult.Failure -> _deleteEvents.send(DeleteCategoryEvent.Failed(result.error as TransactionError))
+                    AppResult.Loading -> Unit
+                }
+            } catch (e: CancellationException) {
+                if (!currentCoroutineContext().isActive) throw e
+                _deleteEvents.send(DeleteCategoryEvent.Failed(TransactionError.NotAuthenticated))
+            } catch (e: Exception) {
+                _deleteEvents.send(DeleteCategoryEvent.Failed(TransactionError.UnknownError(e.message.orEmpty())))
+            } finally {
+                _isDeleting.value = false
             }
         }
     }

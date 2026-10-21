@@ -61,7 +61,7 @@ class RoomSyncSafetyTest {
     @After fun tearDown() { db.close() }
 
     @Test fun seedAcrossAccountsAndRepeatedLogin_preservesMappings() = runBlocking {
-        val repository = CategoryRepositoryImpl(db.categoryDao(), firestore, trigger, runner)
+        val repository = CategoryRepositoryImpl(db.categoryDao(), firestore, trigger, runner, db)
         repository.seedDefaultCategoriesIfNeeded("account-a")
         val a = db.categoryDao().getActiveCategories("account-a").first()
         val tx = transaction().copy(categoryLocalId = a.first().localId)
@@ -83,7 +83,7 @@ class RoomSyncSafetyTest {
         db.categoryDao().insertCategory(legacy)
         val tx = transaction().copy(categoryLocalId = legacy.localId)
         db.transactionDao().insertTransaction(tx)
-        val repository = CategoryRepositoryImpl(db.categoryDao(), firestore, trigger, runner)
+        val repository = CategoryRepositoryImpl(db.categoryDao(), firestore, trigger, runner, db)
         repeat(2) { repository.seedDefaultCategoriesIfNeeded("account-a") }
         assertEquals(4, db.categoryDao().getActiveCategories("account-a").first().size)
         assertEquals(legacy, db.categoryDao().getByStableId("account-a", "spend_food"))
@@ -266,7 +266,7 @@ class RoomSyncSafetyTest {
             100L, "VND", "category", null, "MONTHLY", 100L, "UTC", 0L, 100L, true, createdAt = 100L, updatedAt = 100L))
         val uploads: List<suspend () -> Unit> = listOf(
             { TransactionRepositoryImpl(db.transactionDao(), db.categoryDao(), firestore, trigger, runner).syncPendingTransactions("account-a") },
-            { CategoryRepositoryImpl(db.categoryDao(), firestore, trigger, runner).syncPendingCategories("account-a") },
+            { CategoryRepositoryImpl(db.categoryDao(), firestore, trigger, runner, db).syncPendingCategories("account-a") },
             { BudgetRepositoryImpl(db.budgetDao(), db.transactionDao(), db.categoryDao(), firestore, trigger, runner).syncPendingBudgets("account-a") },
             { ReminderRepositoryImpl(db.reminderDao(), firestore, trigger, runner, auth).syncPendingReminders("account-a") },
             { RecurringTransactionRepositoryImpl(db, db.recurringTransactionDao(), db.transactionDao(), db.categoryDao(),
@@ -372,7 +372,7 @@ class RoomSyncSafetyTest {
         val task = com.google.android.gms.tasks.TaskCompletionSource<Void>()
         val started = CompletableDeferred<Unit>()
         `when`(doc.set(any<Any>())).thenAnswer { started.complete(Unit); task.task }
-        val repository = CategoryRepositoryImpl(db.categoryDao(), firestore, trigger, runner)
+        val repository = CategoryRepositoryImpl(db.categoryDao(), firestore, trigger, runner, db)
         val upload = async {
             repository.syncPendingCategories("account-a")
         }

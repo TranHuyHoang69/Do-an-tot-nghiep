@@ -25,10 +25,10 @@ class CurrencyFormatterTest {
         }
     }
 
-    @Test fun englishAmountsBelowMillionAreExactAndGrouped() {
+    @Test fun englishAmountsBelowMillionUseVietnameseGrouping() {
         val expected = mapOf(
-            0L to "0", 999L to "999", 1_000L to "1,000", 10_000L to "10,000",
-            100_000L to "100,000", 999_999L to "999,999", -10_000L to "-10,000"
+            0L to "0", 999L to "999", 1_000L to "1.000", 10_000L to "10.000",
+            100_000L to "100.000", 999_999L to "999.999", -10_000L to "-10.000"
         )
         expected.forEach { (amount, text) ->
             assertEquals(text, en(amount))
@@ -39,7 +39,7 @@ class CurrencyFormatterTest {
     @Test fun millionBoundaryDoesNotRoundUpSmallerAmounts() {
         assertEquals("999.999", vi(999_999))
         assertEquals("-999.999", vi(-999_999))
-        assertEquals("999,999", en(999_999))
+        assertEquals("999.999", en(999_999))
         assertEquals("1Tr", vi(1_000_000))
         assertEquals("1M", en(1_000_000))
     }

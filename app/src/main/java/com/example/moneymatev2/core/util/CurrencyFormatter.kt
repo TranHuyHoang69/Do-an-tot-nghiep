@@ -26,7 +26,7 @@ object CurrencyFormatter {
         return when {
             absAmount >= 1_000_000_000L -> sign + formatUnit(absAmount, 1_000_000_000.0, billionLabel)
             absAmount >= 1_000_000L -> sign + formatUnit(absAmount, 1_000_000.0, millionLabel)
-            else -> DecimalFormat("#,##0", DecimalFormatSymbols.getInstance(locale)).format(amount)
+            else -> formatFull(amount)
         }
     }
 

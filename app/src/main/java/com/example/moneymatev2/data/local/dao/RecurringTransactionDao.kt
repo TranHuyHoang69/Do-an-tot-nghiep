@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface RecurringTransactionDao {
+    @Query("SELECT COUNT(*) FROM recurring_transactions WHERE userId = :userId AND categoryLocalId = :categoryId AND isDeleted = 0")
+    suspend fun countNotDeletedByCategory(userId: String, categoryId: String): Int
+
     @Query("SELECT * FROM recurring_transactions WHERE userId = :userId AND isDeleted = 0 ORDER BY nextRunAt ASC")
     fun observeAll(userId: String): Flow<List<RecurringTransactionEntity>>
 

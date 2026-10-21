@@ -79,7 +79,7 @@ class CategoryMigrationTest {
             val runner = PendingUploadRunner(database, SyncSessionGuard(auth, AuthSessionVersion()))
             val firestore = mock(FirebaseFirestore::class.java)
             val trigger = mock(SyncTrigger::class.java)
-            val categories = CategoryRepositoryImpl(database.categoryDao(), firestore, trigger, runner)
+            val categories = CategoryRepositoryImpl(database.categoryDao(), firestore, trigger, runner, database)
             val transactions = TransactionRepositoryImpl(database.transactionDao(), database.categoryDao(), firestore, trigger, runner)
             val history = GetTransactionWithCategoryUseCase(transactions, categories, auth)().first()
             assertEquals(4, history.size)

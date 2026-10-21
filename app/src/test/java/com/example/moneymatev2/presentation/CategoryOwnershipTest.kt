@@ -11,6 +11,7 @@ import com.example.moneymatev2.domain.usecase.category.CreateCategoryUseCase
 import com.example.moneymatev2.domain.usecase.transaction.CreateTransactionUseCase
 import com.example.moneymatev2.presentation.budget.BudgetViewModel
 import com.example.moneymatev2.presentation.category.CategoryManagementViewModel
+import com.example.moneymatev2.presentation.category.CategoryDeletePreview
 import com.example.moneymatev2.presentation.transaction.AddTransactionViewmodel
 import com.example.moneymatev2.presentation.recurring.RecurringTransactionViewModel
 import kotlinx.coroutines.Dispatchers
@@ -92,6 +93,54 @@ class CategoryOwnershipTest {
             viewModel.deleteCategory(category("a"), category("a").copy(id = "replacement"))
             advanceUntilIdle()
             verifyNoInteractions(delete)
+        } finally { viewModel.viewModelScope.cancel() }
+    }
+
+    @Test fun cancelCategoryDeletePreviewDoesNotArchiveAnything() = runTest(dispatcher) {
+        val delete = mock(DeleteCategoryUseCase::class.java)
+        val viewModel = CategoryManagementViewModel(categories, auth, delete)
+        try {
+            viewModel.inspectCategoryDeletion(category("a"))
+            viewModel.cancelCategoryDeletion()
+            advanceUntilIdle()
+            assertEquals(CategoryDeletePreview.Idle, viewModel.deletePreview.value)
+            verifyNoInteractions(delete)
+        } finally { viewModel.viewModelScope.cancel() }
+    }
+
+    @Test fun failedUsageQueryNeverAppearsAsEmptyCategory() = runTest(dispatcher) {
+        val delete = mock(DeleteCategoryUseCase::class.java)
+        `when`(categories.getDeletionUsage("a", "legacy")).thenThrow(IllegalStateException("query failed"))
+        val viewModel = CategoryManagementViewModel(categories, auth, delete)
+        try {
+            viewModel.inspectCategoryDeletion(category("a"))
+            advanceUntilIdle()
+            assertTrue(viewModel.deletePreview.value is CategoryDeletePreview.Failed)
+            verifyNoInteractions(delete)
+        } finally { viewModel.viewModelScope.cancel() }
+    }
+
+    @Test fun categoryDeleteReportsFailureAndAllowsRetryWithoutDoubleSubmit() = runTest(dispatcher) {
+        val delete = mock(DeleteCategoryUseCase::class.java)
+        val source = category("a")
+        val replacement = source.copy(id = "replacement")
+        `when`(delete.invoke("a", source.id, replacement.id))
+            .thenReturn(AppResult.Failure(TransactionError.CategoryInUse))
+            .thenReturn(AppResult.Success(Unit))
+        val viewModel = CategoryManagementViewModel(categories, auth, delete)
+        try {
+            viewModel.deleteCategory(source, replacement)
+            viewModel.deleteCategory(source, replacement)
+            advanceUntilIdle()
+            assertEquals(CategoryManagementViewModel.DeleteCategoryEvent.Failed(TransactionError.CategoryInUse),
+                viewModel.deleteEvents.first())
+            verify(delete, times(1)).invoke("a", source.id, replacement.id)
+            assertFalse(viewModel.isDeleting.value)
+
+            viewModel.deleteCategory(source, replacement)
+            advanceUntilIdle()
+            assertEquals(CategoryManagementViewModel.DeleteCategoryEvent.Success, viewModel.deleteEvents.first())
+            verify(delete, times(2)).invoke("a", source.id, replacement.id)
         } finally { viewModel.viewModelScope.cancel() }
     }
 

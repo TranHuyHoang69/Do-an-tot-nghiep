@@ -97,7 +97,7 @@ interface TransactionDao{
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertFromRemote(transaction: List<TransactionEntity>)
 
-    @Query("SELECT COUNT(*) FROM transactions WHERE userId = :userId AND categoryLocalId = :categoryStableId AND isDeleted = 0")
+    @Query("SELECT COUNT(*) FROM transactions WHERE userId = :userId AND categoryLocalId = :categoryStableId AND isDeleted = 0 AND pendingOperation != 'DELETE'")
     suspend fun countTransactionsByCategory(userId: String, categoryStableId: String): Int
 
     @Query("DELETE FROM transactions WHERE userId = :userId")
@@ -108,8 +108,9 @@ interface TransactionDao{
     SET categoryLocalId = :newCategoryId,
         syncStatus = 'PENDING',
         pendingOperation = CASE WHEN pendingOperation = 'NONE' THEN 'UPDATE' ELSE pendingOperation END,
-        updatedAt = :updatedAt
+        updatedAt = CASE WHEN updatedAt >= :updatedAt THEN updatedAt + 1 ELSE :updatedAt END
     WHERE categoryLocalId = :oldCategoryId AND userId = :userId
+      AND isDeleted = 0 AND pendingOperation != 'DELETE'
 """)
     suspend fun reassignCategory(userId: String, oldCategoryId: String, newCategoryId: String, updatedAt: Long)
 

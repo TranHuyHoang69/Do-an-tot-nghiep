@@ -29,19 +29,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.moneymatev2.R
+import com.example.moneymatev2.core.util.CurrencyFormatter
 import com.example.moneymatev2.data.local.entity.TransactionType
 import com.example.moneymatev2.domain.model.CategoryModel
 import com.example.moneymatev2.domain.model.RecurringFrequency
 import com.example.moneymatev2.domain.model.RecurringTransactionModel
 import com.example.moneymatev2.domain.usecase.recurring.RecurringScheduleCalculator
 import kotlinx.coroutines.launch
-import java.text.NumberFormat
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 import java.util.TimeZone
 
 @Composable
@@ -267,7 +266,7 @@ private fun frequencyName(value: RecurringFrequency): String = stringResource(wh
     RecurringFrequency.YEARLY -> R.string.recurring_yearly
 })
 
-private fun moneyFormat(value: Long): String = NumberFormat.getIntegerInstance(Locale("vi", "VN")).format(value)
+private fun moneyFormat(value: Long): String = CurrencyFormatter.formatFull(value)
 private fun formatDate(epoch: Long, zoneId: String): String =
     Instant.ofEpochMilli(epoch).atZone(ZoneId.of(zoneId)).format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
 

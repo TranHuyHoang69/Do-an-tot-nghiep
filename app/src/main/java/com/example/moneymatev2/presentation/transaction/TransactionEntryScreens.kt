@@ -23,9 +23,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.moneymatev2.R
 import com.example.moneymatev2.StringRes
+import com.example.moneymatev2.core.util.CurrencyFormatter
 import com.example.moneymatev2.data.local.entity.TransactionType
 import com.example.moneymatev2.domain.model.TransactionError
-import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -66,7 +66,7 @@ fun TransactionDetailScreen(
             Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 24.dp)) {
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                     DetailRow(stringResource(StringRes.amount),
-                        "${NumberFormat.getIntegerInstance(Locale("vi", "VN")).format(tx.money.amountMinor)} đ", accent)
+                        "${CurrencyFormatter.formatFull(tx.money.amountMinor)} đ", accent)
                     DetailRow(stringResource(R.string.transaction_category),
                         if (state.category?.isMissing == true || state.category == null)
                             stringResource(R.string.category_missing_reference) else state.category!!.name)

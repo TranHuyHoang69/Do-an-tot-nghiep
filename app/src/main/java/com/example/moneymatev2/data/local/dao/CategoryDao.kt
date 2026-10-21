@@ -55,7 +55,8 @@
         // Archive thay vì xóa cứng — bảo toàn hiển thị đúng cho các transaction cũ
         @Query("""
             UPDATE categories
-            SET isArchived = 1, syncStatus = 'PENDING', pendingOperation = 'UPDATE', updatedAt = :updatedAt
+            SET isArchived = 1, syncStatus = 'PENDING', pendingOperation = 'UPDATE',
+                updatedAt = CASE WHEN updatedAt >= :updatedAt THEN updatedAt + 1 ELSE :updatedAt END
             WHERE userId = :userId AND localId = :localId
         """)
         suspend fun archiveCategory(userId: String, localId: String, updatedAt: Long)

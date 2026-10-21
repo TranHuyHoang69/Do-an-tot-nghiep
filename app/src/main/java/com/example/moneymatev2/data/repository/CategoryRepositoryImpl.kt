@@ -1,5 +1,7 @@
 package com.example.moneymatev2.data.repository
 
+import androidx.room.withTransaction
+import com.example.moneymatev2.data.local.AppDatabase
 import com.example.moneymatev2.data.local.dao.CategoryDao
 import com.example.moneymatev2.data.local.entity.CategoryEntity
 import com.example.moneymatev2.data.local.entity.PendingOperation
@@ -42,7 +44,8 @@ class CategoryRepositoryImpl @Inject constructor(
     private val dao: CategoryDao,
     private val firestore: FirebaseFirestore,
     private val syncTrigger: SyncTrigger,
-    private val uploadRunner: PendingUploadRunner
+    private val uploadRunner: PendingUploadRunner,
+    private val db: AppDatabase
 ): CategoryRepository {
 
     // Đảm bảo seedDefaultCategoriesIfNeeded không bị 2 coroutine chạy chồng lên nhau
@@ -111,6 +114,57 @@ class CategoryRepositoryImpl @Inject constructor(
         uploadRunner.capture(userId)
         dao.archiveCategory(userId, id, System.currentTimeMillis())
         syncTrigger.requestImmediateSync()
+    }
+
+    override suspend fun getDeletionUsage(userId: String, id: String): CategoryRepository.DeletionUsage {
+        val session = uploadRunner.capture(userId)
+        return db.withTransaction {
+            val source = dao.getCategoryByLocalIdOnce(userId, id)
+            require(source != null && !source.isArchived) { "Category unavailable" }
+            val usage = deletionUsage(userId, id)
+            uploadRunner.check(session)
+            usage
+        }
+    }
+
+    private suspend fun deletionUsage(userId: String, id: String) = CategoryRepository.DeletionUsage(
+        transactionCount = db.transactionDao().countTransactionsByCategory(userId, id),
+        hasActiveBudget = db.budgetDao().countActiveByCategory(userId, id) > 0,
+        hasRecurringTransaction = db.recurringTransactionDao().countNotDeletedByCategory(userId, id) > 0
+    )
+
+    override suspend fun archiveWithReplacement(
+        userId: String, id: String, replacementId: String?
+    ): CategoryRepository.ArchiveResult {
+        val session = uploadRunner.capture(userId)
+        val result = db.withTransaction {
+            val source = dao.getCategoryByLocalIdOnce(userId, id)
+            if (source == null || source.isArchived) {
+                return@withTransaction CategoryRepository.ArchiveResult.INVALID
+            }
+            val usage = deletionUsage(userId, id)
+            uploadRunner.check(session)
+            if (usage.isBlocked) {
+                return@withTransaction CategoryRepository.ArchiveResult.IN_USE
+            }
+            if (usage.transactionCount > 0) {
+                if (replacementId == null) return@withTransaction CategoryRepository.ArchiveResult.REPLACEMENT_REQUIRED
+                val replacement = dao.getCategoryByLocalIdOnce(userId, replacementId)
+                if (id == replacementId || replacement == null || replacement.isArchived ||
+                    replacement.type != source.type) {
+                    return@withTransaction CategoryRepository.ArchiveResult.INVALID
+                }
+            }
+            uploadRunner.check(session)
+            if (usage.transactionCount > 0) {
+                db.transactionDao().reassignCategory(userId, id, checkNotNull(replacementId), System.currentTimeMillis())
+            }
+            dao.archiveCategory(userId, id, System.currentTimeMillis())
+            uploadRunner.check(session)
+            CategoryRepository.ArchiveResult.ARCHIVED
+        }
+        if (result == CategoryRepository.ArchiveResult.ARCHIVED) syncTrigger.requestImmediateSync()
+        return result
     }
 
     override suspend fun seedDefaultCategoriesIfNeeded(userId: String) {
