@@ -245,4 +245,24 @@
     <string name="recurring_yearly">Hàng năm</string>
     <string name="recurring_saved">Đã lưu giao dịch định kỳ</string>
     <string name="recurring_deleted">Đã xóa giao dịch định kỳ</string>
+    <string name="profile_title">Thông tin người dùng</string>
+    <string name="profile_menu">Mở menu</string>
+    <string name="profile_name">Tên người dùng</string>
+    <string name="profile_email">Email</string>
+    <string name="profile_name_missing">Chưa có tên người dùng</string>
+    <string name="profile_email_missing">Chưa có email</string>
+    <string name="profile_delete">Xóa tài khoản</string>
+    <string name="profile_delete_confirm_upper">XÓA</string>
+    <string name="profile_delete_title">Xóa tài khoản</string>
+    <string name="profile_delete_confirmation">Bạn có chắc muốn xóa tài khoản và dữ liệu liên quan?</string>
+    <string name="profile_reauthenticate_title">Xác thực lại tài khoản</string>
+    <string name="profile_reauthenticate_explanation">Để xóa tài khoản, bạn cần xác thực lại bằng phương thức đăng nhập hiện tại.</string>
+    <string name="profile_google_reauthenticate">Đăng nhập lại bằng Google</string>
+    <string name="profile_reauthenticate_and_delete">Xác thực và xóa</string>
+    <string name="profile_deletion_unavailable">Chức năng xóa tài khoản chưa khả dụng vì chưa có quy trình xóa dữ liệu an toàn. Không có dữ liệu nào bị xóa.</string>
+    <string name="profile_processing">Đang xử lý…</string>
+    <string name="profile_delete_success">Đã xóa tài khoản</string>
+    <string name="profile_delete_failure">Không thể xóa tài khoản</string>
+    <string name="profile_network_error">Lỗi mạng. Vui lòng thử lại.</string>
+    <string name="profile_google_cancelled">Đã hủy đăng nhập Google</string>
 </resources>

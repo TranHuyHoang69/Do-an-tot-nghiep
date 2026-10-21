@@ -155,8 +155,9 @@ fun AppDrawer(
 
                     DrawerItem(
                         label = profile, icon = Icons.Default.Person,
-                        selected = false, colors = drawerItemColors, enabled = false
-                    ) {}
+                        selected = currentRoute == Screen.Profile.route,
+                        colors = drawerItemColors, enabled = isLoggedIn
+                    ) { scope.launch { drawerState.close() }; onNavigate(Screen.Profile.route) }
 
                     DrawerItem(
                         label = statistics, icon = Icons.Default.BarChart,

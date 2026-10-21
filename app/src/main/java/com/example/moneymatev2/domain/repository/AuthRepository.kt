@@ -9,6 +9,9 @@ interface AuthRepository {
 
     fun getCurrentUserId(): String?
 
+    /** Provider IDs (for example password or google.com) of the active Firebase account. */
+    fun getCurrentProviderIds(): Set<String> = emptySet()
+
     suspend fun signIn(email: String, password: String): AppResult<UserModel>
 
     suspend fun signUp(email: String, password: String, displayName: String): AppResult<UserModel>

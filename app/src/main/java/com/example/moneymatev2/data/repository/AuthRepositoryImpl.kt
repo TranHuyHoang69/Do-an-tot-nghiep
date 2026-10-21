@@ -41,6 +41,9 @@ class AuthRepositoryImpl @Inject constructor(
 
     override fun getCurrentUserId(): String? = firebaseAuth.currentUser?.uid
 
+    override fun getCurrentProviderIds(): Set<String> =
+        firebaseAuth.currentUser?.providerData?.mapTo(mutableSetOf()) { it.providerId } ?: emptySet()
+
     override suspend fun signIn(email: String, password: String): AppResult<UserModel> {
         sessionVersion.invalidate()
         return try{

@@ -21,6 +21,7 @@ import com.example.moneymatev2.presentation.home.HomeScreen
 import com.example.moneymatev2.presentation.recurring.RecurringTransactionScreen
 import com.example.moneymatev2.presentation.reminder.ReminderScreen
 import com.example.moneymatev2.presentation.settings.SettingScreen
+import com.example.moneymatev2.presentation.profile.ProfileScreen
 import com.example.moneymatev2.presentation.transaction.AddTransactionScreen
 import com.example.moneymatev2.presentation.transaction.AddTransactionViewmodel
 import com.example.moneymatev2.presentation.transaction.TransactionDetailScreen
@@ -170,6 +171,18 @@ fun NavGraph(
             SettingScreen(
                 navController = navController,
                 onOpenDrawer = onOpenDrawer
+            )
+        }
+
+        composable(Screen.Profile.route) {
+            ProfileScreen(
+                onOpenDrawer = onOpenDrawer,
+                onRequireLogin = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Profile.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
             )
         }
 

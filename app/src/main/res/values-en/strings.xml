@@ -225,4 +225,24 @@
     <string name="recurring_yearly">Yearly</string>
     <string name="recurring_saved">Recurring transaction saved</string>
     <string name="recurring_deleted">Recurring transaction deleted</string>
+    <string name="profile_title">User information</string>
+    <string name="profile_menu">Open menu</string>
+    <string name="profile_name">User name</string>
+    <string name="profile_email">Email</string>
+    <string name="profile_name_missing">No user name</string>
+    <string name="profile_email_missing">No email</string>
+    <string name="profile_delete">Delete account</string>
+    <string name="profile_delete_confirm_upper">DELETE</string>
+    <string name="profile_delete_title">Delete account</string>
+    <string name="profile_delete_confirmation">Are you sure you want to delete your account and related data?</string>
+    <string name="profile_reauthenticate_title">Reauthenticate account</string>
+    <string name="profile_reauthenticate_explanation">To delete your account, reauthenticate with your current sign-in method.</string>
+    <string name="profile_google_reauthenticate">Sign in again with Google</string>
+    <string name="profile_reauthenticate_and_delete">Reauthenticate and delete</string>
+    <string name="profile_deletion_unavailable">Account deletion is unavailable until a safe data removal process is ready. No data has been deleted.</string>
+    <string name="profile_processing">Processing…</string>
+    <string name="profile_delete_success">Account deleted</string>
+    <string name="profile_delete_failure">Could not delete account</string>
+    <string name="profile_network_error">Network error. Please try again.</string>
+    <string name="profile_google_cancelled">Google sign-in cancelled</string>
 </resources>
