@@ -2,6 +2,36 @@ package com.example.moneymatev2
 
 
 object StringRes {
+    val statistics_title = R.string.statistics_title
+    val statistics_subtitle = R.string.statistics_subtitle
+    val statistics_income = R.string.statistics_income
+    val statistics_expense = R.string.statistics_expense
+    val statistics_net = R.string.statistics_net
+    val statistics_chart = R.string.statistics_chart
+    val statistics_categories = R.string.statistics_categories
+    val statistics_trends = R.string.statistics_trends
+    val statistics_previous_year = R.string.statistics_previous_year
+    val statistics_next_year = R.string.statistics_next_year
+    val statistics_transactions = R.string.statistics_transactions
+    val statistics_this_month = R.string.statistics_this_month
+    val statistics_last_month = R.string.statistics_last_month
+    val statistics_three_months = R.string.statistics_three_months
+    val statistics_this_year = R.string.statistics_this_year
+    val statistics_custom = R.string.statistics_custom
+    val statistics_select_range = R.string.statistics_select_range
+    val statistics_apply = R.string.statistics_apply
+    val statistics_income_short = R.string.statistics_income_short
+    val statistics_expense_short = R.string.statistics_expense_short
+    val statistics_empty = R.string.statistics_empty
+    val statistics_error = R.string.statistics_error
+    val statistics_other = R.string.statistics_other
+    val statistics_month = R.string.statistics_month
+    val statistics_percent = R.string.statistics_percent
+    val statistics_share = R.string.statistics_share
+    val statistics_default_food = R.string.statistics_default_food
+    val statistics_default_transport = R.string.statistics_default_transport
+    val statistics_default_shopping = R.string.statistics_default_shopping
+    val statistics_default_salary = R.string.statistics_default_salary
     val app_name = R.string.app_name
     val app_slogan = R.string.app_slogan
     val welcome_back = R.string.welcome_back

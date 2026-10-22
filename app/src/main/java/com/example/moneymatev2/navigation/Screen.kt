@@ -42,6 +42,17 @@ sealed class Screen(val route: String){
     object RecurringTransactions : Screen("recurring_transactions")
     object Profile : Screen("profile")
     object Statistics : Screen("statistics")
+    object StatisticsMonth : Screen("statistics_month/{start}/{end}") {
+        fun createRoute(start: Long, end: Long) = "statistics_month/$start/$end"
+    }
+    object StatisticsBreakdown : Screen("statistics_breakdown/{start}/{end}") {
+        fun createRoute(start: Long, end: Long) = "statistics_breakdown/$start/$end"
+    }
+    object StatisticsTrends : Screen("statistics_trends")
+    object StatisticsCategory : Screen("statistics_category/{start}/{end}/{categoryId}") {
+        fun createRoute(start: Long, end: Long, categoryId: String) =
+            "statistics_category/$start/$end/${android.net.Uri.encode(categoryId)}"
+    }
     object SecuritySettings : Screen("security_settings")
     object Customization : Screen("customization")
 }

@@ -1,0 +1,33 @@
+<resources>
+    <string name="statistics_title">Statistics</string>
+    <string name="statistics_subtitle">Your financial overview</string>
+    <string name="statistics_income">Total income</string>
+    <string name="statistics_expense">Total expenses</string>
+    <string name="statistics_net">Difference</string>
+    <string name="statistics_chart">Income and expense chart</string>
+    <string name="statistics_categories">Spending by category</string>
+    <string name="statistics_trends">Monthly trends</string>
+    <string name="statistics_previous_year">Previous year</string>
+    <string name="statistics_next_year">Next year</string>
+    <string name="statistics_transactions">Transactions</string>
+    <string name="statistics_this_month">This month</string>
+    <string name="statistics_last_month">Last month</string>
+    <string name="statistics_three_months">Last 3 months</string>
+    <string name="statistics_this_year">This year</string>
+    <string name="statistics_custom">Custom</string>
+    <string name="statistics_select_range">Select date range</string>
+    <string name="statistics_apply">Apply</string>
+    <string name="statistics_income_short">Income</string>
+    <string name="statistics_expense_short">Expense</string>
+    <string name="statistics_empty">No data available</string>
+    <string name="statistics_error">Failed to load data</string>
+    <string name="statistics_other">Other</string>
+    <string name="statistics_month">Month %1$d</string>
+    <string name="statistics_percent">%1$d%%</string>
+    <string name="statistics_share">%1$d%% of expenses</string>
+    <string name="statistics_retry">Retry</string>
+    <string name="statistics_default_food">Food</string>
+    <string name="statistics_default_transport">Transport</string>
+    <string name="statistics_default_shopping">Shopping</string>
+    <string name="statistics_default_salary">Salary</string>
+</resources>

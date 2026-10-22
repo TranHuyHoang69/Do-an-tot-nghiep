@@ -1,0 +1,33 @@
+<resources>
+    <string name="statistics_title">Thống kê</string>
+    <string name="statistics_subtitle">Tổng quan tài chính của bạn</string>
+    <string name="statistics_income">Tổng thu</string>
+    <string name="statistics_expense">Tổng chi</string>
+    <string name="statistics_net">Chênh lệch</string>
+    <string name="statistics_chart">Biểu đồ thu chi</string>
+    <string name="statistics_categories">Chi tiêu theo danh mục</string>
+    <string name="statistics_trends">Xu hướng theo tháng</string>
+    <string name="statistics_previous_year">Năm trước</string>
+    <string name="statistics_next_year">Năm sau</string>
+    <string name="statistics_transactions">Giao dịch</string>
+    <string name="statistics_this_month">Tháng này</string>
+    <string name="statistics_last_month">Tháng trước</string>
+    <string name="statistics_three_months">3 tháng gần đây</string>
+    <string name="statistics_this_year">Năm nay</string>
+    <string name="statistics_custom">Tùy chỉnh</string>
+    <string name="statistics_select_range">Chọn khoảng thời gian</string>
+    <string name="statistics_apply">Áp dụng</string>
+    <string name="statistics_income_short">Thu</string>
+    <string name="statistics_expense_short">Chi</string>
+    <string name="statistics_empty">Không có dữ liệu</string>
+    <string name="statistics_error">Lỗi tải dữ liệu</string>
+    <string name="statistics_other">Khác</string>
+    <string name="statistics_month">Tháng %1$d</string>
+    <string name="statistics_percent">%1$d%%</string>
+    <string name="statistics_share">%1$d%% tổng chi</string>
+    <string name="statistics_retry">Thử lại</string>
+    <string name="statistics_default_food">Ăn uống</string>
+    <string name="statistics_default_transport">Di chuyển</string>
+    <string name="statistics_default_shopping">Mua sắm</string>
+    <string name="statistics_default_salary">Lương</string>
+</resources>

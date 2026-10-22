@@ -27,6 +27,10 @@ import com.example.moneymatev2.presentation.transaction.AddTransactionViewmodel
 import com.example.moneymatev2.presentation.transaction.TransactionDetailScreen
 import com.example.moneymatev2.presentation.transaction.EditTransactionScreen
 import com.example.moneymatev2.presentation.transaction.TransactionEntryViewModel
+import com.example.moneymatev2.presentation.statistics.StatisticsScreen
+import com.example.moneymatev2.presentation.statistics.CategoryBreakdownScreen
+import com.example.moneymatev2.presentation.statistics.MonthlyTrendsScreen
+import com.example.moneymatev2.presentation.statistics.CategoryTransactionsScreen
 
 @Composable
 fun NavGraph(
@@ -43,7 +47,8 @@ fun NavGraph(
                 onNavigateToRegister = { navController.navigate(Screen.Register.route) },
                 onLoginSuccess = {
                     navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             )
@@ -58,7 +63,8 @@ fun NavGraph(
                 },
                 onRegisterSuccess = {
                     navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Register.route) { inclusive = true }
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             )
@@ -165,6 +171,48 @@ fun NavGraph(
 
         composable(Screen.Budget.route) {
             BudgetScreen(onOpenDrawer = onOpenDrawer)
+        }
+
+        composable(Screen.Statistics.route) {
+            StatisticsScreen(
+                onOpenDrawer = onOpenDrawer,
+                onBreakdown = { start, end -> navController.navigate(Screen.StatisticsBreakdown.createRoute(start, end)) },
+                onTrends = { navController.navigate(Screen.StatisticsTrends.route) },
+                onCategory = { start, end, id -> navController.navigate(Screen.StatisticsCategory.createRoute(start, end, id)) }
+            )
+        }
+        composable(Screen.StatisticsMonth.route, arguments = listOf(
+            navArgument("start") { type = NavType.LongType }, navArgument("end") { type = NavType.LongType }
+        )) {
+            StatisticsScreen(
+                onOpenDrawer = onOpenDrawer,
+                onBreakdown = { start, end -> navController.navigate(Screen.StatisticsBreakdown.createRoute(start, end)) },
+                onTrends = { navController.navigate(Screen.StatisticsTrends.route) },
+                onCategory = { start, end, id -> navController.navigate(Screen.StatisticsCategory.createRoute(start, end, id)) }
+            )
+        }
+        composable(Screen.StatisticsBreakdown.route, arguments = listOf(
+            navArgument("start") { type = NavType.LongType }, navArgument("end") { type = NavType.LongType }
+        )) {
+            CategoryBreakdownScreen(
+                onBack = { navController.popBackStack() },
+                onCategory = { start, end, id -> navController.navigate(Screen.StatisticsCategory.createRoute(start, end, id)) }
+            )
+        }
+        composable(Screen.StatisticsTrends.route) {
+            MonthlyTrendsScreen(onBack = { navController.popBackStack() }, onMonth = { start, end ->
+                navController.navigate(Screen.StatisticsMonth.createRoute(start, end))
+            })
+        }
+        composable(Screen.StatisticsCategory.route, arguments = listOf(
+            navArgument("start") { type = NavType.LongType }, navArgument("end") { type = NavType.LongType },
+            navArgument("categoryId") { type = NavType.StringType }
+        )) { entry ->
+            CategoryTransactionsScreen(
+                categoryId = checkNotNull(entry.arguments?.getString("categoryId")),
+                onBack = { navController.popBackStack() },
+                onTransaction = { id -> navController.navigate(Screen.TransactionDetail.createRoute(id)) { launchSingleTop = true } }
+            )
         }
 
         composable(Screen.Customization.route) {

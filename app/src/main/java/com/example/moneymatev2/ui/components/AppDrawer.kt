@@ -161,8 +161,8 @@ fun AppDrawer(
 
                     DrawerItem(
                         label = statistics, icon = Icons.Default.BarChart,
-                        selected = false, colors = drawerItemColors, enabled = false
-                    ) {}
+                        selected = currentRoute?.startsWith("statistics") == true, colors = drawerItemColors, enabled = true
+                    ) { scope.launch { drawerState.close() }; onNavigate(Screen.Statistics.route) }
 
                     DrawerItem(
                         label = security, icon = Icons.Default.Lock,
