@@ -12,6 +12,7 @@ data class ReminderDto(
     val title: String = "",
     val note: String? = null,
     val triggerAt: Long = 0,
+    val anchorAt: Long? = null,
     val repeatRule: String? = RepeatRule.NONE.name,
     val isActive: Boolean = true,
     val createdAt: Long = 0,
@@ -26,6 +27,7 @@ fun ReminderEntity.toDto() = ReminderDto(
     title = title,
     note = note,
     triggerAt = triggerAt,
+    anchorAt = anchorAt,
     repeatRule = repeatRule.name,
     isActive = isActive,
     createdAt = createdAt
@@ -42,6 +44,7 @@ fun ReminderDto.toEntity(
     title = title,
     note = note,
     triggerAt = triggerAt,
+    anchorAt = anchorAt,
     repeatRule = runCatching {
         RepeatRule.valueOf(
             repeatRule ?: RepeatRule.NONE.name

@@ -4,8 +4,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.example.moneymatev2.domain.reminder.ReminderRepeatCalculator
+import com.example.moneymatev2.data.local.entity.RepeatRule
 import com.example.moneymatev2.domain.reminder.ReminderScheduler
 import com.example.moneymatev2.domain.repository.ReminderRepository
+import com.example.moneymatev2.domain.repository.AuthRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +32,9 @@ class ReminderReceiver : BroadcastReceiver() {
     lateinit var repeatCalculator:
             ReminderRepeatCalculator
 
+    @Inject
+    lateinit var authRepository: AuthRepository
+
     override fun onReceive(
         context: Context,
         intent: Intent
@@ -52,9 +57,10 @@ class ReminderReceiver : BroadcastReceiver() {
         }
     }
 
-    private suspend fun handleReminder(
+    internal suspend fun handleReminder(
         reminderId: String
     ) {
+        val ownerUid = authRepository.getCurrentUserId() ?: return
         val reminder =
             reminderRepository.getReminder(
                 reminderId
@@ -64,14 +70,17 @@ class ReminderReceiver : BroadcastReceiver() {
             return
         }
 
-        notificationManager.show(reminder)
+        val posted = notificationManager.show(ownerUid, reminder)
+        // Keep an unshown one-time reminder available for manual rescheduling.
+        if (!posted && reminder.repeatRule == RepeatRule.NONE) return
 
         val nextTrigger =
             repeatCalculator.calculateNextTrigger(
                 currentTriggerAt =
                     reminder.triggerAt,
                 repeatRule =
-                    reminder.repeatRule
+                    reminder.repeatRule,
+                anchorAt = reminder.anchorAt
             )
 
         if (nextTrigger == null) {

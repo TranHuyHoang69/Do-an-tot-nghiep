@@ -87,7 +87,8 @@ fun ReminderEditorScreen(
                 RepeatRule.NONE,
                 RepeatRule.DAILY,
                 RepeatRule.WEEKLY,
-                RepeatRule.MONTHLY
+                RepeatRule.MONTHLY,
+                RepeatRule.YEARLY
             )
         }
 
@@ -907,7 +908,7 @@ private fun repeatLabelRes(
         RepeatRule.MONTHLY ->
             StringRes.repeat_monthly
 
-        else ->
-            StringRes.repeat_none
+        RepeatRule.YEARLY ->
+            StringRes.repeat_yearly
     }
 }

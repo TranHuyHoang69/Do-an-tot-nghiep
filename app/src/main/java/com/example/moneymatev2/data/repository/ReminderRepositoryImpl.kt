@@ -45,6 +45,7 @@ class ReminderRepositoryImpl @Inject constructor(
             title = title.trim(),
             note = note?.trim()?.takeIf { it.isNotBlank() },
             triggerAt = triggerAt,
+            anchorAt = triggerAt,
             repeatRule = repeatRule,
             isActive = true,
             syncStatus = SyncStatus.PENDING,
@@ -71,6 +72,7 @@ class ReminderRepositoryImpl @Inject constructor(
                     ?.trim()
                     ?.takeIf { it.isNotBlank() },
                 triggerAt = reminder.triggerAt,
+                anchorAt = reminder.anchorAt,
                 repeatRule = reminder.repeatRule,
                 isActive = reminder.isActive,
                 updatedAt = System.currentTimeMillis(),
@@ -187,6 +189,7 @@ class ReminderRepositoryImpl @Inject constructor(
         title = title,
         note = note,
         triggerAt = triggerAt,
+        anchorAt = anchorAt,
         repeatRule = repeatRule,
         isActive = isActive
     )

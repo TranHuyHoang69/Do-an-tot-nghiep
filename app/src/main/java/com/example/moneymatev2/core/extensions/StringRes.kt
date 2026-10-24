@@ -249,6 +249,7 @@ object StringRes {
     val repeat_daily = R.string.repeat_daily
     val repeat_weekly = R.string.repeat_weekly
     val repeat_monthly = R.string.repeat_monthly
+    val repeat_yearly = R.string.repeat_yearly
 
     val no_reminders = R.string.no_reminders
     val no_reminders_hint = R.string.no_reminders_hint
@@ -258,6 +259,8 @@ object StringRes {
 
     val reminder_saved = R.string.reminder_saved
     val reminder_deleted = R.string.reminder_deleted
+    val reminder_not_found = R.string.reminder_not_found
+    val reminder_cannot_open = R.string.reminder_cannot_open
     val reminder_invalid_title = R.string.reminder_invalid_title
     val reminder_invalid_time = R.string.reminder_invalid_time
     val reminder_login_required = R.string.reminder_login_required
@@ -273,4 +276,18 @@ object StringRes {
 
     val reminder_later = R.string.reminder_later
     val reminder_selected_count = R.string.reminder_selected_count
+    val reminder_channel_name = R.string.reminder_channel_name
+    val reminder_channel_description = R.string.reminder_channel_description
+    val reminder_notification_fallback = R.string.reminder_notification_fallback
+    val reminder_notification_blocked_title = R.string.reminder_notification_blocked_title
+    val reminder_notification_blocked_message = R.string.reminder_notification_blocked_message
+    val reminder_enable_notifications = R.string.reminder_enable_notifications
+    val reminder_notification_blocked_banner = R.string.reminder_notification_blocked_banner
+    val reminder_delete_one_confirm = R.string.reminder_delete_one_confirm
+    val reminder_delete_many_confirm = R.string.reminder_delete_many_confirm
+    val reminder_load_error = R.string.reminder_load_error
+    val reminder_save_error = R.string.reminder_save_error
+    val reminder_update_error = R.string.reminder_update_error
+    val reminder_delete_error = R.string.reminder_delete_error
+    val reminder_missed_once_hint = R.string.reminder_missed_once_hint
 }

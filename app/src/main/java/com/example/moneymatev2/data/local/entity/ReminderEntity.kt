@@ -31,6 +31,8 @@ data class ReminderEntity(
     val lastSyncAttemptAt: Long? = null,
     val createdAt: Long,
     val updatedAt: Long,
-    val remoteUpdatedAt: Long? = null
+    val remoteUpdatedAt: Long? = null,
+    /** User-selected occurrence; null for reminders created before the anchor was stored. */
+    val anchorAt: Long? = null
 )
 

@@ -3,6 +3,7 @@ package com.example.moneymatev2
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,6 +16,7 @@ import com.example.moneymatev2.presentation.security.LocalSecurityManager
 import com.example.moneymatev2.presentation.security.LocalSecurityState
 import com.example.moneymatev2.data.reminder.ReminderNotificationManager
 import com.example.moneymatev2.presentation.root.AppRoot
+import com.example.moneymatev2.presentation.root.AppRootViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -22,20 +24,8 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     @Inject lateinit var localSecurityManager: LocalSecurityManager
-
-    /*
-     * Counter thay vì Boolean.
-     *
-     * Ví dụ:
-     *
-     * notification 1 -> 0 → 1
-     * notification 2 -> 1 → 2
-     *
-     * Nhờ vậy LaunchedEffect trong AppRoot
-     * chạy lại với mỗi lần tap notification.
-     */
-    private var reminderNavigationRequest
-            by mutableStateOf(0L)
+    private val rootViewModel: AppRootViewModel by viewModels()
+    private var notificationNavigationReady by mutableStateOf(false)
 
     override fun onCreate(
         savedInstanceState: Bundle?
@@ -52,29 +42,26 @@ class MainActivity : AppCompatActivity() {
                 else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
             }
         }
-
-        /*
-         * Trường hợp app chưa chạy.
-         */
-        handleNotificationIntent(
-            intent
-        )
+        if (savedInstanceState != null) {
+            intent?.removeExtra(ReminderNotificationManager.EXTRA_REMINDER_ID)
+            intent?.removeExtra(ReminderNotificationManager.EXTRA_OWNER_UID)
+        }
 
         setContent {
 
-            AppRoot(
-                reminderNavigationRequest =
-                    reminderNavigationRequest
-            )
+            AppRoot(rootViewModel = rootViewModel, notificationNavigationReady = notificationNavigationReady)
         }
     }
 
     override fun onStart() {
         super.onStart()
         localSecurityManager.onForeground()
+        notificationNavigationReady = true
+        handleNotificationIntent(intent)
     }
 
     override fun onStop() {
+        notificationNavigationReady = false
         localSecurityManager.onBackground()
         super.onStop()
     }
@@ -85,62 +72,25 @@ class MainActivity : AppCompatActivity() {
         super.onNewIntent(
             intent
         )
-
-        /*
-         * Cập nhật Intent hiện tại của Activity.
-         */
         setIntent(
             intent
         )
-
-        /*
-         * Trường hợp MoneyMate đang mở/background
-         * rồi user tap notification.
-         */
-        handleNotificationIntent(
-            intent
-        )
-    }
-
-    private fun handleNotificationIntent(
-        intent: Intent?
-    ) {
-        val reminderId =
-            intent
-                ?.getStringExtra(
-                    ReminderNotificationManager
-                        .EXTRA_REMINDER_ID
-                )
-                ?: return
-
-        /*
-         * Hiện tại reminderId chỉ xác nhận đây
-         * đúng là Intent đến từ Reminder.
-         *
-         * Ta chưa mở editor cụ thể theo id.
-         */
-        if (reminderId.isBlank()) {
-            return
+        if (lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) {
+            handleNotificationIntent(intent)
         }
-
-        /*
-         * Trigger Compose điều hướng.
-         */
-        reminderNavigationRequest++
-
-        /*
-         * Consume extra.
-         *
-         * Nếu Activity bị recreate do đổi theme,
-         * locale..., Intent cũ sẽ không khiến
-         * app tự navigate lại Reminder.
-         */
-        intent.removeExtra(
-            ReminderNotificationManager
-                .EXTRA_REMINDER_ID
-        )
     }
 
+    private fun handleNotificationIntent(intent: Intent?) {
+        if (intent == null) return
+        val reminderId = intent.getStringExtra(ReminderNotificationManager.EXTRA_REMINDER_ID)
+        val ownerUid = intent.getStringExtra(ReminderNotificationManager.EXTRA_OWNER_UID)
+        // SavedStateHandle keeps accepted requests; Activity extras must not replay on recreation.
+        intent.removeExtra(ReminderNotificationManager.EXTRA_REMINDER_ID)
+        intent.removeExtra(ReminderNotificationManager.EXTRA_OWNER_UID)
+        if (!reminderId.isNullOrBlank() && !ownerUid.isNullOrBlank()) {
+            rootViewModel.offerReminderNavigation(reminderId, ownerUid)
+        }
+    }
     private fun hideNavigationBar() {
         val controller = WindowInsetsControllerCompat(
             window,

@@ -9,6 +9,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.SQLiteConnection
 import com.example.moneymatev2.data.local.migration.MIGRATION_1_2
 import com.example.moneymatev2.data.local.migration.MIGRATION_2_3
+import com.example.moneymatev2.data.local.migration.MIGRATION_3_4
 import com.example.moneymatev2.core.util.groupByCategory
 import com.example.moneymatev2.data.local.entity.TransactionType
 import com.example.moneymatev2.data.remote.sync.*
@@ -59,7 +60,7 @@ class CategoryMigrationTest {
         before.values.forEach { assertEquals(4, it.size) }
 
         open(file).use { database ->
-            assertEquals(3, database.openHelper.writableDatabase.version)
+            assertEquals(4, database.openHelper.writableDatabase.version)
             database.openHelper.writableDatabase.query("PRAGMA integrity_check").use { cursor ->
                 assertTrue(cursor.moveToFirst())
                 assertEquals("ok", cursor.getString(0))
@@ -122,7 +123,7 @@ class CategoryMigrationTest {
         assertEquals(5, before.size)
         open(file).use { database ->
             val after = snapshot(database)
-            assertEquals(3, database.openHelper.writableDatabase.version)
+            assertEquals(4, database.openHelper.writableDatabase.version)
             before.forEach { (table, rows) -> assertEquals(table, rows, after[table]) }
             assertTrue(after.getValue("recurring_transactions").isEmpty())
         }
@@ -191,7 +192,7 @@ class CategoryMigrationTest {
 
     private fun open(file: File, migration: Migration = MIGRATION_2_3): AppDatabase =
         Room.databaseBuilder(RuntimeEnvironment.getApplication(), AppDatabase::class.java, file.absolutePath)
-            .addMigrations(MIGRATION_1_2, migration).allowMainThreadQueries().build()
+            .addMigrations(MIGRATION_1_2, migration, MIGRATION_3_4).allowMainThreadQueries().build()
 
     private inline fun <Result> AppDatabase.use(block: (AppDatabase) -> Result): Result =
         try { block(this) } finally { close() }
@@ -275,7 +276,8 @@ class CategoryMigrationTest {
         }
         return tables.associateWith { table ->
             query("SELECT * FROM `$table` ORDER BY ${if (table == "users") "userId" else "localId"}").use { cursor ->
-                buildList { while (cursor.moveToNext()) add((0 until cursor.columnCount).map { cursor.getString(it) }) }
+                val originalColumns = (0 until cursor.columnCount).filter { cursor.getColumnName(it) != "anchorAt" }
+                buildList { while (cursor.moveToNext()) add(originalColumns.map { cursor.getString(it) }) }
             }
         }
     }

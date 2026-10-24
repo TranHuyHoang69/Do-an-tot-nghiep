@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import com.example.moneymatev2.domain.reminder.ReminderScheduler
 import com.example.moneymatev2.domain.repository.AuthRepository
 import com.example.moneymatev2.domain.usecase.reminder.RescheduleRemindersUseCase
@@ -37,10 +38,6 @@ class ReminderBootReceiver : BroadcastReceiver() {
         val action =
             intent.action ?: return
 
-        val isBootCompleted =
-            action ==
-                    Intent.ACTION_BOOT_COMPLETED
-
         val isExactAlarmPermissionChanged =
             Build.VERSION.SDK_INT >=
                     Build.VERSION_CODES.S &&
@@ -48,12 +45,7 @@ class ReminderBootReceiver : BroadcastReceiver() {
                     AlarmManager
                         .ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED
 
-        if (
-            !isBootCompleted &&
-            !isExactAlarmPermissionChanged
-        ) {
-            return
-        }
+        if (!ReminderSystemBroadcasts.isRescheduleAction(action)) return
 
         /*
          * BroadcastReceiver.onReceive() phải kết thúc nhanh.
@@ -99,9 +91,21 @@ class ReminderBootReceiver : BroadcastReceiver() {
                     userId = userId
                 )
 
+            } catch (error: Exception) {
+                Log.e("ReminderBootReceiver", "Unable to reschedule reminders after $action", error)
             } finally {
                 pendingResult.finish()
             }
         }
     }
+}
+
+internal object ReminderSystemBroadcasts {
+    fun isRescheduleAction(action: String?): Boolean = action in setOf(
+        Intent.ACTION_BOOT_COMPLETED,
+        Intent.ACTION_MY_PACKAGE_REPLACED,
+        Intent.ACTION_TIME_CHANGED,
+        Intent.ACTION_TIMEZONE_CHANGED,
+        AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED
+    )
 }

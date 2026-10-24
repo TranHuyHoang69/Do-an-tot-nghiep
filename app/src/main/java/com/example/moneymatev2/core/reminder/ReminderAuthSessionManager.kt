@@ -1,5 +1,7 @@
 package com.example.moneymatev2.core.reminder
 
+import android.util.Log
+import com.example.moneymatev2.data.reminder.ReminderNotificationManager
 import com.example.moneymatev2.domain.reminder.ReminderScheduler
 import com.example.moneymatev2.domain.repository.AuthRepository
 import com.example.moneymatev2.domain.repository.ReminderRepository
@@ -19,7 +21,8 @@ class ReminderAuthSessionManager @Inject constructor(
     private val authRepository: AuthRepository,
     private val reminderRepository: ReminderRepository,
     private val reminderScheduler: ReminderScheduler,
-    private val rescheduleRemindersUseCase: RescheduleRemindersUseCase
+    private val rescheduleRemindersUseCase: RescheduleRemindersUseCase,
+    private val notificationManager: ReminderNotificationManager
 ) {
 
     private val scope =
@@ -46,6 +49,7 @@ class ReminderAuthSessionManager @Inject constructor(
         scope.launch {
 
             var previousUserId: String? = null
+            var firstEmission = true
 
             authRepository
                 .observeAuthState()
@@ -54,6 +58,12 @@ class ReminderAuthSessionManager @Inject constructor(
                 }
                 .distinctUntilChanged()
                 .collect { currentUserId ->
+                    if (firstEmission) {
+                        firstEmission = false
+                        safelyCleanNotifications {
+                            notificationManager.reconcileOnStart(currentUserId)
+                        }
+                    }
 
                     /*
                      * User thay đổi:
@@ -63,12 +73,13 @@ class ReminderAuthSessionManager @Inject constructor(
                      *
                      * Hủy toàn bộ alarm thuộc A.
                      */
-                    if (
-                        previousUserId != null &&
-                        previousUserId != currentUserId
-                    ) {
+                    val oldUserId = previousUserId
+                    if (oldUserId != null && oldUserId != currentUserId) {
+                        safelyCleanNotifications {
+                            notificationManager.cancelForUser(oldUserId)
+                        }
                         cancelUserAlarms(
-                            userId = previousUserId!!
+                            userId = oldUserId
                         )
                     }
 
@@ -90,6 +101,15 @@ class ReminderAuthSessionManager @Inject constructor(
                     previousUserId =
                         currentUserId
                 }
+        }
+    }
+
+    private inline fun safelyCleanNotifications(cleanup: () -> Unit) {
+        try {
+            cleanup()
+        } catch (error: Exception) {
+            // Notification cleanup must never prevent alarm cleanup or the new UID's schedule.
+            Log.w("ReminderAuthSession", "Unable to clean reminder notifications", error)
         }
     }
 

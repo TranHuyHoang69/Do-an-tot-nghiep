@@ -1,6 +1,7 @@
 package com.example.moneymatev2.presentation.reminder
 
 import androidx.lifecycle.ViewModel
+import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.example.moneymatev2.data.local.entity.RepeatRule
 import com.example.moneymatev2.domain.model.ReminderModel
@@ -12,6 +13,9 @@ import com.example.moneymatev2.domain.usecase.reminder.ToggleReminderUseCase
 import com.example.moneymatev2.domain.usecase.reminder.UpdateReminderUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,7 +33,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ReminderViewModel @Inject constructor(
-    authRepository: AuthRepository,
+    private val authRepository: AuthRepository,
     private val reminderRepository: ReminderRepository,
     private val createReminderUseCase: CreateReminderUseCase,
     private val updateReminderUseCase: UpdateReminderUseCase,
@@ -93,6 +97,9 @@ class ReminderViewModel @Inject constructor(
 
     val formState: StateFlow<ReminderFormState> =
         _formState
+
+    private val _isDeleting = MutableStateFlow(false)
+    val isDeleting: StateFlow<Boolean> = _isDeleting
 
     private val _events =
         Channel<ReminderEvent>(
@@ -159,6 +166,36 @@ class ReminderViewModel @Inject constructor(
             createDefaultFormState()
     }
 
+    /** Load before showing the editor; repository also rejects foreign and pending-delete rows. */
+    suspend fun prepareNotificationEdit(reminderId: String, ownerUid: String): ReminderOpenResult {
+        if (ownerUid.isBlank() || authRepository.getCurrentUserId() != ownerUid) {
+            return ReminderOpenResult.Denied
+        }
+        val reminder = try {
+            reminderRepository.getReminder(reminderId)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            return ReminderOpenResult.Error
+        } ?: return ReminderOpenResult.Missing
+        currentCoroutineContext().ensureActive()
+        if (authRepository.getCurrentUserId() != ownerUid || reminder.id != reminderId) {
+            return ReminderOpenResult.Denied
+        }
+        val calendar = Calendar.getInstance().apply { timeInMillis = reminder.triggerAt }
+        _formState.value = ReminderFormState(
+            editingReminderId = reminder.id,
+            title = reminder.title,
+            note = reminder.note.orEmpty(),
+            selectedDateMillis = reminder.triggerAt,
+            hour = calendar.get(Calendar.HOUR_OF_DAY),
+            minute = calendar.get(Calendar.MINUTE),
+            repeatRule = reminder.repeatRule,
+            isSaving = false
+        )
+        return ReminderOpenResult.Ready
+    }
+
     fun startEdit(
         reminderId: String
     ) {
@@ -169,9 +206,7 @@ class ReminderViewModel @Inject constructor(
                     .getReminder(reminderId)
                     ?: run {
                         _events.send(
-                            ReminderEvent.Error(
-                                "Reminder not found"
-                            )
+                            ReminderEvent.Error(ReminderErrorKind.MISSING)
                         )
                         return@launch
                     }
@@ -282,6 +317,10 @@ class ReminderViewModel @Inject constructor(
                                 state.note,
                             triggerAt =
                                 triggerAt,
+                            anchorAt = if (
+                                triggerAt / 60_000L == existing.triggerAt / 60_000L &&
+                                    state.repeatRule == existing.repeatRule
+                            ) existing.anchorAt else triggerAt,
                             repeatRule =
                                 state.repeatRule
                         )
@@ -305,12 +344,9 @@ class ReminderViewModel @Inject constructor(
             } catch (
                 e: Exception
             ) {
-                _events.send(
-                    ReminderEvent.Error(
-                        e.message
-                            ?: "Unable to save reminder"
-                    )
-                )
+                if (e is CancellationException) throw e
+                Log.e("ReminderViewModel", "Unable to save reminder", e)
+                _events.send(ReminderEvent.Error(ReminderErrorKind.SAVE))
 
             } finally {
                 _formState.update {
@@ -347,12 +383,9 @@ class ReminderViewModel @Inject constructor(
             } catch (
                 e: Exception
             ) {
-                _events.send(
-                    ReminderEvent.Error(
-                        e.message
-                            ?: "Unable to update reminder"
-                    )
-                )
+                if (e is CancellationException) throw e
+                Log.e("ReminderViewModel", "Unable to update reminder", e)
+                _events.send(ReminderEvent.Error(ReminderErrorKind.UPDATE))
             }
         }
     }
@@ -373,26 +406,22 @@ class ReminderViewModel @Inject constructor(
             } catch (
                 e: Exception
             ) {
-                _events.send(
-                    ReminderEvent.Error(
-                        e.message
-                            ?: "Unable to delete reminder"
-                    )
-                )
+                if (e is CancellationException) throw e
+                Log.e("ReminderViewModel", "Unable to delete reminder", e)
+                _events.send(ReminderEvent.Error(ReminderErrorKind.DELETE))
             }
         }
     }
 
     fun deleteReminders(
         reminderIds: Collection<String>
-    ) {
-        if (reminderIds.isEmpty()) {
-            return
-        }
+    ): Boolean {
+        val ids = reminderIds.distinct()
+        if (ids.isEmpty() || !_isDeleting.compareAndSet(expect = false, update = true)) return false
 
         viewModelScope.launch {
             try {
-                reminderIds.forEach { reminderId ->
+                ids.forEach { reminderId ->
                     deleteReminderUseCase(
                         reminderId = reminderId
                     )
@@ -410,14 +439,14 @@ class ReminderViewModel @Inject constructor(
                 )
 
             } catch (e: Exception) {
-                _events.send(
-                    ReminderEvent.Error(
-                        e.message
-                            ?: "Unable to delete reminders"
-                    )
-                )
+                if (e is CancellationException) throw e
+                Log.e("ReminderViewModel", "Unable to delete reminders", e)
+                _events.send(ReminderEvent.Error(ReminderErrorKind.DELETE))
+            } finally {
+                _isDeleting.value = false
             }
         }
+        return true
     }
 
     private fun buildTriggerAt(

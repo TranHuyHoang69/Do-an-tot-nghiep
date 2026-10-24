@@ -8,6 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.moneymatev2.data.local.migration.MIGRATION_1_2
 import com.example.moneymatev2.data.local.migration.MIGRATION_2_3
+import com.example.moneymatev2.data.local.migration.MIGRATION_3_4
 import com.example.moneymatev2.data.repository.DefaultCategoryIds
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -147,7 +148,8 @@ class CategoryMigrationAndroidTest {
     private fun rows(db: androidx.sqlite.db.SupportSQLiteDatabase): Map<String, List<List<String?>>> =
         tables.associateWith { table ->
             db.query("SELECT * FROM `$table` ORDER BY ${if (table == "users") "userId" else "localId"}").use { cursor ->
-                buildList { while (cursor.moveToNext()) add((0 until cursor.columnCount).map(cursor::getString)) }
+                val originalColumns = (0 until cursor.columnCount).filter { cursor.getColumnName(it) != "anchorAt" }
+                buildList { while (cursor.moveToNext()) add(originalColumns.map(cursor::getString)) }
             }
         }
 
@@ -199,7 +201,7 @@ class CategoryMigrationAndroidTest {
 
     private fun openRoom(name: String): AppDatabase = Room.databaseBuilder(
         instrumentation.targetContext, AppDatabase::class.java, name
-    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
+    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
 
     private inline fun <T> AppDatabase.use(block: (AppDatabase) -> T): T =
         try { block(this) } finally { close() }

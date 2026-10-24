@@ -10,6 +10,7 @@ import com.example.moneymatev2.data.local.entity.PendingOperation
 import com.example.moneymatev2.data.local.entity.SyncStatus
 import com.example.moneymatev2.data.local.migration.MIGRATION_1_2
 import com.example.moneymatev2.data.local.migration.MIGRATION_2_3
+import com.example.moneymatev2.data.local.migration.MIGRATION_3_4
 import com.example.moneymatev2.data.repository.DefaultCategoryIds
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -34,10 +35,10 @@ class InstalledV2UpgradeAndroidTest {
         val expected = expectedV2Rows()
         openRoom().use { room ->
             val sql = room.openHelper.writableDatabase
-            assertEquals(3, sql.version)
+            assertEquals(4, sql.version)
             sql.query("SELECT identity_hash FROM room_master_table WHERE id = 42").use { cursor ->
                 assertTrue(cursor.moveToFirst())
-                assertEquals("bbfe7747867b090605eb1f52ef7311d4", cursor.getString(0))
+                assertEquals("efd12592c9e3ae9c98876dfa73ed58a2", cursor.getString(0))
             }
             val actual = snapshot(sql)
             for (table in tables) {
@@ -87,14 +88,14 @@ class InstalledV2UpgradeAndroidTest {
         }
     }
 
-    @Test fun restoredV2Snapshot_canUpgradeToV3() {
+    @Test fun restoredV2Snapshot_canUpgradeToV4() {
         val expected = expectedV2Rows()
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         for (name in listOf("gate-restored-v2.db", "gate-host-import-v2.db")) {
             assertTrue(context.getDatabasePath(name).exists())
             openRoom(name).use { room ->
                 val sql = room.openHelper.writableDatabase
-                assertEquals(3, sql.version)
+                assertEquals(4, sql.version)
                 val actual = snapshot(sql)
                 for (table in tables) {
                     assertEquals("$name $table", expected.getJSONArray(table).toString(), actual.getJSONArray(table).toString())
@@ -157,7 +158,7 @@ class InstalledV2UpgradeAndroidTest {
         assertTrue(snapshot.length() > 0)
         snapshot.copyTo(restored)
         openRoom(restored.name).use { room ->
-            assertEquals(3, room.openHelper.writableDatabase.version)
+            assertEquals(4, room.openHelper.writableDatabase.version)
             val category = runBlocking { room.categoryDao().getCategoryByLocalIdOnce("account-a", "category-1") }
             assertNotNull(category)
             assertEquals("wal-marker", category!!.lastSyncError)
@@ -184,6 +185,7 @@ class InstalledV2UpgradeAndroidTest {
                 while (cursor.moveToNext()) {
                     val row = JSONArray()
                     for (index in 0 until cursor.columnCount) {
+                        if (cursor.getColumnName(index) == "anchorAt") continue
                         row.put(if (cursor.isNull(index)) JSONObject.NULL else cursor.getString(index))
                     }
                     rows.put(row)
@@ -196,7 +198,7 @@ class InstalledV2UpgradeAndroidTest {
     private fun openRoom(name: String = AppDatabase.DATABASE_NAME): AppDatabase {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         return Room.databaseBuilder(context, AppDatabase::class.java, name)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
     }
 
     private inline fun <T> AppDatabase.use(block: (AppDatabase) -> T): T =

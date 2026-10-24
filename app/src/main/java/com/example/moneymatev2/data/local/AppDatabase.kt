@@ -15,7 +15,7 @@ import com.example.moneymatev2.data.local.entity.*
         ReminderEntity::class,
         RecurringTransactionEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

@@ -58,7 +58,8 @@ class UpdateReminderUseCase @Inject constructor(
         val nextTrigger =
             repeatCalculator.calculateNextTrigger(
                 currentTriggerAt = reminder.triggerAt,
-                repeatRule = reminder.repeatRule
+                repeatRule = reminder.repeatRule,
+                anchorAt = reminder.anchorAt
             )
 
         requireNotNull(nextTrigger) {

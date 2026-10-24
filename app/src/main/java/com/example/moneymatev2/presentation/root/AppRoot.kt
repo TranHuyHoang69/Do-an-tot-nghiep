@@ -29,7 +29,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun AppRoot(
-    reminderNavigationRequest: Long = 0L,
+    notificationNavigationReady: Boolean = true,
     rootViewModel: AppRootViewModel =
         hiltViewModel()
 ) {
@@ -39,6 +39,12 @@ fun AppRoot(
     val themeMode by
     rootViewModel.themeMode.collectAsState()
     val securityState by rootViewModel.securityState.collectAsState()
+    val pendingReminder by rootViewModel.pendingReminderNavigation.collectAsState()
+
+    LaunchedEffect(authState, pendingReminder) {
+        val auth = authState as? AuthStartupState.LoggedIn ?: return@LaunchedEffect
+        rootViewModel.discardReminderNavigationForDifferentUser(auth.uid)
+    }
 
     /*
      * Giữ logic theme hiện tại,
@@ -83,7 +89,7 @@ fun AppRoot(
                     }
                 } else {
                     key("guest") {
-                        AppContent(reminderNavigationRequest, startDestination = Screen.Home.route)
+                        AppContent(null, null, startDestination = Screen.Home.route)
                     }
                 }
             }
@@ -92,7 +98,15 @@ fun AppRoot(
                 if (security == null || security.uid != auth.uid) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 } else if (!security.hasPin || security.unlocked) {
-                    key(auth.uid) { AppContent(reminderNavigationRequest, Screen.Home.route) }
+                    key(auth.uid) {
+                        AppContent(
+                            pendingReminder?.takeIf {
+                                notificationNavigationReady && it.isAllowedFor(auth, security)
+                            },
+                            rootViewModel,
+                            Screen.Home.route
+                        )
+                    }
                 } else {
                     SecurityLockScreen(security)
                 }
@@ -104,7 +118,8 @@ fun AppRoot(
 
 @Composable
 private fun AppContent(
-    reminderNavigationRequest: Long,
+    pendingReminder: PendingReminderNavigation?,
+    rootViewModel: AppRootViewModel?,
     startDestination: String
 ) {
     val drawerState =
@@ -134,63 +149,24 @@ private fun AppContent(
         .totalBalance
         .collectAsState()
 
-    /*
-     * ---------------------------------------------------------
-     * Notification navigation
-     * ---------------------------------------------------------
-     *
-     * Mỗi lần MainActivity tăng
-     * reminderNavigationRequest,
-     * effect này chạy lại.
-     */
-    LaunchedEffect(
-        reminderNavigationRequest
-    ) {
+    LaunchedEffect(pendingReminder?.requestId, navController) {
+        val request = pendingReminder ?: return@LaunchedEffect
+        if (startDestination == Screen.Login.route) return@LaunchedEffect
+        if (drawerState.isOpen) drawerState.close()
 
-        /*
-         * 0 = app được mở bình thường,
-         * không phải từ Reminder notification.
-         */
-        if (
-            reminderNavigationRequest <= 0L || startDestination == Screen.Login.route
-        ) {
-            return@LaunchedEffect
-        }
+        // A restored destination may already be loading this request.
+        val existing = runCatching { navController.getBackStackEntry(Screen.Reminder.route) }.getOrNull()
+        val alreadyLoading = PendingReminderNavigation.fromSavedState(
+            existing?.savedStateHandle?.get<ArrayList<String>>(PendingReminderNavigation.NAV_KEY)
+        )?.requestId == request.requestId
+        if (alreadyLoading) return@LaunchedEffect
 
-        /*
-         * Nếu Drawer đang mở thì đóng.
-         */
-        if (
-            drawerState.isOpen
-        ) {
-            drawerState.close()
-        }
-
-        /*
-         * Nếu Reminder đã tồn tại trong back stack,
-         * remove destination đó trước.
-         *
-         * Điều này cũng reset showEditor của
-         * ReminderScreen về false.
-         */
-        navController.popBackStack(
-            route =
-                Screen.Reminder.route,
-            inclusive =
-                true
+        navController.popBackStack(Screen.Reminder.route, inclusive = true)
+        navController.navigate(Screen.Reminder.route) { launchSingleTop = true }
+        navController.currentBackStackEntry?.savedStateHandle?.set(
+            PendingReminderNavigation.NAV_KEY, request.toSavedState()
         )
-
-        /*
-         * Mở Reminder list mới.
-         */
-        navController.navigate(
-            Screen.Reminder.route
-        ) {
-            launchSingleTop =
-                true
-        }
     }
-
     AppDrawer(
         drawerState =
             drawerState,
@@ -245,6 +221,10 @@ private fun AppContent(
 
             startDestination =
                 startDestination,
+
+            onReminderRequestResolved = { requestId ->
+                rootViewModel?.completeReminderNavigation(requestId)
+            },
 
             onOpenDrawer = {
                 scope.launch {

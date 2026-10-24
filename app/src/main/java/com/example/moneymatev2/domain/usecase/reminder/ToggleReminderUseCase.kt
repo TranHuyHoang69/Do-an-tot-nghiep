@@ -45,7 +45,8 @@ class ToggleReminderUseCase @Inject constructor(
                         reminder.triggerAt,
                     repeatRule =
                         reminder.repeatRule,
-                    now = now
+                    now = now,
+                    anchorAt = reminder.anchorAt
                 ) ?: throw IllegalStateException(
                     "One-time reminder has expired. Please select a new time."
                 )

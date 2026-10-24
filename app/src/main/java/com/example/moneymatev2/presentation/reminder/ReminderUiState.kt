@@ -18,6 +18,8 @@ sealed interface ReminderUiState {
     ) : ReminderUiState
 }
 
+enum class ReminderOpenResult { Ready, Missing, Denied, Error }
+
 data class ReminderFormState(
     val editingReminderId: String? = null,
     val title: String = "",
@@ -49,6 +51,16 @@ sealed interface ReminderEvent {
     ) : ReminderEvent
 
     data class Error(
-        val message: String
+        val kind: ReminderErrorKind
     ) : ReminderEvent
+}
+
+enum class ReminderErrorKind { MISSING, SAVE, UPDATE, DELETE }
+
+internal fun snapshotReminderDeleteIds(
+    selected: Collection<String>,
+    visible: List<ReminderModel>
+): List<String> {
+    val visibleIds = visible.mapTo(mutableSetOf()) { it.id }
+    return selected.distinct().filter { it in visibleIds }
 }

@@ -174,6 +174,7 @@
     <string name="repeat_daily">Hằng ngày</string>
     <string name="repeat_weekly">Hằng tuần</string>
     <string name="repeat_monthly">Hằng tháng</string>
+    <string name="repeat_yearly">Hằng năm</string>
 
     <string name="no_reminders">Chưa có nhắc nhở</string>
     <string name="no_reminders_hint">Nhấn + để tạo lời nhắc đầu tiên</string>
@@ -183,6 +184,8 @@
 
     <string name="reminder_saved">Đã lưu nhắc nhở</string>
     <string name="reminder_deleted">Đã xóa nhắc nhở</string>
+    <string name="reminder_not_found">Lời nhắc không còn tồn tại</string>
+    <string name="reminder_cannot_open">Không thể mở lời nhắc</string>
     <string name="reminder_invalid_title">Vui lòng nhập tên lời nhắc</string>
     <string name="reminder_invalid_time">Thời gian nhắc phải lớn hơn thời gian hiện tại</string>
     <string name="reminder_login_required">Vui lòng đăng nhập để sử dụng nhắc nhở</string>
@@ -196,13 +199,27 @@
     <string name="reminder_exact_alarm_title">Cho phép nhắc nhở đúng giờ</string>
 
 <string name="reminder_exact_alarm_message">
-    MoneyMate cần quyền đặt báo thức và lời nhắc để thông báo xuất hiện gần đúng thời gian bạn đã chọn.
+    Cho phép báo thức chính xác để lời nhắc xuất hiện gần thời gian bạn chọn. Nếu không cấp quyền, Android vẫn lập lịch nhưng thông báo có thể đến trễ.
 </string>
 
 <string name="reminder_open_settings">Mở cài đặt</string>
 
 <string name="reminder_later">Để sau</string>
     <string name="reminder_selected_count">Đã chọn %1$d</string>
+    <string name="reminder_channel_name">Nhắc nhở</string>
+    <string name="reminder_channel_description">Thông báo lời nhắc của MoneyMate</string>
+    <string name="reminder_notification_fallback">Bạn có một lời nhắc từ MoneyMate.</string>
+    <string name="reminder_notification_blocked_title">Thông báo đang bị tắt</string>
+    <string name="reminder_notification_blocked_message">Lời nhắc vẫn được lưu nhưng thiết bị sẽ không hiện thông báo. Hãy bật thông báo để nhận các kỳ nhắc tiếp theo.</string>
+    <string name="reminder_enable_notifications">Bật thông báo</string>
+    <string name="reminder_notification_blocked_banner">Thông báo lời nhắc đang bị tắt. Chạm để xem cách bật.</string>
+    <string name="reminder_delete_one_confirm">Bạn có chắc muốn xóa lời nhắc này không?</string>
+    <string name="reminder_delete_many_confirm">Bạn có chắc muốn xóa %1$d lời nhắc đã chọn không?</string>
+    <string name="reminder_load_error">Không thể tải lời nhắc. Vui lòng thử lại.</string>
+    <string name="reminder_save_error">Không thể lưu lời nhắc. Vui lòng thử lại.</string>
+    <string name="reminder_update_error">Không thể cập nhật lời nhắc. Vui lòng thử lại.</string>
+    <string name="reminder_delete_error">Không thể xóa lời nhắc. Vui lòng thử lại.</string>
+    <string name="reminder_missed_once_hint">Đã quá giờ — mở để đặt lại</string>
 
 <!--    Reccuring transactions-->
     <string name="recurring_title">Giao dịch định kỳ</string>

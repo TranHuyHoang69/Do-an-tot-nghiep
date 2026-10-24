@@ -9,7 +9,8 @@ class ReminderRepeatCalculator @Inject constructor() {
     fun calculateNextTrigger(
         currentTriggerAt: Long,
         repeatRule: RepeatRule,
-        now: Long = System.currentTimeMillis()
+        now: Long = System.currentTimeMillis(),
+        anchorAt: Long? = null
     ): Long? {
 
         return when (repeatRule) {
@@ -31,10 +32,16 @@ class ReminderRepeatCalculator @Inject constructor() {
             RepeatRule.MONTHLY ->
                 calculateMonthly(
                     currentTriggerAt = currentTriggerAt,
-                    now = now
+                    now = now,
+                    anchorAt = anchorAt ?: currentTriggerAt
                 )
 
-            else -> null
+            RepeatRule.YEARLY ->
+                calculateYearly(
+                    currentTriggerAt = currentTriggerAt,
+                    now = now,
+                    anchorAt = anchorAt ?: currentTriggerAt
+                )
         }
     }
 
@@ -78,48 +85,56 @@ class ReminderRepeatCalculator @Inject constructor() {
 
     private fun calculateMonthly(
         currentTriggerAt: Long,
-        now: Long
+        now: Long,
+        anchorAt: Long
     ): Long {
-        val originalCalendar =
+        val anchor =
+            Calendar.getInstance().apply {
+                timeInMillis = anchorAt
+            }
+        val current =
             Calendar.getInstance().apply {
                 timeInMillis = currentTriggerAt
             }
-
-        val originalDay =
-            originalCalendar.get(
-                Calendar.DAY_OF_MONTH
-            )
-
         val calendar =
             Calendar.getInstance().apply {
-                timeInMillis = currentTriggerAt
+                timeInMillis = anchorAt
+                set(Calendar.DAY_OF_MONTH, 1)
+                set(Calendar.YEAR, current.get(Calendar.YEAR))
+                set(Calendar.MONTH, current.get(Calendar.MONTH))
             }
-
         do {
+            calendar.set(Calendar.DAY_OF_MONTH, 1)
+            calendar.add(Calendar.MONTH, 1)
             calendar.set(
                 Calendar.DAY_OF_MONTH,
-                1
+                minOf(anchor.get(Calendar.DAY_OF_MONTH), calendar.getActualMaximum(Calendar.DAY_OF_MONTH))
             )
+        } while (calendar.timeInMillis <= now || calendar.timeInMillis <= currentTriggerAt)
 
-            calendar.add(
-                Calendar.MONTH,
-                1
-            )
+        return calendar.timeInMillis
+    }
 
-            val maxDay =
-                calendar.getActualMaximum(
-                    Calendar.DAY_OF_MONTH
-                )
-
+    private fun calculateYearly(
+        currentTriggerAt: Long,
+        now: Long,
+        anchorAt: Long
+    ): Long {
+        val anchor = Calendar.getInstance().apply { timeInMillis = anchorAt }
+        val current = Calendar.getInstance().apply { timeInMillis = currentTriggerAt }
+        val calendar = Calendar.getInstance().apply {
+            timeInMillis = anchorAt
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.YEAR, current.get(Calendar.YEAR))
+        }
+        do {
+            calendar.set(Calendar.DAY_OF_MONTH, 1)
+            calendar.add(Calendar.YEAR, 1)
             calendar.set(
                 Calendar.DAY_OF_MONTH,
-                minOf(
-                    originalDay,
-                    maxDay
-                )
+                minOf(anchor.get(Calendar.DAY_OF_MONTH), calendar.getActualMaximum(Calendar.DAY_OF_MONTH))
             )
-
-        } while (calendar.timeInMillis <= now)
+        } while (calendar.timeInMillis <= now || calendar.timeInMillis <= currentTriggerAt)
 
         return calendar.timeInMillis
     }

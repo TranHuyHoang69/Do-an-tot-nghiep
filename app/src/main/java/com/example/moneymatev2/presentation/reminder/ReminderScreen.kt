@@ -4,14 +4,15 @@ import android.Manifest
 import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,6 +56,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -75,11 +77,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.moneymatev2.StringRes
+import com.example.moneymatev2.data.reminder.ReminderNotificationAvailability
+import com.example.moneymatev2.data.reminder.ReminderNotificationManager
+import com.example.moneymatev2.data.reminder.ReminderNotificationStatus
 import com.example.moneymatev2.data.local.entity.RepeatRule
 import com.example.moneymatev2.domain.model.ReminderModel
+import com.example.moneymatev2.presentation.root.PendingReminderNavigation
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
@@ -87,6 +95,9 @@ import java.util.Date
 @Composable
 fun ReminderScreen(
     onOpenDrawer: () -> Unit,
+    openRequest: PendingReminderNavigation? = null,
+    onOpenRequestResolved: (Long) -> Unit = {},
+    onBackDuringOpen: () -> Unit = {},
     viewModel: ReminderViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -94,9 +105,52 @@ fun ReminderScreen(
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var notificationStatus by remember {
+        mutableStateOf(ReminderNotificationAvailability.status(context))
+    }
+    var showNotificationDialog by remember { mutableStateOf(false) }
+    var requestedNotificationPermission by rememberSaveable { mutableStateOf(false) }
+    var pendingDeleteIds by remember { mutableStateOf<List<String>?>(null) }
+    var deleteConfirmationSubmitted by remember { mutableStateOf(false) }
+    val isDeleting by viewModel.isDeleting.collectAsState()
+
+    DisposableEffect(lifecycleOwner, context) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                notificationStatus = ReminderNotificationAvailability.status(context)
+                if (notificationStatus == ReminderNotificationStatus.AVAILABLE) {
+                    showNotificationDialog = false
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     var showEditor by rememberSaveable {
         mutableStateOf(false)
+    }
+    var loadedRequestId by remember { mutableStateOf<Long?>(null) }
+    var openedFromNotification by rememberSaveable { mutableStateOf(false) }
+
+    // A restored screen must not show an empty editor after its ViewModel was recreated.
+    LaunchedEffect(openedFromNotification, formState.editingReminderId, openRequest) {
+        if (openedFromNotification && formState.editingReminderId == null && openRequest == null) {
+            showEditor = false
+            openedFromNotification = false
+        }
+    }
+
+    BackHandler(enabled = showEditor &&
+        (openRequest == null || loadedRequestId == openRequest.requestId)) {
+        showEditor = false
+        openedFromNotification = false
+        viewModel.startCreate()
+    }
+    BackHandler(enabled = openRequest != null && loadedRequestId != openRequest.requestId) {
+        openRequest?.let { onOpenRequestResolved(it.requestId) }
+        onBackDuringOpen()
     }
 
     var showExactAlarmDialog by remember {
@@ -115,6 +169,30 @@ fun ReminderScreen(
         remember {
             SnackbarHostState()
         }
+
+    val missingReminderMessage = stringResource(StringRes.reminder_not_found)
+    val cannotOpenReminderMessage = stringResource(StringRes.reminder_cannot_open)
+
+    LaunchedEffect(openRequest?.requestId) {
+        val request = openRequest ?: return@LaunchedEffect
+        loadedRequestId = null
+        showEditor = false
+        val result = viewModel.prepareNotificationEdit(request.reminderId, request.ownerUid)
+        if (result == ReminderOpenResult.Ready) {
+            loadedRequestId = request.requestId
+            openedFromNotification = true
+            showEditor = true
+        } else {
+            viewModel.startCreate()
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    if (result == ReminderOpenResult.Missing) missingReminderMessage
+                    else cannotOpenReminderMessage
+                )
+            }
+        }
+        onOpenRequestResolved(request.requestId)
+    }
 
     /*
      * ---------------------------------------------------------
@@ -152,10 +230,9 @@ fun ReminderScreen(
             StringRes.reminder_expired
         )
 
-    val notificationPermissionDeniedMessage =
-        stringResource(
-            StringRes.reminder_notification_permission_denied
-        )
+    val saveErrorMessage = stringResource(StringRes.reminder_save_error)
+    val updateErrorMessage = stringResource(StringRes.reminder_update_error)
+    val deleteErrorMessage = stringResource(StringRes.reminder_delete_error)
 
     /*
      * ---------------------------------------------------------
@@ -186,69 +263,36 @@ fun ReminderScreen(
      * ---------------------------------------------------------
      */
 
-    val notificationPermissionLauncher =
-        rememberLauncherForActivityResult(
-            contract =
-                ActivityResultContracts.RequestPermission()
-        ) { isGranted ->
-
-            if (!isGranted) {
-                scope.launch {
-                    snackbarHostState
-                        .showSnackbar(
-                            notificationPermissionDeniedMessage
-                        )
-                }
-            }
-
-            /*
-             * Không chặn tạo reminder nếu user
-             * không cấp quyền notification.
-             */
-            viewModel.startCreate()
-            showEditor = true
-        }
-
-    /*
-     * ---------------------------------------------------------
-     * Mở form Create
-     * ---------------------------------------------------------
-     */
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        notificationStatus = ReminderNotificationAvailability.status(context)
+        showNotificationDialog = !granted || notificationStatus != ReminderNotificationStatus.AVAILABLE
+    }
 
     val openCreateReminder: () -> Unit = {
-
-        if (
-            Build.VERSION.SDK_INT <
-            Build.VERSION_CODES.TIRAMISU
-        ) {
-            viewModel.startCreate()
-            showEditor = true
-        } else {
-
-            val hasNotificationPermission =
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_GRANTED
-
-            if (hasNotificationPermission) {
-                viewModel.startCreate()
-                showEditor = true
-            } else {
-                notificationPermissionLauncher.launch(
-                    Manifest.permission.POST_NOTIFICATIONS
-                )
-            }
+        viewModel.startCreate()
+        showEditor = true
+        notificationStatus = ReminderNotificationAvailability.status(context)
+        if (notificationStatus != ReminderNotificationStatus.AVAILABLE) {
+            showNotificationDialog = true
         }
     }
 
-    /*
-     * ---------------------------------------------------------
-     * Launcher mở màn Special Access:
-     * "Alarms & reminders"
-     * ---------------------------------------------------------
-     */
-
+    val openNotificationSettings: () -> Unit = {
+        val intent = if (notificationStatus == ReminderNotificationStatus.CHANNEL_DISABLED) {
+            Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                putExtra(Settings.EXTRA_CHANNEL_ID, ReminderNotificationManager.CHANNEL_ID)
+            }
+        } else {
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+            }
+        }
+        context.startActivity(intent)
+        showNotificationDialog = false
+    }
     val exactAlarmSettingsLauncher =
         rememberLauncherForActivityResult(
             contract =
@@ -316,7 +360,11 @@ fun ReminderScreen(
      * ---------------------------------------------------------
      */
 
-    LaunchedEffect(viewModel) {
+    LaunchedEffect(
+        viewModel, savedMessage, deletedMessage, invalidTitleMessage,
+        invalidTimeMessage, loginRequiredMessage, expiredMessage,
+        missingReminderMessage, saveErrorMessage, updateErrorMessage, deleteErrorMessage
+    ) {
         viewModel.events.collect { event ->
 
             when (event) {
@@ -325,6 +373,7 @@ fun ReminderScreen(
 
                     // Đóng Editor ngay lập tức
                     showEditor = false
+                    openedFromNotification = false
 
                     // Không block collector event
                     scope.launch {
@@ -335,6 +384,9 @@ fun ReminderScreen(
                 }
 
                 ReminderEvent.Deleted -> {
+
+                    pendingDeleteIds = null
+                    deleteConfirmationSubmitted = false
 
                     clearReminderSelection()
 
@@ -384,9 +436,19 @@ fun ReminderScreen(
                 }
 
                 is ReminderEvent.Error -> {
+                    if (event.kind == ReminderErrorKind.DELETE) {
+                        pendingDeleteIds = null
+                        deleteConfirmationSubmitted = false
+                    }
+                    val message = when (event.kind) {
+                        ReminderErrorKind.MISSING -> missingReminderMessage
+                        ReminderErrorKind.SAVE -> saveErrorMessage
+                        ReminderErrorKind.UPDATE -> updateErrorMessage
+                        ReminderErrorKind.DELETE -> deleteErrorMessage
+                    }
                     scope.launch {
                         snackbarHostState.showSnackbar(
-                            event.message
+                            message
                         )
                     }
                 }
@@ -399,6 +461,48 @@ fun ReminderScreen(
      * Exact alarm explanation dialog
      * ---------------------------------------------------------
      */
+
+    if (showNotificationDialog && notificationStatus != ReminderNotificationStatus.AVAILABLE) {
+        AlertDialog(
+            onDismissRequest = { showNotificationDialog = false },
+            title = { Text(stringResource(StringRes.reminder_notification_blocked_title)) },
+            text = { Text(stringResource(StringRes.reminder_notification_blocked_message)) },
+            confirmButton = {
+                val canRequest = notificationStatus == ReminderNotificationStatus.RUNTIME_PERMISSION &&
+                    !requestedNotificationPermission
+                TextButton(onClick = {
+                    if (canRequest) {
+                        requestedNotificationPermission = true
+                        showNotificationDialog = false
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        openNotificationSettings()
+                    }
+                }) {
+                    Text(stringResource(
+                        if (canRequest) StringRes.reminder_enable_notifications
+                        else StringRes.reminder_open_settings
+                    ))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNotificationDialog = false }) {
+                    Text(stringResource(StringRes.reminder_later))
+                }
+            }
+        )
+    }
+
+    pendingDeleteIds?.let { ids ->
+        ReminderDeleteConfirmationDialog(
+            count = ids.size,
+            inProgress = deleteConfirmationSubmitted || isDeleting,
+            onDismiss = { pendingDeleteIds = null },
+            onConfirm = {
+                if (viewModel.deleteReminders(ids)) deleteConfirmationSubmitted = true
+            }
+        )
+    }
 
     if (showExactAlarmDialog) {
         AlertDialog(
@@ -470,13 +574,14 @@ fun ReminderScreen(
      * ---------------------------------------------------------
      */
 
-    if (showEditor) {
+    if (showEditor && (openRequest == null || loadedRequestId == openRequest.requestId)) {
         ReminderEditorScreen(
             formState = formState,
             viewModel = viewModel,
             snackbarHostState = snackbarHostState,
             onBackClick = {
                 showEditor = false
+                openedFromNotification = false
                 viewModel.startCreate()
             }
         )
@@ -568,16 +673,28 @@ fun ReminderScreen(
                 },
 
                 onDeleteSelection = {
-
-                    val idsToDelete =
-                        selectedReminderIds.toList()
-
-                    viewModel.deleteReminders(
-                        reminderIds =
-                            idsToDelete
-                    )
+                    if (!deleteConfirmationSubmitted && !isDeleting) {
+                        val idsToDelete = snapshotReminderDeleteIds(
+                            selectedReminderIds,
+                            (uiState as? ReminderUiState.Success)?.reminders.orEmpty()
+                        )
+                        if (idsToDelete.isNotEmpty()) pendingDeleteIds = idsToDelete
+                    }
                 }
             )
+
+            if (notificationStatus != ReminderNotificationStatus.AVAILABLE) {
+                Text(
+                    text = stringResource(StringRes.reminder_notification_blocked_banner),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showNotificationDialog = true }
+                        .background(MaterialTheme.colorScheme.errorContainer)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    fontSize = 13.sp
+                )
+            }
 
             when (
                 val state = uiState
@@ -612,7 +729,7 @@ fun ReminderScreen(
                     ) {
                         Text(
                             text =
-                                state.message,
+                                stringResource(StringRes.reminder_load_error),
 
                             color =
                                 MaterialTheme
@@ -674,6 +791,12 @@ fun ReminderScreen(
 
                                     onActiveChange = { isActive ->
                                         if (!isSelectionMode) {
+                                            if (isActive) {
+                                                notificationStatus = ReminderNotificationAvailability.status(context)
+                                                if (notificationStatus != ReminderNotificationStatus.AVAILABLE) {
+                                                    showNotificationDialog = true
+                                                }
+                                            }
                                             viewModel.toggleReminder(
                                                 reminderId = reminder.id,
                                                 isActive = isActive
@@ -1002,6 +1125,17 @@ private fun ReminderItem(
                 }
 
                 // Chỉ hiện nhãn lặp nếu Reminder có lặp.
+                if (reminder.isActive && reminder.repeatRule == RepeatRule.NONE &&
+                    reminder.triggerAt <= System.currentTimeMillis()
+                ) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = stringResource(StringRes.reminder_missed_once_hint),
+                        fontSize = 12.sp,
+                        color = colorScheme.error
+                    )
+                }
+
                 if (reminder.repeatRule != RepeatRule.NONE) {
                     Spacer(
                         modifier = Modifier.height(6.dp)
@@ -1208,7 +1342,36 @@ private fun repeatLabelRes(
         RepeatRule.MONTHLY ->
             StringRes.repeat_monthly
 
-        else ->
-            StringRes.repeat_none
+        RepeatRule.YEARLY ->
+            StringRes.repeat_yearly
     }
+}
+
+@Composable
+internal fun ReminderDeleteConfirmationDialog(
+    count: Int,
+    inProgress: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { if (!inProgress) onDismiss() },
+        title = { Text(stringResource(StringRes.delete_reminder_title)) },
+        text = {
+            Text(
+                if (count == 1) stringResource(StringRes.reminder_delete_one_confirm)
+                else stringResource(StringRes.reminder_delete_many_confirm, count)
+            )
+        },
+        confirmButton = {
+            TextButton(enabled = !inProgress && count > 0, onClick = onConfirm) {
+                Text(stringResource(StringRes.delete), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(enabled = !inProgress, onClick = onDismiss) {
+                Text(stringResource(StringRes.cancel))
+            }
+        }
+    )
 }

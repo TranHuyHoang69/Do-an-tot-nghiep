@@ -51,9 +51,9 @@ class RescheduleRemindersUseCase @Inject constructor(
              * Reminder đã quá hạn.
              *
              * NONE:
-             *   không còn lần tiếp theo → disable.
+             *   không còn lần tiếp theo; giữ lời nhắc để người dùng đặt lại.
              *
-             * DAILY/WEEKLY/MONTHLY:
+             * DAILY/WEEKLY/MONTHLY/YEARLY:
              *   tính lần tiếp theo.
              */
             val nextTrigger =
@@ -63,7 +63,8 @@ class RescheduleRemindersUseCase @Inject constructor(
                             reminder.triggerAt,
                         repeatRule =
                             reminder.repeatRule,
-                        now = now
+                        now = now,
+                        anchorAt = reminder.anchorAt
                     )
 
             if (nextTrigger == null) {
@@ -71,11 +72,8 @@ class RescheduleRemindersUseCase @Inject constructor(
                 /*
                  * Reminder một lần đã quá hạn.
                  */
-                repository.setReminderActive(
-                    id = reminder.id,
-                    isActive = false
-                )
-
+                // A past one-time reminder stays visible for manual rescheduling.
+                // Rescheduling does not send missed notifications in bulk.
                 scheduler.cancel(
                     reminder.id
                 )

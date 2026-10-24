@@ -328,6 +328,7 @@ class CloudPullService @Inject constructor(
             title = requiredText(data, "title", reference.path),
             note = text(data, "note"),
             triggerAt = requiredLong(data, "triggerAt", reference.path),
+            anchorAt = long(data, "anchorAt"),
             repeatRule = runCatching {
                 RepeatRule.valueOf(text(data, "repeatRule") ?: RepeatRule.NONE.name)
             }.getOrDefault(RepeatRule.NONE),

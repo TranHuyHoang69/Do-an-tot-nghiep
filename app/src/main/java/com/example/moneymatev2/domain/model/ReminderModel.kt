@@ -8,5 +8,6 @@ data class ReminderModel(
     val note: String?,
     val triggerAt: Long,
     val repeatRule: RepeatRule,
-    val isActive: Boolean
+    val isActive: Boolean,
+    val anchorAt: Long? = null
 )

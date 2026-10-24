@@ -20,6 +20,7 @@ import com.example.moneymatev2.presentation.home.HistoryScreen
 import com.example.moneymatev2.presentation.home.HomeScreen
 import com.example.moneymatev2.presentation.recurring.RecurringTransactionScreen
 import com.example.moneymatev2.presentation.reminder.ReminderScreen
+import com.example.moneymatev2.presentation.root.PendingReminderNavigation
 import com.example.moneymatev2.presentation.settings.SettingScreen
 import com.example.moneymatev2.presentation.profile.ProfileScreen
 import com.example.moneymatev2.presentation.transaction.AddTransactionScreen
@@ -40,7 +41,8 @@ fun NavGraph(
     navController: NavHostController = rememberNavController(),
     startDestination: String = Screen.Login.route,
     onOpenDrawer: () -> Unit = {}, // mặc định rỗng -- cho tới khi MainActivity cung cấp DrawerState thật
-    authEntryOnly: Boolean = false
+    authEntryOnly: Boolean = false,
+    onReminderRequestResolved: (Long) -> Unit = {}
 ) {
     NavHost(
         navController = navController,
@@ -260,9 +262,20 @@ fun NavGraph(
             )
         }
 
-        composable(Screen.Reminder.route) {
+        composable(Screen.Reminder.route) { backStackEntry ->
+            val savedRequest by backStackEntry.savedStateHandle
+                .getStateFlow<ArrayList<String>?>(PendingReminderNavigation.NAV_KEY, null)
+                .collectAsState()
             ReminderScreen(
-                onOpenDrawer = onOpenDrawer
+                onOpenDrawer = onOpenDrawer,
+                openRequest = PendingReminderNavigation.fromSavedState(savedRequest),
+                onBackDuringOpen = { navController.popBackStack() },
+                onOpenRequestResolved = { requestId ->
+                    backStackEntry.savedStateHandle.remove<ArrayList<String>>(
+                        PendingReminderNavigation.NAV_KEY
+                    )
+                    onReminderRequestResolved(requestId)
+                }
             )
         }
         composable(
