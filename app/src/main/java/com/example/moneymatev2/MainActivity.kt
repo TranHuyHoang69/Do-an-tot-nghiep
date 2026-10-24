@@ -9,12 +9,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import android.view.WindowManager
+import androidx.lifecycle.lifecycleScope
+import com.example.moneymatev2.presentation.security.LocalSecurityManager
+import com.example.moneymatev2.presentation.security.LocalSecurityState
 import com.example.moneymatev2.data.reminder.ReminderNotificationManager
 import com.example.moneymatev2.presentation.root.AppRoot
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+    @Inject lateinit var localSecurityManager: LocalSecurityManager
 
     /*
      * Counter thay vì Boolean.
@@ -38,6 +45,13 @@ class MainActivity : AppCompatActivity() {
         )
 
         hideNavigationBar()
+        lifecycleScope.launch {
+            localSecurityManager.state.collect { state ->
+                val protected = (state as? LocalSecurityState.Active)?.hasPin == true
+                if (protected) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            }
+        }
 
         /*
          * Trường hợp app chưa chạy.
@@ -53,6 +67,16 @@ class MainActivity : AppCompatActivity() {
                     reminderNavigationRequest
             )
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        localSecurityManager.onForeground()
+    }
+
+    override fun onStop() {
+        localSecurityManager.onBackground()
+        super.onStop()
     }
 
     override fun onNewIntent(

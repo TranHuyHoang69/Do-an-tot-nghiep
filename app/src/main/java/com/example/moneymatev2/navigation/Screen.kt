@@ -54,5 +54,8 @@ sealed class Screen(val route: String){
             "statistics_category/$start/$end/${android.net.Uri.encode(categoryId)}"
     }
     object SecuritySettings : Screen("security_settings")
+    object CreatePin : Screen("security_create_pin")
+    object ChangePin : Screen("security_change_pin")
+    object DeletePin : Screen("security_delete_pin")
     object Customization : Screen("customization")
 }

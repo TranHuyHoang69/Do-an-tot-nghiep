@@ -166,8 +166,9 @@ fun AppDrawer(
 
                     DrawerItem(
                         label = security, icon = Icons.Default.Lock,
-                        selected = false, colors = drawerItemColors, enabled = false
-                    ) {}
+                        selected = currentRoute?.startsWith("security_") == true,
+                        colors = drawerItemColors, enabled = isLoggedIn
+                    ) { scope.launch { drawerState.close() }; onNavigate(Screen.SecuritySettings.route) }
 
                     DrawerItem(
                         label = customization, icon = Icons.Default.Settings,

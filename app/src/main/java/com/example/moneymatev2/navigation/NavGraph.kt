@@ -31,12 +31,16 @@ import com.example.moneymatev2.presentation.statistics.StatisticsScreen
 import com.example.moneymatev2.presentation.statistics.CategoryBreakdownScreen
 import com.example.moneymatev2.presentation.statistics.MonthlyTrendsScreen
 import com.example.moneymatev2.presentation.statistics.CategoryTransactionsScreen
+import com.example.moneymatev2.presentation.security.SecurityScreen
+import com.example.moneymatev2.presentation.security.PinActionScreen
+import com.example.moneymatev2.presentation.security.PinMode
 
 @Composable
 fun NavGraph(
     navController: NavHostController = rememberNavController(),
     startDestination: String = Screen.Login.route,
-    onOpenDrawer: () -> Unit = {} // mặc định rỗng -- cho tới khi MainActivity cung cấp DrawerState thật
+    onOpenDrawer: () -> Unit = {}, // mặc định rỗng -- cho tới khi MainActivity cung cấp DrawerState thật
+    authEntryOnly: Boolean = false
 ) {
     NavHost(
         navController = navController,
@@ -46,9 +50,11 @@ fun NavGraph(
             LoginScreen(
                 onNavigateToRegister = { navController.navigate(Screen.Register.route) },
                 onLoginSuccess = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(0) { inclusive = true }
-                        launchSingleTop = true
+                    if (!authEntryOnly) {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(0) { inclusive = true }
+                            launchSingleTop = true
+                        }
                     }
                 }
             )
@@ -62,9 +68,11 @@ fun NavGraph(
                     }
                 },
                 onRegisterSuccess = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(0) { inclusive = true }
-                        launchSingleTop = true
+                    if (!authEntryOnly) {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(0) { inclusive = true }
+                            launchSingleTop = true
+                        }
                     }
                 }
             )
@@ -220,6 +228,24 @@ fun NavGraph(
                 navController = navController,
                 onOpenDrawer = onOpenDrawer
             )
+        }
+
+        composable(Screen.SecuritySettings.route) {
+            SecurityScreen(
+                onOpenDrawer = onOpenDrawer,
+                onCreatePin = { navController.navigate(Screen.CreatePin.route) },
+                onChangePin = { navController.navigate(Screen.ChangePin.route) },
+                onDeletePin = { navController.navigate(Screen.DeletePin.route) }
+            )
+        }
+        composable(Screen.CreatePin.route) {
+            PinActionScreen(PinMode.CREATE, onBack = { navController.popBackStack() })
+        }
+        composable(Screen.ChangePin.route) {
+            PinActionScreen(PinMode.CHANGE, onBack = { navController.popBackStack() })
+        }
+        composable(Screen.DeletePin.route) {
+            PinActionScreen(PinMode.DELETE, onBack = { navController.popBackStack() })
         }
 
         composable(Screen.Profile.route) {

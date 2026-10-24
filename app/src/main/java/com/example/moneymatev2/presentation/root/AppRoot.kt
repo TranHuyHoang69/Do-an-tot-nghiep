@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,6 +22,8 @@ import com.example.moneymatev2.navigation.NavGraph
 import com.example.moneymatev2.navigation.Screen
 import com.example.moneymatev2.presentation.home.HomeViewModel
 import com.example.moneymatev2.presentation.theme.MoneyMatev2Theme
+import com.example.moneymatev2.presentation.security.LocalSecurityState
+import com.example.moneymatev2.presentation.security.SecurityLockScreen
 import com.example.moneymatev2.ui.components.AppDrawer
 import kotlinx.coroutines.launch
 
@@ -35,6 +38,7 @@ fun AppRoot(
 
     val themeMode by
     rootViewModel.themeMode.collectAsState()
+    val securityState by rootViewModel.securityState.collectAsState()
 
     /*
      * Giữ logic theme hiện tại,
@@ -57,10 +61,7 @@ fun AppRoot(
             darkTheme
     ) {
 
-        if (
-            authState is
-                    AuthStartupState.Loading
-        ) {
+        if (authState is AuthStartupState.Loading || securityState is LocalSecurityState.Loading) {
             Box(
                 modifier =
                     Modifier.fillMaxSize(),
@@ -71,19 +72,40 @@ fun AppRoot(
                 CircularProgressIndicator()
             }
 
-        } else {
-
-            AppContent(
-                reminderNavigationRequest =
-                    reminderNavigationRequest
-            )
+        } else when (val auth = authState) {
+            AuthStartupState.Guest -> {
+                val guest = securityState as? LocalSecurityState.Guest
+                if (guest == null) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                } else if (guest.recovering) {
+                    key("recovery-login") {
+                        NavGraph(startDestination = Screen.Login.route, authEntryOnly = true)
+                    }
+                } else {
+                    key("guest") {
+                        AppContent(reminderNavigationRequest, startDestination = Screen.Home.route)
+                    }
+                }
+            }
+            is AuthStartupState.LoggedIn -> {
+                val security = securityState as? LocalSecurityState.Active
+                if (security == null || security.uid != auth.uid) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                } else if (!security.hasPin || security.unlocked) {
+                    key(auth.uid) { AppContent(reminderNavigationRequest, Screen.Home.route) }
+                } else {
+                    SecurityLockScreen(security)
+                }
+            }
+            AuthStartupState.Loading -> Unit
         }
     }
 }
 
 @Composable
 private fun AppContent(
-    reminderNavigationRequest: Long
+    reminderNavigationRequest: Long,
+    startDestination: String
 ) {
     val drawerState =
         rememberDrawerState(
@@ -130,7 +152,7 @@ private fun AppContent(
          * không phải từ Reminder notification.
          */
         if (
-            reminderNavigationRequest <= 0L
+            reminderNavigationRequest <= 0L || startDestination == Screen.Login.route
         ) {
             return@LaunchedEffect
         }
@@ -222,7 +244,7 @@ private fun AppContent(
                 navController,
 
             startDestination =
-                Screen.Home.route,
+                startDestination,
 
             onOpenDrawer = {
                 scope.launch {
