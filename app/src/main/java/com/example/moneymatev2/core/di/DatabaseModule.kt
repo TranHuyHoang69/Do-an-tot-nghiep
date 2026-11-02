@@ -4,11 +4,13 @@ import android.content.Context
 import androidx.room.Room
 import com.example.moneymatev2.data.local.AppDatabase
 import com.example.moneymatev2.data.local.dao.CategoryDao
+import com.example.moneymatev2.data.local.dao.BudgetConflictDao
 import com.example.moneymatev2.data.local.dao.TransactionDao
 import com.example.moneymatev2.data.local.dao.UserDao
 import com.example.moneymatev2.data.local.migration.MIGRATION_1_2
 import com.example.moneymatev2.data.local.migration.MIGRATION_2_3
 import com.example.moneymatev2.data.local.migration.MIGRATION_3_4
+import com.example.moneymatev2.data.local.migration.MIGRATION_4_5
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -28,7 +30,7 @@ object DatabaseModule{
             AppDatabase::class.java,
             AppDatabase.DATABASE_NAME
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .build()
     }
 
@@ -46,6 +48,9 @@ object DatabaseModule{
 
     @Provides
     fun provideBudgetDao(db: AppDatabase) = db.budgetDao()
+
+    @Provides
+    fun provideBudgetConflictDao(db: AppDatabase): BudgetConflictDao = db.budgetConflictDao()
 
 
 }

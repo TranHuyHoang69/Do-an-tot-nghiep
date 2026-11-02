@@ -3,7 +3,6 @@ package com.example.moneymatev2.domain.usecase
 import com.example.moneymatev2.core.util.DefaultCurrency
 import com.example.moneymatev2.data.local.entity.TransactionType
 import com.example.moneymatev2.domain.model.BudgetOverviewModel
-import com.example.moneymatev2.domain.model.Money
 import com.example.moneymatev2.domain.repository.BudgetRepository
 import com.example.moneymatev2.domain.repository.TransactionRepository
 import kotlinx.coroutines.Dispatchers
@@ -11,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import javax.inject.Inject
+import java.math.BigInteger
 
 class GetMonthlyBudgetOverviewUseCase @Inject constructor(
     private val budgetRepository: BudgetRepository,
@@ -35,12 +35,17 @@ class GetMonthlyBudgetOverviewUseCase @Inject constructor(
             val spentByCategory = transactions
                 .filter { it.type == TransactionType.EXPENSE }
                 .groupBy { it.categoryId }
-                .mapValues { (_, txs) -> txs.sumOf { it.money.amountMinor } }
+                .mapValues { (_, txs) -> txs.groupBy { it.money.currency }.mapValues { (_, currencyRows) ->
+                    currencyRows.fold(BigInteger.ZERO) { sum, tx ->
+                        sum.add(BigInteger.valueOf(tx.money.amountMinor))
+                    }
+                } }
 
             val enrichedBudgets = budgets.map { budget ->
-                val spent = spentByCategory[budget.categoryId] ?: 0L
+                val byCurrency = spentByCategory[budget.categoryId].orEmpty()
+                val spent = byCurrency[budget.budgetAmount.currency] ?: BigInteger.ZERO
                 // Lấy currency từ chính budget đã lưu, không hardcode -> đúng dữ liệu thật của record đó.
-                budget.copy(spentAmount = Money(spent, budget.budgetAmount.currency))
+                budget.copy(spentMinor = spent, spentByCurrency = byCurrency)
             }
 
             // Fallback duy nhất khi KHÔNG có budget nào (list rỗng) -> tham chiếu về nơi khai báo chung,
@@ -48,14 +53,22 @@ class GetMonthlyBudgetOverviewUseCase @Inject constructor(
             val currency = enrichedBudgets.firstOrNull()?.budgetAmount?.currency
                 ?: DefaultCurrency.CODE
 
-            val totalBudget = enrichedBudgets.sumOf { it.budgetAmount.amountMinor }
-            val totalSpent = enrichedBudgets.sumOf { it.spentAmount.amountMinor }
+            val singleCurrency = enrichedBudgets.all { budget ->
+                budget.budgetAmount.currency == currency &&
+                    budget.spentByCurrency.keys.all { it == currency }
+            }
+            val totalBudget = if (singleCurrency) enrichedBudgets.fold(BigInteger.ZERO) { sum, budget ->
+                sum.add(BigInteger.valueOf(budget.budgetAmount.amountMinor))
+            } else null
+            val totalSpent = if (singleCurrency) enrichedBudgets.fold(BigInteger.ZERO) { sum, budget ->
+                sum.add(budget.spentMinor)
+            } else null
 
             BudgetOverviewModel(
                 budgets = enrichedBudgets,
-                totalBudget = Money(totalBudget, currency),
-                totalSpent = Money(totalSpent, currency),
-                totalRemaining = Money(totalBudget - totalSpent, currency)
+                totalBudgetMinor = totalBudget,
+                totalSpentMinor = totalSpent,
+                currency = currency
             )
         }.flowOn(Dispatchers.Default)
     }

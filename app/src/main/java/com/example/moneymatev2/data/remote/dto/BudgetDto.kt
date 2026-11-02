@@ -16,6 +16,9 @@ data class BudgetDto(
     val effectiveYear: Int = 0,
     val isArchived: Boolean = false,
     val createdAt: Long = 0,
+    val revision: Long? = null,
+    val lastOperationId: String? = null,
+    val recreatedFromTombstone: Boolean = false,
 
     @get:PropertyName("updatedAt")
     @set:PropertyName("updatedAt")
@@ -23,14 +26,17 @@ data class BudgetDto(
     var updatedAt: Date? = null
 )
 
-fun BudgetEntity.toDto() = BudgetDto(
+fun BudgetEntity.toDto(revision: Long, operationId: String) = BudgetDto(
     categoryLocalId = categoryLocalId,
     amountMinor = amountMinor,
     currency = currency,
     effectiveMonth = effectiveMonth,
     effectiveYear = effectiveYear,
     isArchived = isArchived,
-    createdAt = createdAt
+    createdAt = createdAt,
+    revision = revision,
+    lastOperationId = operationId,
+    recreatedFromTombstone = pendingRecreate
 )
 
 fun BudgetDto.toEntity(
@@ -51,5 +57,6 @@ fun BudgetDto.toEntity(
     pendingOperation = pendingOperation,
     createdAt = createdAt,
     updatedAt = updatedAt?.time ?: System.currentTimeMillis(),
-    remoteUpdatedAt = updatedAt?.time
+    remoteUpdatedAt = updatedAt?.time,
+    cloudRevision = revision ?: 0L
 )

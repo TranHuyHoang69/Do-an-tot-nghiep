@@ -22,7 +22,7 @@ interface TransactionDao{
 
     @Query("""
         SELECT * FROM transactions
-        WHERE userId = :userId AND isDeleted = 0 AND createdAt BETWEEN :start AND :end
+        WHERE userId = :userId AND isDeleted = 0 AND createdAt >= :start AND createdAt < :end
         ORDER BY createdAt DESC
     """)
     fun getTransactionByPeriod(userId: String, start: Long, end: Long): Flow<List<TransactionEntity>>

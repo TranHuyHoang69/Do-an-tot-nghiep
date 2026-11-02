@@ -30,6 +30,14 @@ data class BudgetEntity(
     val lastSyncAttemptAt: Long? = null,
     val createdAt: Long,
     val updatedAt: Long,
-    val remoteUpdatedAt: Long? = null
+    val remoteUpdatedAt: Long? = null,
+    /** Last server-confirmed revision; null means a pre-v5 local row has not been refreshed. */
+    val cloudRevision: Long? = null,
+    /** Revision observed before this pending local edit; null is unknown or a new document. */
+    val baseRevision: Long? = null,
+    /** Stable identity for one logical upload, including retries after a lost ACK. */
+    val pendingUploadId: String? = null,
+    /** Set only by a user save made while the local Budget was archived. */
+    val pendingRecreate: Boolean = false
 
 )

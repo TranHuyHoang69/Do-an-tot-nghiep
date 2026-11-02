@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import com.example.moneymatev2.data.local.entity.RepeatRule
 import com.example.moneymatev2.data.local.migration.MIGRATION_3_4
+import com.example.moneymatev2.data.local.migration.MIGRATION_4_5
 import com.example.moneymatev2.data.remote.dto.ReminderDto
 import com.example.moneymatev2.data.remote.dto.toEntity
 import com.example.moneymatev2.data.local.entity.PendingOperation
@@ -71,9 +72,9 @@ class ReminderAnchorMigrationTest {
         }
 
         val database = Room.databaseBuilder(RuntimeEnvironment.getApplication(), AppDatabase::class.java, file.absolutePath)
-            .addMigrations(MIGRATION_3_4).allowMainThreadQueries().build()
+            .addMigrations(MIGRATION_3_4, MIGRATION_4_5).allowMainThreadQueries().build()
         try {
-            assertEquals(4, database.openHelper.writableDatabase.version)
+            assertEquals(5, database.openHelper.writableDatabase.version)
             val monthly = kotlinx.coroutines.runBlocking { database.reminderDao().getReminderByLocalIdOnce("monthly")!! }
             val yearly = kotlinx.coroutines.runBlocking { database.reminderDao().getReminderByLocalIdOnce("yearly")!! }
             assertEquals(1803778200000L, monthly.triggerAt)

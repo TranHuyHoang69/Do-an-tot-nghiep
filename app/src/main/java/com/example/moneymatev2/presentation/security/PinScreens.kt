@@ -34,6 +34,7 @@ fun PinActionScreen(mode: PinMode, onBack: () -> Unit,
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         return
     }
+    PinScreenCaptureProtection()
     // PIN input is only held by this composition and is discarded on account changes.
     key(active.uid) {
         when (mode) {
@@ -274,6 +275,7 @@ private fun DeletePinScreen(oldLength: Int, onBack: () -> Unit, viewModel: Secur
 @Composable
 fun SecurityLockScreen(state: LocalSecurityState.Active,
                        viewModel: SecurityViewModel = hiltViewModel()) {
+    PinScreenCaptureProtection()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var input by remember(state.uid) { mutableStateOf("") }

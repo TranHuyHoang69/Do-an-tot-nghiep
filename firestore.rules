@@ -23,9 +23,19 @@ service cloud.firestore {
 
       match /budgets/{budgetId} {
         allow read: if isOwner(userId);
-        allow create, update: if isOwner(userId)
-          && isValidBudget(request.resource.data);
-        allow delete: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidBudget(request.resource.data)
+          && validBudgetRevision(request.resource.data)
+          && request.resource.data.revision == 1;
+        allow update: if isOwner(userId)
+          && isValidBudget(request.resource.data)
+          && validBudgetRevision(request.resource.data)
+          && request.resource.data.revision == resource.data.get('revision', 0) + 1
+          && request.resource.data.lastOperationId != resource.data.get('lastOperationId', '')
+          && (!resource.data.get('isArchived', false)
+              || request.resource.data.isArchived
+              || request.resource.data.get('recreatedFromTombstone', false) == true);
+        allow delete: if false;
       }
 
       match /reminders/{reminderId} {
@@ -63,6 +73,13 @@ service cloud.firestore {
         && data.categoryLocalId is string && data.categoryLocalId.size() > 0
         && data.effectiveMonth is int && data.effectiveMonth >= 1 && data.effectiveMonth <= 12
         && data.effectiveYear is int;
+    }
+
+    function validBudgetRevision(data) {
+      return data.get('revision', -1) is int && data.revision > 0
+        && data.get('lastOperationId', '') is string
+        && data.lastOperationId.size() > 0
+        && data.get('isArchived', false) is bool;
     }
 
     function isValidReminder(data) {

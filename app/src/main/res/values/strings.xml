@@ -140,13 +140,34 @@
     <string name="drawer_not_login">Chưa đăng nhập</string>
     
 <!--    BudgetScreen-->
-    <string name="budget_delete">Xóa ngân sách</string>
-    <string name="budget_confirm_delete">của tháng này sẽ bị xóa</string>
+    <string name="budget_delete">Xóa ngân sách?</string>
+    <string name="budget_confirm_delete">Xóa ngân sách “%1$s”? Các giao dịch đã ghi nhận vẫn được giữ lại.</string>
+    <string name="budget_saving">Đang lưu...</string>
+    <string name="budget_save_failed">Không thể lưu ngân sách. Vui lòng thử lại.</string>
+    <string name="budget_invalid_amount">Số tiền không hợp lệ hoặc vượt giới hạn cho phép.</string>
+    <string name="budget_amount_invalid">Số tiền không hợp lệ.</string>
+    <string name="budget_limit_positive">Hạn mức ngân sách phải lớn hơn 0.</string>
+    <string name="budget_amount_out_of_range">Số tiền vượt giới hạn cho phép.</string>
+    <string name="budget_invalid_limit">Hạn mức chưa hợp lệ.</string>
+    <string name="budget_over_budget">Đã vượt ngân sách</string>
+    <string name="budget_mixed_currency">Không thể cộng khác tiền tệ</string>
+    <string name="budget_deleting">Đang xóa...</string>
+    <string name="budget_delete_failed">Không thể xóa ngân sách. Vui lòng thử lại.</string>
     <string name="monthly_overview">Tổng quan hàng tháng</string>
-    <string name="no_budget_yet">Chưa có ngân sách nào cho tháng này</string>
+    <string name="no_budget_yet">Chưa có ngân sách cho tháng này</string>
+    <string name="budget_empty_hint">Tạo ngân sách để theo dõi và kiểm soát chi tiêu.</string>
+    <string name="budget_category_hint">Chọn danh mục để thêm hoặc cập nhật hạn mức tháng hiện tại.</string>
+    <string name="budget_loading">Đang tải ngân sách</string>
+    <string name="budget_load_failed">Không thể tải ngân sách. Vui lòng thử lại.</string>
+    <string name="budget_retry">Thử lại</string>
+    <string name="budget_open_menu">Mở menu điều hướng</string>
+    <string name="budget_previous_month">Xem tháng trước</string>
+    <string name="budget_next_month">Xem tháng sau</string>
+    <string name="budget_delete_category">Xóa ngân sách %1$s</string>
+    <string name="budget_progress_description">Ngân sách %1$s đã sử dụng %2$s</string>
     <string name="add_budget">Thêm ngân sách</string>
     <string name="amount_budget">Số tiền ngân sách</string>
-    <string name="budget_slg">Chưa có danh mục Chi tiêu nào. Tạo danh mục trước khi đặt ngân sách.</string>
+    <string name="budget_slg">Chưa có danh mục chi tiêu. Tạo danh mục trước khi đặt ngân sách.</string>
     <string name="total_budget">Tổng ngân sách</string>
     <string name="budget_dachi">Đã chi</string>
     <string name="budget_overpaid">Vượt ngân sách</string>
@@ -282,4 +303,9 @@
     <string name="profile_delete_failure">Không thể xóa tài khoản</string>
     <string name="profile_network_error">Lỗi mạng. Vui lòng thử lại.</string>
     <string name="profile_google_cancelled">Đã hủy đăng nhập Google</string>
+    <string name="budget_change_not_synced">Thay đổi này chưa được đồng bộ. Dữ liệu trên thiết bị vẫn được giữ.</string>
+    <plurals name="budget_sync_conflict_notice">
+        <item quantity="one">Có %d trường hợp xung đột ngân sách. Bản lưu trên thiết bị này được giữ lại.</item>
+        <item quantity="other">Có %d trường hợp xung đột ngân sách. Bản lưu trên thiết bị này được giữ lại.</item>
+    </plurals>
 </resources>

@@ -66,8 +66,10 @@ class CategoryOwnershipTest {
             assertTrue(state.budgets.last().categoryMissing)
             assertEquals(listOf(active), state.categories)
             uid = "b"
-            viewModel.deleteBudget(state.budgets.first())
-            viewModel.saveBudget(active, "100")
+            viewModel.openDelete(state.budgets.first())
+            viewModel.openEditor()
+            viewModel.changeEditorAmount("100")
+            viewModel.saveBudget()
             advanceUntilIdle()
             verifyNoInteractions(budgetRepository)
         } finally { viewModel.viewModelScope.cancel() }
@@ -76,12 +78,21 @@ class CategoryOwnershipTest {
     @Test fun budgetCategoryArchivedDuringSave_reportsSelectionFailure() = runTest(dispatcher) {
         val budgetRepository = mock(BudgetRepository::class.java)
         val overview = mock(GetMonthlyBudgetOverviewUseCase::class.java)
+        `when`(categories.getAllCategories("a")).thenReturn(flowOf(listOf(category("a"))))
+        `when`(overview.invoke(eq("a") ?: "a", anyInt(), anyInt(), anyLong(), anyLong()))
+            .thenReturn(flowOf(BudgetOverviewModel(emptyList(), Money.zero("VND"), Money.zero("VND"), Money.zero("VND"))))
         `when`(budgetRepository.setBudget("a", "legacy", 100L, "VND"))
             .thenThrow(IllegalArgumentException("Invalid budget category"))
         val viewModel = BudgetViewModel(overview, budgetRepository, categories, auth)
         try {
-            viewModel.saveBudget(category("a"), "100")
-            assertEquals("a", viewModel.categoryUnavailable.first())
+            viewModel.uiState.first { !it.isLoading }
+            viewModel.openEditor()
+            viewModel.changeEditorAmount("100")
+            viewModel.saveBudget()
+            advanceUntilIdle()
+            assertEquals(com.example.moneymatev2.presentation.budget.BudgetOperationStatus.Error(
+                com.example.moneymatev2.presentation.budget.BudgetOperationError.CATEGORY_UNAVAILABLE),
+                viewModel.editor.value?.status)
         } finally { viewModel.viewModelScope.cancel() }
     }
 

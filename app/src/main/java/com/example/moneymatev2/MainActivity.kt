@@ -11,14 +11,11 @@ import androidx.compose.runtime.setValue
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import android.view.WindowManager
-import androidx.lifecycle.lifecycleScope
 import com.example.moneymatev2.presentation.security.LocalSecurityManager
-import com.example.moneymatev2.presentation.security.LocalSecurityState
 import com.example.moneymatev2.data.reminder.ReminderNotificationManager
 import com.example.moneymatev2.presentation.root.AppRoot
 import com.example.moneymatev2.presentation.root.AppRootViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -35,13 +32,8 @@ class MainActivity : AppCompatActivity() {
         )
 
         hideNavigationBar()
-        lifecycleScope.launch {
-            localSecurityManager.state.collect { state ->
-                val protected = (state as? LocalSecurityState.Active)?.hasPin == true
-                if (protected) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-                else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-            }
-        }
+        // PIN screens manage this flag while they are visible; all other screens allow capture.
+        window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         if (savedInstanceState != null) {
             intent?.removeExtra(ReminderNotificationManager.EXTRA_REMINDER_ID)
             intent?.removeExtra(ReminderNotificationManager.EXTRA_OWNER_UID)

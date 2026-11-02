@@ -267,7 +267,7 @@ class RoomSyncSafetyTest {
         val uploads: List<suspend () -> Unit> = listOf(
             { TransactionRepositoryImpl(db.transactionDao(), db.categoryDao(), firestore, trigger, runner).syncPendingTransactions("account-a") },
             { CategoryRepositoryImpl(db.categoryDao(), firestore, trigger, runner, db).syncPendingCategories("account-a") },
-            { BudgetRepositoryImpl(db.budgetDao(), db.transactionDao(), db.categoryDao(), firestore, trigger, runner).syncPendingBudgets("account-a") },
+            { BudgetRepositoryImpl(db.budgetDao(), db.transactionDao(), db.categoryDao(), firestore, trigger, runner, db.budgetConflictDao()).syncPendingBudgets("account-a") },
             { ReminderRepositoryImpl(db.reminderDao(), firestore, trigger, runner, auth).syncPendingReminders("account-a") },
             { RecurringTransactionRepositoryImpl(db, db.recurringTransactionDao(), db.transactionDao(), db.categoryDao(),
                 RecurringScheduleCalculator(), firestore, trigger, runner).syncPending("account-a") }
@@ -275,6 +275,8 @@ class RoomSyncSafetyTest {
         val docs = listOf("transactions" to "tx", "categories" to "category", "budgets" to "budget",
             "reminders" to "reminder", "recurring_transactions" to "recurring").map { (name, id) -> collection(name).document(id) }
         docs.forEach { `when`(it.set(any<Any>())).thenReturn(Tasks.forException(IOException("offline"))) }
+        `when`(firestore.runTransaction(any<Transaction.Function<Long>>()))
+            .thenReturn(Tasks.forException(IOException("offline")))
         for (upload in uploads) {
             try { upload(); fail("Repository swallowed upload failure") } catch (_: IOException) { }
         }
@@ -284,13 +286,25 @@ class RoomSyncSafetyTest {
         assertEquals(SyncStatus.FAILED, db.reminderDao().getPendingRemindersForSync("account-a").single().syncStatus)
         assertEquals(SyncStatus.FAILED, db.recurringTransactionDao().getPending("account-a").single().syncStatus)
         docs.forEach { `when`(it.set(any<Any>())).thenReturn(Tasks.forResult(null)) }
+        `when`(firestore.runTransaction(any<Transaction.Function<Long>>())).thenAnswer { invocation ->
+            @Suppress("UNCHECKED_CAST")
+            val action = invocation.arguments[0] as Transaction.Function<Long>
+            val transaction = mock(Transaction::class.java)
+            val missing = mock(DocumentSnapshot::class.java)
+            `when`(missing.exists()).thenReturn(false)
+            `when`(transaction.get(any())).thenReturn(missing)
+            `when`(transaction.set(any(), any<Any>())).thenReturn(transaction)
+            Tasks.forResult(action.apply(transaction))
+        }
         uploads.forEach { it() }
         assertTrue(db.transactionDao().getPendingTransactionsForSync("account-a").isEmpty())
         assertTrue(db.categoryDao().getPendingCategoriesForSync("account-a").isEmpty())
         assertTrue(db.budgetDao().getPendingBudgetsForSync("account-a").isEmpty())
         assertTrue(db.reminderDao().getPendingRemindersForSync("account-a").isEmpty())
         assertTrue(db.recurringTransactionDao().getPending("account-a").isEmpty())
-        docs.forEach { verify(it, times(2)).set(any<Any>()) }
+        docs.filterIndexed { index, _ -> index != 2 }.forEach { verify(it, times(2)).set(any<Any>()) }
+        verify(firestore, times(2)).runTransaction(any<Transaction.Function<Long>>())
+        Unit
     }
 
     @Test fun deleteAcknowledgementOfUnchangedSnapshot_removesOnlyItsOwnerRow() = runBlocking {

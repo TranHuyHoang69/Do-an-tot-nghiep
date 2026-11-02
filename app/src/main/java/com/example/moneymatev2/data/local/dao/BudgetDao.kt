@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BudgetDao {
+    @Query("SELECT COUNT(*) FROM budgets WHERE userId = :userId AND syncStatus = 'FAILED' AND pendingOperation = 'NONE'")
+    fun observeUnresolvedCount(userId: String): Flow<Int>
+
     @Query("SELECT COUNT(*) FROM budgets WHERE userId = :userId AND categoryLocalId = :categoryId AND isArchived = 0")
     suspend fun countActiveByCategory(userId: String, categoryId: String): Int
 
@@ -48,7 +51,7 @@ interface BudgetDao {
     suspend fun insertBudget(budget: BudgetEntity)
 
     @Update
-    suspend fun updateBudget(budget: BudgetEntity)
+    suspend fun updateBudget(budget: BudgetEntity): Int
 
     @Query("""
         UPDATE budgets
@@ -84,6 +87,45 @@ interface BudgetDao {
         userId: String,
         expectedUpdatedAt: Long,
         remoteUpdatedAt: Long
+    ): Int
+
+    @Query("""
+        UPDATE budgets SET syncStatus = 'SYNCED', pendingOperation = 'NONE',
+            cloudRevision = :revision, baseRevision = NULL, pendingUploadId = NULL,
+            pendingRecreate = 0, remoteUpdatedAt = NULL,
+            lastSyncError = NULL, retryCount = 0
+        WHERE localId = :localId AND userId = :userId
+            AND updatedAt = :expectedUpdatedAt AND pendingUploadId = :uploadId
+            AND pendingOperation != 'NONE'
+    """)
+    suspend fun acknowledgeVersionedUpload(
+        localId: String, userId: String, expectedUpdatedAt: Long,
+        uploadId: String, revision: Long
+    ): Int
+
+    /** A local edit made during an older upload inherits only that confirmed cloud revision. */
+    @Query("""
+        UPDATE budgets SET baseRevision = :committedRevision,
+            cloudRevision = :committedRevision,
+            remoteUpdatedAt = NULL,
+            pendingOperation = CASE WHEN pendingOperation = 'CREATE' THEN 'UPDATE' ELSE pendingOperation END
+        WHERE localId = :localId AND userId = :userId
+            AND pendingOperation != 'NONE' AND pendingUploadId != :uploadedId
+            AND baseRevision IS :previousBase AND cloudRevision IS :previousCloud
+    """)
+    suspend fun advancePendingBaseAfterCommittedUpload(
+        localId: String, userId: String, uploadedId: String,
+        previousBase: Long?, previousCloud: Long?, committedRevision: Long
+    ): Int
+
+    @Query("""
+        UPDATE budgets SET pendingUploadId = :uploadId
+        WHERE localId = :localId AND userId = :userId
+            AND updatedAt = :expectedUpdatedAt AND pendingUploadId IS NULL
+            AND pendingOperation != 'NONE'
+    """)
+    suspend fun assignUploadIdIfMissing(
+        localId: String, userId: String, expectedUpdatedAt: Long, uploadId: String
     ): Int
 
     @Query("""

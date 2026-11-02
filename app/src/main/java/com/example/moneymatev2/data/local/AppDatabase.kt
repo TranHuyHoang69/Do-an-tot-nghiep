@@ -12,10 +12,11 @@ import com.example.moneymatev2.data.local.entity.*
         CategoryEntity::class,
         UserEntity::class,
         BudgetEntity::class,
+        BudgetConflictEntity::class,
         ReminderEntity::class,
         RecurringTransactionEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -25,6 +26,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun reminderDao(): ReminderDao
     abstract fun budgetDao(): BudgetDao
+    abstract fun budgetConflictDao(): BudgetConflictDao
     abstract fun recurringTransactionDao(): RecurringTransactionDao
 
     companion object {

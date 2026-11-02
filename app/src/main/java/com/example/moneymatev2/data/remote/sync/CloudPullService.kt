@@ -101,7 +101,7 @@ class CloudPullService @Inject constructor(
             skipped = 0
             if (budgets.isComplete) for (row in budgets.rows) {
                 val old = budgetDao.getRowForCloudMerge(row.localId)
-                if (!shouldMerge(old?.userId, old?.pendingOperation, old?.remoteUpdatedAt, row.remoteUpdatedAt, userId)) {
+                if (!shouldMergeBudget(old, row, userId)) {
                     skipped++
                     continue
                 }
@@ -111,7 +111,16 @@ class CloudPullService @Inject constructor(
                 // never overwrite that device's unsynced local edit.
                 val sameMonth = budgetDao.getBudgetRowForExactMonth(userId, row.categoryLocalId, row.effectiveYear, row.effectiveMonth)
                 if (sameMonth != null && sameMonth.localId != row.localId) {
-                    if (sameMonth.pendingOperation != PendingOperation.NONE) {
+                    if (sameMonth.pendingOperation != PendingOperation.NONE ||
+                        sameMonth.syncStatus == SyncStatus.FAILED) {
+                        skipped++
+                        continue
+                    }
+                    if (sameMonth.isArchived && !row.isArchived) {
+                        recordBudgetPullConflict(sameMonth, userId,
+                            requireNotNull(row.cloudRevision), "ACTIVE_AFTER_DIFFERENT_ID_DELETE")
+                        budgetDao.updateBudget(sameMonth.copy(syncStatus = SyncStatus.FAILED,
+                            lastSyncError = "ACTIVE_AFTER_DIFFERENT_ID_DELETE"))
                         skipped++
                         continue
                     }
@@ -258,6 +267,60 @@ class CloudPullService @Inject constructor(
         return localRemoteUpdatedAt == null || incomingRemoteUpdatedAt == null || incomingRemoteUpdatedAt >= localRemoteUpdatedAt
     }
 
+    private suspend fun shouldMergeBudget(local: BudgetEntity?, incoming: BudgetEntity, userId: String): Boolean {
+        if (local == null) return true
+        check(local.userId == userId) { "A Budget ID is shared by different accounts" }
+        if (local.pendingOperation != PendingOperation.NONE) return false
+        // An exact server match resolves a previously rejected edit. Otherwise keep
+        // the local intent, especially an archived row, until it can be resolved.
+        if (local.syncStatus == SyncStatus.FAILED) {
+            if (sameBudgetContent(local, incoming)) budgetDao.updateBudget(incoming)
+            return false
+        }
+        val localRevision = local.cloudRevision ?: return true // clean pre-v5 row has unknown base
+        val cloudRevision = requireNotNull(incoming.cloudRevision)
+        if (cloudRevision > localRevision) return true
+        if (cloudRevision < localRevision) {
+            recordBudgetPullConflict(local, userId, cloudRevision, "CLOUD_REVISION_BEHIND_LOCAL")
+            budgetDao.updateBudget(local.copy(syncStatus = SyncStatus.FAILED,
+                lastSyncError = "CLOUD_REVISION_BEHIND_LOCAL"))
+            return false
+        }
+        val sameContent = sameBudgetContent(local, incoming)
+        if (!sameContent) {
+            // Equal revisions with different content have no safe winner. Preserve the clean
+            // local copy for diagnosis; do not let an old blind write masquerade as a new version.
+            recordBudgetPullConflict(local, userId, cloudRevision, "SAME_REVISION_DIVERGENCE")
+            budgetDao.updateBudget(local.copy(syncStatus = SyncStatus.FAILED,
+                lastSyncError = "SAME_REVISION_DIVERGENCE"))
+            return false
+        }
+        // Same content: refresh the server timestamp as metadata only. It never chooses a version.
+        return incoming.remoteUpdatedAt != null && local.remoteUpdatedAt != incoming.remoteUpdatedAt
+    }
+
+    private fun sameBudgetContent(local: BudgetEntity, incoming: BudgetEntity) =
+        local.categoryLocalId == incoming.categoryLocalId &&
+            local.amountMinor == incoming.amountMinor && local.currency == incoming.currency &&
+            local.effectiveMonth == incoming.effectiveMonth &&
+            local.effectiveYear == incoming.effectiveYear &&
+            local.isArchived == incoming.isArchived && local.createdAt == incoming.createdAt
+
+    private suspend fun recordBudgetPullConflict(
+        local: BudgetEntity, userId: String, cloudRevision: Long, reason: String
+    ) {
+        db.budgetConflictDao().insert(BudgetConflictEntity(
+            conflictId = "pull:$userId:${local.localId}:$cloudRevision:$reason",
+            userId = userId, budgetLocalId = local.localId,
+            categoryLocalId = local.categoryLocalId,
+            effectiveMonth = local.effectiveMonth, effectiveYear = local.effectiveYear,
+            amountMinor = local.amountMinor, currency = local.currency,
+            isArchived = local.isArchived, expectedRevision = local.cloudRevision,
+            actualRevision = cloudRevision, reason = reason,
+            capturedAt = System.currentTimeMillis()
+        ))
+    }
+
     private fun DocumentSnapshot.toTransactionEntity(userId: String): TransactionEntity {
         val data = requireData()
         val time = parseRemoteTime(data, reference.path)
@@ -302,6 +365,8 @@ class CloudPullService @Inject constructor(
     private fun DocumentSnapshot.toBudgetEntity(userId: String): BudgetEntity {
         val data = requireData()
         val time = parseRemoteTime(data, reference.path)
+        val revision = long(data, "revision") ?: 0L
+        require(revision >= 0) { "Negative Budget revision at ${reference.path}" }
         return BudgetEntity(
             localId = id,
             userId = userId,
@@ -315,7 +380,8 @@ class CloudPullService @Inject constructor(
             pendingOperation = PendingOperation.NONE,
             createdAt = long(data, "createdAt") ?: 0L,
             updatedAt = time.takeIf { it > 0 } ?: System.currentTimeMillis(),
-            remoteUpdatedAt = time.takeIf { it > 0 }
+            remoteUpdatedAt = time.takeIf { it > 0 },
+            cloudRevision = revision
         )
     }
 
