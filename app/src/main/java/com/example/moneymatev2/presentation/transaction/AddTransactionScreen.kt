@@ -1,5 +1,7 @@
 package com.example.moneymatev2.presentation.transaction
 
+import com.example.moneymatev2.ui.item.categoryDisplayName
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,8 +28,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -76,6 +80,8 @@ import java.util.Date
 import java.util.Locale
 import androidx.core.graphics.toColorInt
 import com.example.moneymatev2.ui.item.rememberCategoryIcon
+import com.example.moneymatev2.R
+import androidx.compose.foundation.layout.navigationBarsPadding
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,7 +89,8 @@ fun AddTransactionScreen(
     viewModel: AddTransactionViewmodel = hiltViewModel(),
     onBack: () -> Unit,
     onSaved: () -> Unit,
-    onManageCategoryClick: () -> Unit
+    onManageCategoryClick: () -> Unit,
+    onScanReceipt: () -> Unit = {}
 ){
 
     val state by viewModel.formState.collectAsState()
@@ -111,11 +118,12 @@ fun AddTransactionScreen(
         MaterialTheme.colorScheme.primary
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
+      Column {
         HeaderAdd(
             themeColor = themeColor,
             selectedType = state.type,
@@ -139,9 +147,19 @@ fun AddTransactionScreen(
             onCategorySelected = { errorMessage = null; viewModel.onCategorySelected(it) },
             onDateClicked = { showDatePicker = true },
             onManageCategoryClick = onManageCategoryClick,
-            onConfirm = { viewModel.save(ownerId) }
+            onConfirm = { viewModel.save(ownerId) },
+            extraBottomPadding = if (state.type == TransactionType.EXPENSE) 96.dp else 24.dp
 
         )
+      }
+      if (state.type == TransactionType.EXPENSE && !state.isSaving) {
+          FloatingActionButton(
+              onClick = onScanReceipt,
+              modifier = Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(20.dp)
+          ) {
+              Icon(Icons.Filled.CameraAlt, contentDescription = stringResource(R.string.ocr_open))
+          }
+      }
     }
 
     if (showDatePicker) {
@@ -256,7 +274,8 @@ fun FormSection(
     onConfirm: () -> Unit,
     onManageCategoryClick: () -> Unit,
     confirmTextRes: Int = StringRes.confirm,
-    categoryWarning: String? = null
+    categoryWarning: String? = null,
+    extraBottomPadding: androidx.compose.ui.unit.Dp = 24.dp
 ){
 
     val canConfirm = amountText.isNotBlank() && amountText.toLongOrNull()?.let { it > 0 } == true
@@ -266,7 +285,7 @@ fun FormSection(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 20.dp),
-        contentPadding = PaddingValues(top = 24.dp, bottom = 24.dp)
+        contentPadding = PaddingValues(top = 24.dp, bottom = extraBottomPadding)
     ) {
         item(key = "amount_input") {
             Text(
@@ -525,7 +544,7 @@ fun CategoryItem(
             if(iconPainter != null) {
                 Icon(
                     painter = iconPainter,
-                    contentDescription = category.name,
+                    contentDescription = categoryDisplayName(category),
                     tint = if(isSelected) Color.White else categoryColor,
                     modifier = Modifier.size(24.dp)
                 )
@@ -541,7 +560,7 @@ fun CategoryItem(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = category.name,
+            text = categoryDisplayName(category),
             fontSize = 12.sp,
             fontWeight = if(isSelected) FontWeight.Bold else FontWeight.Normal,
             textAlign = TextAlign.Center,

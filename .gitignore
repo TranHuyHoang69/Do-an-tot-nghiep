@@ -13,3 +13,5 @@
 .externalNativeBuild
 .cxx
 local.properties
+/ocr-test-samples/mlkit-capture.json
+/ocr-test-samples/mlkit-post-capture.json

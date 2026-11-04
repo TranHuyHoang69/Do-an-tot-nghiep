@@ -1,5 +1,7 @@
 package com.example.moneymatev2.presentation.category
 
+import com.example.moneymatev2.ui.item.categoryDisplayName
+
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -340,7 +342,7 @@ fun ManagementCategoryScreen(
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Text(
-                                        text = option.name,
+                                        text = categoryDisplayName(option),
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     )
                                 }
@@ -464,7 +466,7 @@ fun CategoryItemView(
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = category.name,
+            text = categoryDisplayName(category),
             color = MaterialTheme.colorScheme.onBackground,
             fontSize = 13.sp,
             textAlign = TextAlign.Center,

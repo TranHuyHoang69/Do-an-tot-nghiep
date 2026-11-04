@@ -36,6 +36,9 @@
         @Query("SELECT * FROM categories WHERE userId = :userId AND localId = :localId")
         suspend fun getCategoryByLocalIdOnce(userId: String, localId: String): CategoryEntity?
 
+        @Query("SELECT * FROM categories WHERE userId = :userId")
+        suspend fun getAllCategoriesOnce(userId: String): List<CategoryEntity>
+
         @Query("SELECT * FROM categories WHERE userId = :userId AND stableId = :stableId LIMIT 1")
         suspend fun getByStableId(userId: String, stableId: String): CategoryEntity?
 

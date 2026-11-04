@@ -31,7 +31,8 @@ data class BudgetProgress(
     val budget: BudgetModel,
     val categoryName: String,
     val categoryColorHex: String,
-    val categoryMissing: Boolean = false
+    val categoryMissing: Boolean = false,
+    val category: CategoryModel? = null
 ) {
     val limitMinor: BigInteger get() = BigInteger.valueOf(budget.budgetAmount.amountMinor)
     val spentMinor: BigInteger get() = budget.spentMinor
@@ -170,7 +171,8 @@ class BudgetViewModel @Inject constructor(
                                 budget = budget,
                                 categoryName = category?.name ?: "Missing category",
                                 categoryColorHex = category?.colorHex ?: "#9E9E9E",
-                                categoryMissing = category == null
+                                categoryMissing = category == null,
+                                category = category
                             )
                         }
                         BudgetUiState(

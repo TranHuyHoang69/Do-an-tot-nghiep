@@ -27,7 +27,11 @@
     <string name="statistics_share">%1$d%% tổng chi</string>
     <string name="statistics_retry">Thử lại</string>
     <string name="statistics_default_food">Ăn uống</string>
-    <string name="statistics_default_transport">Di chuyển</string>
+    <string name="statistics_default_transport">Đi lại</string>
     <string name="statistics_default_shopping">Mua sắm</string>
-    <string name="statistics_default_salary">Lương</string>
+    <string name="statistics_default_salary">Tiền lương</string>
+    <string name="statistics_default_health">Sức khỏe</string>
+    <string name="statistics_default_gift">Quà tặng</string>
+    <string name="statistics_default_entertainment">Giải trí</string>
+    <string name="statistics_default_other">Khác</string>
 </resources>

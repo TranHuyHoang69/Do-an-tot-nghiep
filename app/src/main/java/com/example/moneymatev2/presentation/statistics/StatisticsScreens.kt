@@ -1,5 +1,7 @@
 package com.example.moneymatev2.presentation.statistics
 
+import com.example.moneymatev2.ui.item.categoryDisplayName
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -174,14 +176,9 @@ private fun OverviewCategories(snapshot: StatisticsSnapshot, onCategory: (String
 }
 
 @Composable
-private fun categoryName(category: CategoryModel): String = when {
-    category.isMissing -> stringResource(com.example.moneymatev2.R.string.category_missing_reference)
-    category.stableId == "spend_food" -> stringResource(StringRes.statistics_default_food)
-    category.stableId == "spend_transport" -> stringResource(StringRes.statistics_default_transport)
-    category.stableId == "spend_shopping" -> stringResource(StringRes.statistics_default_shopping)
-    category.stableId == "income_salary" -> stringResource(StringRes.statistics_default_salary)
-    else -> category.name
-}
+private fun categoryName(category: CategoryModel): String =
+    if (category.isMissing) stringResource(com.example.moneymatev2.R.string.category_missing_reference)
+    else categoryDisplayName(category)
 
 private fun percentage(value: Long, total: Long): Int = if (total <= 0L) 0 else (value.toDouble() / total * 100).roundToInt()
 

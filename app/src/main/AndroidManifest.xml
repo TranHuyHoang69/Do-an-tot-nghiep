@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
     <application
         android:name=".App"
         android:allowBackup="true"
@@ -16,6 +19,15 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MoneyMatev2">
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.ocr.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/ocr_file_paths" />
+        </provider>
         <activity
             android:name=".MainActivity"
             android:configChanges="uiMode|locale|layoutDirection"

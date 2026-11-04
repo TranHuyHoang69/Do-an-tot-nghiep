@@ -1,5 +1,7 @@
 package com.example.moneymatev2.presentation.recurring
 
+import com.example.moneymatev2.ui.item.categoryDisplayName
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -151,7 +153,7 @@ fun RecurringTransactionScreen(
                     items(state.templates, key = { it.id }) { item ->
                         RecurringCard(
                             item = item,
-                            categoryName = state.categories.firstOrNull { it.id == item.categoryId }?.name ?: stringResource(R.string.recurring_unknown_category),
+                            categoryName = state.categories.firstOrNull { it.id == item.categoryId }?.let { categoryDisplayName(it) } ?: stringResource(R.string.recurring_unknown_category),
                             onEdit = { editorKey = item.id },
                             onDelete = { pendingDelete = item },
                             onToggle = { viewModel.toggle(item, it) }
@@ -344,11 +346,11 @@ private fun RecurringEditor(
                 }
                 RecurringSelector(
                     label = stringResource(R.string.recurring_category),
-                    value = validCategories.firstOrNull { it.id == categoryId }?.name ?: stringResource(R.string.recurring_choose_category),
+                    value = validCategories.firstOrNull { it.id == categoryId }?.let { categoryDisplayName(it) } ?: stringResource(R.string.recurring_choose_category),
                     expanded = categoryExpanded, toggle = { categoryExpanded = it }
                 ) {
                     validCategories.forEach { category ->
-                        DropdownMenuItem(text = { Text(category.name) }, onClick = { categoryId = category.id; categoryExpanded = false })
+                        DropdownMenuItem(text = { Text(categoryDisplayName(category)) }, onClick = { categoryId = category.id; categoryExpanded = false })
                     }
                 }
                 OutlinedTextField(

@@ -14,6 +14,7 @@ object CategoryStableId {
     const val SPEND_ENTERTAINMENT = "spend_entertainment"
     const val SPEND_COFFEE = "spend_coffee"
     const val SPEND_GIFT = "spend_gift"
+    const val SPEND_OTHER = "spend_other"
 
 
     fun ensureStableId(category: CategoryEntity): CategoryEntity {
@@ -36,8 +37,10 @@ object CategoryStableId {
             TransactionType.INCOME to "ic_money" -> INCOME_SALARY
             TransactionType.EXPENSE to "ic_cat_health_health" -> SPEND_HEALTH
             TransactionType.EXPENSE to "ic_cat_finance_wallet" -> SPEND_ENTERTAINMENT
+            TransactionType.EXPENSE to "ic_cat_shop_game" -> SPEND_ENTERTAINMENT
             TransactionType.EXPENSE to "ic_cat_food_coffee" -> SPEND_COFFEE
             TransactionType.EXPENSE to "ic_cat_shop_gift" -> SPEND_GIFT
+            TransactionType.EXPENSE to "ic_cat_finance_receipt" -> SPEND_OTHER
             else -> null
         }
     }

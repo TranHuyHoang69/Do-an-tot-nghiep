@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ocr_open">Quét hóa đơn</string>
+    <string name="ocr_title">Quét hóa đơn</string>
+    <string name="ocr_back">Quay lại</string>
+    <string name="ocr_take_photo">Chụp ảnh</string>
+    <string name="ocr_choose_image">Chọn ảnh</string>
+    <string name="ocr_idle">Chụp hoặc chọn ảnh hóa đơn để bắt đầu.</string>
+    <string name="ocr_image_selected">Đã chọn ảnh hóa đơn.</string>
+    <string name="ocr_processing">Đang nhận diện hóa đơn…</string>
+    <string name="ocr_no_text">Không tìm thấy văn bản trong ảnh. Vui lòng thử ảnh khác.</string>
+    <string name="ocr_error">Không thể xử lý ảnh. Hãy thử lại hoặc chọn ảnh khác.</string>
+    <string name="ocr_camera_error">Không thể mở camera trên thiết bị này.</string>
+    <string name="ocr_result">Kết quả</string>
+    <string name="ocr_amount">Số tiền</string>
+    <string name="ocr_date">Ngày</string>
+    <string name="ocr_category">Danh mục gợi ý</string>
+    <string name="ocr_note">Ghi chú</string>
+    <string name="ocr_confidence">Độ tin cậy</string>
+    <string name="ocr_verify">Cần xác nhận</string>
+    <string name="ocr_unknown">Chưa xác định</string>
+    <string name="ocr_incomplete">Thiếu số tiền hoặc ngày. Hãy kiểm tra trước khi lưu.</string>
+    <string name="ocr_discard">Bỏ mẫu đã lọc</string>
+    <string name="ocr_use_result">Dùng kết quả này</string>
+    <string name="ocr_retry">Thử lại</string>
+    <string name="ocr_not_receipt">Không xác định được hóa đơn. Vui lòng chụp lại hoặc chọn ảnh khác.</string>
+    <string name="ocr_uncertain">Ảnh có thể là hóa đơn nhưng thông tin chưa rõ ràng. Vui lòng kiểm tra kết quả.</string>
+    <string name="ocr_uncertain_confirm">Dùng thông tin từ ảnh chưa rõ ràng này?</string>
+    <string name="ocr_confirm_use">Vẫn dùng kết quả</string>
+    <string name="ocr_camera_title">Chụp hóa đơn</string>
+    <string name="ocr_camera_permission">Cần quyền Camera để chụp ảnh. Bạn vẫn có thể chọn ảnh từ thư viện.</string>
+    <string name="ocr_flash_on">Bật Flash</string>
+    <string name="ocr_flash_off">Tắt Flash</string>
+    <string name="ocr_flash_unavailable">Thiết bị không hỗ trợ Flash</string>
+</resources>

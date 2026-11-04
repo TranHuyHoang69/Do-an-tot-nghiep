@@ -6,6 +6,7 @@ import com.example.moneymatev2.data.local.entity.TransactionType
 import com.example.moneymatev2.domain.model.AppResult
 import com.example.moneymatev2.domain.model.CategoryModel
 import com.example.moneymatev2.domain.model.TransactionError
+import com.example.moneymatev2.domain.model.ReceiptModel
 import com.example.moneymatev2.domain.repository.AuthRepository
 import com.example.moneymatev2.domain.repository.CategoryRepository
 import com.example.moneymatev2.domain.usecase.transaction.CreateTransactionUseCase
@@ -113,6 +114,20 @@ class AddTransactionViewmodel @Inject constructor(
     fun onDateChange(dateMillis: Long, userId: String?) {
         if (!ownsForm(userId)) return
         _formState.update { it.copy(selectedDate = dateMillis) }
+    }
+
+    fun applyOcrResult(receipt: ReceiptModel, userId: String?) {
+        if (!ownsForm(userId) || _formState.value.type != TransactionType.EXPENSE) return
+        _formState.update { current ->
+            val category = current.categories.firstOrNull { it.id == receipt.suggestedCategoryId &&
+                it.userId == userId && it.type == TransactionType.EXPENSE && !it.isArchived && !it.isMissing }
+            current.copy(
+                amountText = receipt.totalAmount?.takeIf { it > 0 }?.toString() ?: current.amountText,
+                selectedDate = receipt.transactionDate ?: current.selectedDate,
+                selectedCategoryId = category?.id ?: current.selectedCategoryId,
+                note = receipt.note?.takeIf { it.isNotBlank() } ?: current.note
+            )
+        }
     }
 
     fun save(expectedUserId: String?) {

@@ -26,8 +26,12 @@
     <string name="statistics_percent">%1$d%%</string>
     <string name="statistics_share">%1$d%% of expenses</string>
     <string name="statistics_retry">Retry</string>
-    <string name="statistics_default_food">Food</string>
+    <string name="statistics_default_food">Food &amp; Drinks</string>
     <string name="statistics_default_transport">Transport</string>
     <string name="statistics_default_shopping">Shopping</string>
     <string name="statistics_default_salary">Salary</string>
+    <string name="statistics_default_health">Health</string>
+    <string name="statistics_default_gift">Gifts</string>
+    <string name="statistics_default_entertainment">Entertainment</string>
+    <string name="statistics_default_other">Other</string>
 </resources>

@@ -1,5 +1,7 @@
 package com.example.moneymatev2.presentation.home
 
+import com.example.moneymatev2.ui.item.categoryDisplayName
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -244,7 +246,7 @@ fun TransactionListItem(
                 ){
                     Icon(
                         painter = categoryIcon,
-                        contentDescription = if (group.category.isMissing) androidx.compose.ui.res.stringResource(com.example.moneymatev2.R.string.category_missing_reference) else group.category.name,
+                        contentDescription = if (group.category.isMissing) androidx.compose.ui.res.stringResource(com.example.moneymatev2.R.string.category_missing_reference) else categoryDisplayName(group.category),
                         tint =  categoryColor,
                         modifier = Modifier.size(22.dp)
                     )
@@ -253,7 +255,7 @@ fun TransactionListItem(
 
                 Column {
                     Text(
-                        text = if (group.category.isMissing) androidx.compose.ui.res.stringResource(com.example.moneymatev2.R.string.category_missing_reference) else group.category.name,
+                        text = if (group.category.isMissing) androidx.compose.ui.res.stringResource(com.example.moneymatev2.R.string.category_missing_reference) else categoryDisplayName(group.category),
                         fontWeight = FontWeight.Medium
                     )
 

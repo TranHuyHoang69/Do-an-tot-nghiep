@@ -1,5 +1,7 @@
 package com.example.moneymatev2.presentation.transaction
 
+import com.example.moneymatev2.ui.item.categoryDisplayName
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
@@ -69,7 +71,7 @@ fun TransactionDetailScreen(
                         "${CurrencyFormatter.formatFull(tx.money.amountMinor)} đ", accent)
                     DetailRow(stringResource(R.string.transaction_category),
                         if (state.category?.isMissing == true || state.category == null)
-                            stringResource(R.string.category_missing_reference) else state.category!!.name)
+                            stringResource(R.string.category_missing_reference) else categoryDisplayName(state.category!!))
                     DetailRow(stringResource(R.string.transaction_type),
                         stringResource(if (tx.type == TransactionType.EXPENSE) StringRes.expense else StringRes.income))
                     DetailRow(stringResource(R.string.transaction_time),

@@ -25,6 +25,8 @@ import com.example.moneymatev2.presentation.settings.SettingScreen
 import com.example.moneymatev2.presentation.profile.ProfileScreen
 import com.example.moneymatev2.presentation.transaction.AddTransactionScreen
 import com.example.moneymatev2.presentation.transaction.AddTransactionViewmodel
+import com.example.moneymatev2.presentation.ocr.OcrScanScreen
+import com.example.moneymatev2.presentation.ocr.OcrViewModel
 import com.example.moneymatev2.presentation.transaction.TransactionDetailScreen
 import com.example.moneymatev2.presentation.transaction.EditTransactionScreen
 import com.example.moneymatev2.presentation.transaction.TransactionEntryViewModel
@@ -109,7 +111,25 @@ fun NavGraph(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() },
                 onSaved = { navController.popBackStack() },
-                onManageCategoryClick = { navController.navigate(Screen.CategoryManagement.pickRoute()) }
+                onManageCategoryClick = { navController.navigate(Screen.CategoryManagement.pickRoute()) },
+                onScanReceipt = { navController.navigate(Screen.OcrScan.route) }
+            )
+        }
+
+        composable(Screen.OcrScan.route) { entry ->
+            val addEntry = navController.previousBackStackEntry ?: return@composable
+            val addViewModel: AddTransactionViewmodel = hiltViewModel(addEntry)
+            val ocrViewModel: OcrViewModel = hiltViewModel(entry)
+            val form by addViewModel.formState.collectAsState()
+            OcrScanScreen(
+                viewModel = ocrViewModel,
+                categories = form.categories,
+                ownerId = form.userId,
+                onBack = { navController.popBackStack() },
+                onUse = { receipt, scanOwnerId ->
+                    addViewModel.applyOcrResult(receipt, scanOwnerId)
+                    navController.popBackStack()
+                }
             )
         }
 

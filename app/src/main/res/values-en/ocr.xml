@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ocr_open">Scan receipt</string>
+    <string name="ocr_title">Scan receipt</string>
+    <string name="ocr_back">Back</string>
+    <string name="ocr_take_photo">Take photo</string>
+    <string name="ocr_choose_image">Choose image</string>
+    <string name="ocr_idle">Take or choose a receipt photo to begin.</string>
+    <string name="ocr_image_selected">Receipt image selected.</string>
+    <string name="ocr_processing">Recognizing receipt…</string>
+    <string name="ocr_no_text">No text was detected in the image. Please try another photo.</string>
+    <string name="ocr_error">Could not process the image. Try again or choose another.</string>
+    <string name="ocr_camera_error">Camera could not be opened on this device.</string>
+    <string name="ocr_result">Result</string>
+    <string name="ocr_amount">Amount</string>
+    <string name="ocr_date">Date</string>
+    <string name="ocr_category">Suggested category</string>
+    <string name="ocr_note">Note</string>
+    <string name="ocr_confidence">Confidence</string>
+    <string name="ocr_verify">Needs confirmation</string>
+    <string name="ocr_unknown">Unknown</string>
+    <string name="ocr_incomplete">Amount or date is missing. Check before saving.</string>
+    <string name="ocr_discard">Discard result</string>
+    <string name="ocr_use_result">Use this result</string>
+    <string name="ocr_retry">Try again</string>
+    <string name="ocr_not_receipt">We couldn’t identify a receipt. Please take or select another photo.</string>
+    <string name="ocr_uncertain">This may be a receipt, but some details are unclear. Please review the results.</string>
+    <string name="ocr_uncertain_confirm">Use details from this unclear image?</string>
+    <string name="ocr_confirm_use">Use the result anyway</string>
+    <string name="ocr_camera_title">Capture receipt</string>
+    <string name="ocr_camera_permission">Camera access is needed to take a photo. You can still choose an image.</string>
+    <string name="ocr_flash_on">Flash on</string>
+    <string name="ocr_flash_off">Flash off</string>
+    <string name="ocr_flash_unavailable">Flash is not available on this device</string>
+</resources>

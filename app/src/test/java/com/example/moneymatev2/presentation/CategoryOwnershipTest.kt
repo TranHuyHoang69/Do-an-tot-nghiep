@@ -184,6 +184,52 @@ class CategoryOwnershipTest {
         } finally { viewModel.viewModelScope.cancel() }
     }
 
+    @Test fun ocrPrefillUpdatesOnlyRecognizedFieldsAndDoesNotSave() = runTest(dispatcher) {
+        val food = category("a")
+        `when`(categories.getActiveCategoriesByType("a", TransactionType.EXPENSE)).thenReturn(flowOf(listOf(food)))
+        val viewModel = AddTransactionViewmodel(CreateTransactionUseCase(transactions, auth), categories, auth)
+        try {
+            advanceUntilIdle()
+            viewModel.onAmountChange("500", "a")
+            viewModel.onNoteChange("existing note", "a")
+            val originalDate = viewModel.formState.value.selectedDate
+            viewModel.applyOcrResult(ReceiptModel(null, 120_000L, null, null, "missing"), "a")
+            assertEquals("120000", viewModel.formState.value.amountText)
+            assertEquals("existing note", viewModel.formState.value.note)
+            assertEquals(originalDate, viewModel.formState.value.selectedDate)
+            assertEquals(food.id, viewModel.formState.value.selectedCategoryId)
+            viewModel.applyOcrResult(ReceiptModel("Cafe", null, 123456L, "Cafe", food.id), "a")
+            assertEquals("120000", viewModel.formState.value.amountText)
+            assertEquals(123456L, viewModel.formState.value.selectedDate)
+            assertEquals("Cafe", viewModel.formState.value.note)
+            assertEquals(food.id, viewModel.formState.value.selectedCategoryId)
+            uid = "b"
+            viewModel.applyOcrResult(ReceiptModel(null, 999L, 123L, "wrong owner", null), "a")
+            assertEquals("120000", viewModel.formState.value.amountText)
+            verifyNoInteractions(transactions)
+        } finally { viewModel.viewModelScope.cancel() }
+    }
+
+    @Test fun ocrPrefillSelectsResolvedLocalIdAndPreservesSelectionForNullCategory() = runTest(dispatcher) {
+        val food = category("a")
+        val health = category("a").copy(id = "local-health", stableId = "spend_health", name = "Sức khỏe")
+        val personal = health.copy(id = "personal-health", stableId = null, isDefault = false)
+        `when`(categories.getActiveCategoriesByType("a", TransactionType.EXPENSE))
+            .thenReturn(flowOf(listOf(food, personal, health)))
+        val viewModel = AddTransactionViewmodel(CreateTransactionUseCase(transactions, auth), categories, auth)
+        try {
+            advanceUntilIdle()
+            viewModel.applyOcrResult(ReceiptModel(null, null, null, null, health.id), "a")
+            assertEquals("local-health", viewModel.formState.value.selectedCategoryId)
+            viewModel.applyOcrResult(ReceiptModel(null, 77_000L, null, null, null), "a")
+            assertEquals("local-health", viewModel.formState.value.selectedCategoryId)
+            assertEquals("77000", viewModel.formState.value.amountText)
+            viewModel.applyOcrResult(ReceiptModel(null, null, null, null, "spend_health"), "a")
+            assertEquals("local-health", viewModel.formState.value.selectedCategoryId)
+            verifyNoInteractions(transactions)
+        } finally { viewModel.viewModelScope.cancel() }
+    }
+
     @Test fun createTransaction_rejectsCategoryFromOtherOwner() = runTest(dispatcher) {
         uid = "b"
         val result = CreateTransactionUseCase(transactions, auth)(TransactionType.EXPENSE, 100, category("a"), null, 100)

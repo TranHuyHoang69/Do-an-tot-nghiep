@@ -71,8 +71,8 @@ class RoomSyncSafetyTest {
         val b = db.categoryDao().getActiveCategories("account-b").first()
         uid = "account-a"
         repeat(3) { repository.seedDefaultCategoriesIfNeeded("account-a") }
-        assertEquals(4, a.size)
-        assertEquals(4, b.size)
+        assertEquals(8, a.size)
+        assertEquals(8, b.size)
         assertTrue(a.map { it.localId }.intersect(b.map { it.localId }.toSet()).isEmpty())
         assertEquals(a, db.categoryDao().getActiveCategories("account-a").first())
         assertEquals(tx, db.transactionDao().getRowForCloudMerge(tx.localId))
@@ -85,7 +85,7 @@ class RoomSyncSafetyTest {
         db.transactionDao().insertTransaction(tx)
         val repository = CategoryRepositoryImpl(db.categoryDao(), firestore, trigger, runner, db)
         repeat(2) { repository.seedDefaultCategoriesIfNeeded("account-a") }
-        assertEquals(4, db.categoryDao().getActiveCategories("account-a").first().size)
+        assertEquals(8, db.categoryDao().getActiveCategories("account-a").first().size)
         assertEquals(legacy, db.categoryDao().getByStableId("account-a", "spend_food"))
         assertEquals(tx, db.transactionDao().getRowForCloudMerge(tx.localId))
     }

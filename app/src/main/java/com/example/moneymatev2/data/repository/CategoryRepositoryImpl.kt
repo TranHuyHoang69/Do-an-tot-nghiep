@@ -2,6 +2,7 @@ package com.example.moneymatev2.data.repository
 
 import androidx.room.withTransaction
 import com.example.moneymatev2.data.local.AppDatabase
+import com.example.moneymatev2.data.local.CategoryStableId
 import com.example.moneymatev2.data.local.dao.CategoryDao
 import com.example.moneymatev2.data.local.entity.CategoryEntity
 import com.example.moneymatev2.data.local.entity.PendingOperation
@@ -39,6 +40,33 @@ object DefaultCategoryIds {
         return "default_${stableId}_$hash"
     }
 }
+
+private data class DefaultCategorySpec(
+    val type: TransactionType,
+    val stableId: String,
+    val iconKey: String,
+    val colorHex: String,
+    val legacyId: String? = null
+)
+
+private val defaultCategorySpecs = listOf(
+    DefaultCategorySpec(TransactionType.EXPENSE, CategoryStableId.SPEND_FOOD,
+        "ic_food", "#F44336", DefaultCategoryIds.SPEND_FOOD),
+    DefaultCategorySpec(TransactionType.EXPENSE, CategoryStableId.SPEND_SHOPPING,
+        "ic_shop", "#2196F3", DefaultCategoryIds.SPEND_SHOPPING),
+    DefaultCategorySpec(TransactionType.EXPENSE, CategoryStableId.SPEND_HEALTH,
+        "ic_cat_health_health", "#4CAF50"),
+    DefaultCategorySpec(TransactionType.EXPENSE, CategoryStableId.SPEND_TRANSPORT,
+        "ic_car", "#FF9800", DefaultCategoryIds.SPEND_TRANSPORT),
+    DefaultCategorySpec(TransactionType.EXPENSE, CategoryStableId.SPEND_GIFT,
+        "ic_cat_shop_gift", "#E91E63"),
+    DefaultCategorySpec(TransactionType.EXPENSE, CategoryStableId.SPEND_ENTERTAINMENT,
+        "ic_cat_shop_game", "#9C27B0"),
+    DefaultCategorySpec(TransactionType.EXPENSE, CategoryStableId.SPEND_OTHER,
+        "ic_cat_finance_receipt", "#607D8B"),
+    DefaultCategorySpec(TransactionType.INCOME, CategoryStableId.INCOME_SALARY,
+        "ic_money", "#009688", DefaultCategoryIds.INCOME_SALARY)
+)
 
 class CategoryRepositoryImpl @Inject constructor(
     private val dao: CategoryDao,
@@ -168,34 +196,58 @@ class CategoryRepositoryImpl @Inject constructor(
     }
 
     override suspend fun seedDefaultCategoriesIfNeeded(userId: String) {
+        val session = uploadRunner.capture(userId)
         seedMutex.withLock {
-            val now = System.currentTimeMillis()
-            val defaults = listOf(
-                Triple(TransactionType.EXPENSE, "spend_food", "ic_food"),
-                Triple(TransactionType.EXPENSE, "spend_transport", "ic_car"),
-                Triple(TransactionType.EXPENSE, "spend_shopping", "ic_shop"),
-                Triple(TransactionType.INCOME, "income_salary", "ic_money")
-            )
             var inserted = false
-            defaults.forEach { (type, stableId, iconKey) ->
-                if (dao.getByStableId(userId, stableId) != null) return@forEach
+            db.withTransaction {
+                uploadRunner.check(session)
+                val rows = dao.getAllCategoriesOnce(userId).toMutableList()
+                defaultCategorySpecs.forEach { spec ->
+                    if (rows.any { it.stableId == spec.stableId }) return@forEach
 
-                dao.insertCategory(
-                    CategoryEntity(
-                        localId = DefaultCategoryIds.forUser(userId, stableId),
-                        stableId = stableId,
+                    // Legacy default rows may lack a stable ID. Adopt them in place so
+                    // transactions, budgets and recurring templates keep their localId.
+                    val legacy = rows.filter { row ->
+                        row.isDefault && row.type == spec.type && row.stableId == null &&
+                            (row.iconKey == spec.iconKey || row.localId == spec.legacyId ||
+                                row.localId == DefaultCategoryIds.forUser(userId, spec.stableId))
+                    }
+                    if (legacy.size > 1) return@forEach // ambiguous history: never create a duplicate
+                    if (legacy.size == 1) {
+                        val row = legacy.single()
+                        if (row.pendingOperation != PendingOperation.DELETE) {
+                            val now = System.currentTimeMillis()
+                            val adopted = row.copy(stableId = spec.stableId,
+                                syncStatus = SyncStatus.PENDING,
+                                pendingOperation = if (row.pendingOperation == PendingOperation.CREATE)
+                                    PendingOperation.CREATE else PendingOperation.UPDATE,
+                                updatedAt = maxOf(now, row.updatedAt + 1))
+                            dao.updateCategory(adopted)
+                            rows[rows.indexOf(row)] = adopted
+                            inserted = true
+                        }
+                        return@forEach
+                    }
+
+                    val now = System.currentTimeMillis()
+                    val newRow = CategoryEntity(
+                        localId = DefaultCategoryIds.forUser(userId, spec.stableId),
+                        stableId = spec.stableId,
                         userId = userId,
-                        name = stableId,
-                        type = type,
-                        iconKey = iconKey,
-                        colorHex = "#9E9E9E",
+                        name = spec.stableId,
+                        type = spec.type,
+                        iconKey = spec.iconKey,
+                        colorHex = spec.colorHex,
                         isDefault = true,
                         syncStatus = SyncStatus.PENDING,
                         pendingOperation = PendingOperation.CREATE,
                         createdAt = now, updatedAt = now
                     )
-                )
-                inserted = true
+                    dao.insertCategory(newRow)
+                    rows += newRow
+                    inserted = true
+                }
+                uploadRunner.check(session)
             }
             if (inserted) syncTrigger.requestImmediateSync()
         }

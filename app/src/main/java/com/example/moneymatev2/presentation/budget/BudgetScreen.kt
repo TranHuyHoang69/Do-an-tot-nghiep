@@ -1,5 +1,7 @@
 package com.example.moneymatev2.presentation.budget
 
+import com.example.moneymatev2.ui.item.categoryDisplayName
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -78,7 +80,7 @@ fun BudgetScreen(
             onDismissRequest = { viewModel.dismissDelete() },
             title = { Text(budget_delete) },
             text = {
-                val name = if (progress.categoryMissing) stringResource(R.string.category_missing_reference) else progress.categoryName
+                val name = budgetCategoryName(progress)
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.budget_confirm_delete, name))
                     if (operation.status is BudgetOperationStatus.Error) {
@@ -393,7 +395,7 @@ private fun BudgetProgressCard(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (progress.categoryMissing) stringResource(R.string.category_missing_reference) else progress.categoryName,
+                        text = budgetCategoryName(progress),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -417,7 +419,7 @@ private fun BudgetProgressCard(
                 IconButton(onClick = onDelete, enabled = canDelete) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = stringResource(R.string.budget_delete_category, progress.categoryName),
+                        contentDescription = stringResource(R.string.budget_delete_category, budgetCategoryName(progress)),
                         tint = if (canDelete) MaterialTheme.colorScheme.error
                         else MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
                     )
@@ -429,7 +431,7 @@ private fun BudgetProgressCard(
             if (!progress.hasMixedCurrency) {
                 val progressDescription = stringResource(
                     R.string.budget_progress_description,
-                    progress.categoryName,
+                    budgetCategoryName(progress),
                     if (progress.hasValidLimit) percentText else stringResource(R.string.budget_invalid_limit)
                 )
                 LinearProgressIndicator(
@@ -652,9 +654,16 @@ private fun CategoryBudgetOption(
         )
         Spacer(modifier = Modifier.width(10.dp))
         Text(
-            text = category.name,
+            text = categoryDisplayName(category),
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
         )
     }
+}
+
+@Composable
+private fun budgetCategoryName(progress: BudgetProgress): String = when {
+    progress.categoryMissing -> stringResource(R.string.category_missing_reference)
+    progress.category != null -> categoryDisplayName(progress.category)
+    else -> progress.categoryName
 }
