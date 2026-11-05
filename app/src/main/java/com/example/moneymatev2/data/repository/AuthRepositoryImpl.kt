@@ -3,6 +3,7 @@ package com.example.moneymatev2.data.repository
 import android.content.Context
 import com.example.moneymatev2.domain.model.AppResult
 import com.example.moneymatev2.domain.model.AuthError
+import com.example.moneymatev2.domain.model.PasswordResetError
 import com.example.moneymatev2.domain.model.UserModel
 import com.example.moneymatev2.domain.repository.AuthRepository
 import com.example.moneymatev2.data.remote.sync.AuthSessionVersion
@@ -16,6 +17,7 @@ import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
+import com.google.firebase.FirebaseTooManyRequestsException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -23,6 +25,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import java.io.IOException
 import javax.inject.Inject
 class AuthRepositoryImpl @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
@@ -93,6 +96,25 @@ class AuthRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             AppResult.Failure(e.toAuthError())
         }
+    }
+
+    override suspend fun sendPasswordResetEmail(email: String): AppResult<Unit> = try {
+        firebaseAuth.sendPasswordResetEmail(email).await()
+        AppResult.Success(Unit)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: FirebaseAuthInvalidUserException) {
+        // Older Firebase configurations can expose an unknown address. Keep the
+        // response indistinguishable from an accepted request.
+        AppResult.Success(Unit)
+    } catch (_: FirebaseNetworkException) {
+        AppResult.Failure(PasswordResetError.Network)
+    } catch (_: IOException) {
+        AppResult.Failure(PasswordResetError.Network)
+    } catch (_: FirebaseTooManyRequestsException) {
+        AppResult.Failure(PasswordResetError.TooManyRequests)
+    } catch (_: Exception) {
+        AppResult.Failure(PasswordResetError.Unavailable)
     }
 
     override suspend fun signOut() {

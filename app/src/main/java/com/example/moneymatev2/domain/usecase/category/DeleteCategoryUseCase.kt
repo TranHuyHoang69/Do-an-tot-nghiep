@@ -23,6 +23,8 @@ class DeleteCategoryUseCase @Inject constructor(
             CategoryRepository.ArchiveResult.ARCHIVED -> AppResult.Success(Unit)
             CategoryRepository.ArchiveResult.IN_USE -> AppResult.Failure(TransactionError.CategoryInUse)
             CategoryRepository.ArchiveResult.INVALID -> AppResult.Failure(TransactionError.CategoryNotSelected)
+            CategoryRepository.ArchiveResult.DEFAULT_PROTECTED ->
+                AppResult.Failure(TransactionError.DefaultCategoryCannotBeDeleted)
             CategoryRepository.ArchiveResult.REPLACEMENT_REQUIRED ->
                 AppResult.Failure(TransactionError.CategoryReplacementRequired)
         }

@@ -7,7 +7,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.moneymatev2.core.util.TimeRangeCalculator
-import com.example.moneymatev2.core.util.groupByCategory
 import com.example.moneymatev2.data.local.entity.TransactionType
 import com.example.moneymatev2.domain.model.GroupedTransaction
 import com.example.moneymatev2.domain.model.TransactionWithCategory
@@ -16,10 +15,11 @@ import com.example.moneymatev2.domain.usecase.transaction.GetTransactionWithCate
 import com.example.moneymatev2.navigation.HomeNavKeys
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -66,61 +66,102 @@ class HistoryViewModel @Inject constructor(
     var sortType by mutableStateOf(DetailSortType.DATE_DESC)
         private set
 
-    private val allTransaction = getTransactionWithCategoryUseCase()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    private var latestTransactions: List<TransactionWithCategory> = emptyList()
+    private var sourceReady = false
+    private var recomputeJob: Job? = null
+    private var localizedDefaultNames: Map<Int, String> = emptyMap()
 
     private val _groupedItems = MutableStateFlow<List<GroupedTransaction>>(emptyList())
     val groupedItems: StateFlow<List<GroupedTransaction>> = _groupedItems
+    private val _visibleTransactions = MutableStateFlow<List<TransactionWithCategory>>(emptyList())
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading: StateFlow<Boolean> = _isLoading
+    private val _loadError = MutableStateFlow(false)
+    val loadError: StateFlow<Boolean> = _loadError
+    private val _hasTransactionsInPeriod = MutableStateFlow(false)
+    val hasTransactionsInPeriod: StateFlow<Boolean> = _hasTransactionsInPeriod
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery
+    private val _searchOpen = MutableStateFlow(false)
+    val searchOpen: StateFlow<Boolean> = _searchOpen
+    private val _searchError = MutableStateFlow<HistorySearchQuery?>(null)
+    val searchError: StateFlow<HistorySearchQuery?> = _searchError
 
     init {
         viewModelScope.launch {
-            allTransaction.collect { recompute(it) } // recompute giờ là suspend fun, gọi trực tiếp trong coroutine đang chạy là hợp lệ
+            getTransactionWithCategoryUseCase().catch {
+                recomputeJob?.cancel()
+                sourceReady = false
+                latestTransactions = emptyList()
+                _visibleTransactions.value = emptyList()
+                _groupedItems.value = emptyList()
+                _hasTransactionsInPeriod.value = false
+                _loadError.value = true
+                _isLoading.value = false
+            }.collect { source ->
+                latestTransactions = source
+                sourceReady = true
+                _loadError.value = false
+                scheduleRecompute()
+            }
         }
     }
 
-    // Chuyển thành suspend + withContext(Dispatchers.Default) -> toàn bộ filter/group/sort
-    // chạy trên thread pool nền, không chiếm main thread khi danh sách giao dịch lớn.
-    private suspend fun recompute(source: List<TransactionWithCategory>) {
-        val result = withContext(Dispatchers.Default) {
-            val (start, end) = if (selectedPeriod == HomePeriod.CUSTOM) {
-                (customRangeStart ?: anchorDate) to (customRangeEnd ?: (anchorDate + 24 * 60 * 60 * 1000L))
-            } else {
-                TimeRangeCalculator.getTimeRange(selectedPeriod, anchorDate)
-            }
-
-            val inRange = source.filter { it.transaction.createdAt in start until end }
-            val grouped = inRange.groupByCategory(selectedType)
-
-            when (sortType) {
-                DetailSortType.DATE_DESC -> grouped.sortedByDescending { it.latestTransactionAt }
-                DetailSortType.AMOUNT_DESC -> grouped.sortedByDescending { it.totalAmount }
-            }
+    private fun scheduleRecompute(debounceMs: Long = 0) {
+        if (!sourceReady) return
+        val source = latestTransactions
+        val filters = HistorySearchFilters(selectedPeriod, anchorDate, selectedType, customRangeStart,
+            customRangeEnd, sortType, _searchQuery.value, localizedDefaultNames)
+        recomputeJob?.cancel()
+        _isLoading.value = true
+        recomputeJob = viewModelScope.launch {
+            if (debounceMs > 0) delay(debounceMs)
+            val result = withContext(Dispatchers.Default) { HistorySearchEngine.search(source, filters) }
+            _visibleTransactions.value = result.transactions
+            _groupedItems.value = result.groups
+            _hasTransactionsInPeriod.value = result.hasPeriodTransactions
+            _searchError.value = result.error
+            _isLoading.value = false
         }
-        _groupedItems.value = result
     }
 
-    // Các hàm dưới đây gọi recompute() (suspend) -> phải bọc trong viewModelScope.launch
-    // vì onPeriodChange/onTypeChange/... bản thân KHÔNG phải suspend (được gọi trực tiếp từ UI,
-    // Compose callback không chấp nhận suspend fun).
+    fun openSearch() { _searchOpen.value = true }
+
+    fun closeSearch() {
+        _searchOpen.value = false
+        _searchQuery.value = ""
+        scheduleRecompute()
+    }
+
+    fun onSearchQueryChange(query: String) {
+        _searchQuery.value = query
+        scheduleRecompute(debounceMs = if (query.isBlank()) 0 else 120)
+    }
+
+    fun onSearchCategoryLabelsChange(labels: Map<Int, String>) {
+        if (localizedDefaultNames == labels) return
+        localizedDefaultNames = labels
+        scheduleRecompute()
+    }
 
     fun onPeriodChange(period: HomePeriod) {
         selectedPeriod = period
-        viewModelScope.launch { recompute(allTransaction.value) }
+        scheduleRecompute()
     }
 
     fun onTypeChange(type: TransactionType) {
         selectedType = type
-        viewModelScope.launch { recompute(allTransaction.value) }
+        scheduleRecompute()
     }
 
     fun moveTimeRange(delta: Int) {
         anchorDate = TimeRangeCalculator.moveAnchor(selectedPeriod, anchorDate, delta)
-        viewModelScope.launch { recompute(allTransaction.value) }
+        scheduleRecompute()
     }
 
     fun onSortTypeChange(type: DetailSortType) {
         sortType = type
-        viewModelScope.launch { recompute(allTransaction.value) }
+        scheduleRecompute()
     }
 
     fun setCustomRange(start: Long, end: Long) {
@@ -128,7 +169,7 @@ class HistoryViewModel @Inject constructor(
         customRangeStart = start
         customRangeEnd = end + 24 * 60 * 60 * 1000L
         anchorDate = start
-        viewModelScope.launch { recompute(allTransaction.value) }
+        scheduleRecompute()
     }
 
     fun getDisplayTime(): String {
@@ -157,16 +198,6 @@ class HistoryViewModel @Inject constructor(
         return end <= System.currentTimeMillis()
     }
 
-    fun getTransactionsInGroup(categoryIdentityKey: String): List<TransactionWithCategory> {
-        val (start, end) = if (selectedPeriod == HomePeriod.CUSTOM) {
-            (customRangeStart ?: anchorDate) to (customRangeEnd ?: (anchorDate + 24 * 60 * 60 * 1000L))
-        } else {
-            TimeRangeCalculator.getTimeRange(selectedPeriod, anchorDate)
-        }
-        return allTransaction.value.filter {
-            it.transaction.type == selectedType &&
-                    it.transaction.createdAt in start until end &&
-                    it.category.categoryIdentityKey() == categoryIdentityKey
-        }
-    }
+    fun getTransactionsInGroup(categoryIdentityKey: String): List<TransactionWithCategory> =
+        _visibleTransactions.value.filter { it.category.categoryIdentityKey() == categoryIdentityKey }
 }

@@ -33,6 +33,18 @@
     <string name="user_name">Tên người dùng</string>
     <string name="email" translatable="false">Email</string>
     <string name="password">Mật khẩu</string>
+    <string name="password_reset_title">Quên mật khẩu</string>
+    <string name="password_reset_link">Quên mật khẩu?</string>
+    <string name="password_reset_description">Nhập địa chỉ email của bạn để nhận hướng dẫn đặt lại mật khẩu.</string>
+    <string name="password_reset_send">Gửi yêu cầu</string>
+    <string name="password_reset_back_to_login">Quay lại đăng nhập</string>
+    <string name="password_reset_invalid_email">Vui lòng nhập địa chỉ email hợp lệ.</string>
+    <string name="password_reset_empty_email">Vui lòng nhập địa chỉ email.</string>
+    <string name="password_reset_accepted">Nếu email này được liên kết với tài khoản hỗ trợ đặt lại mật khẩu, bạn sẽ nhận được hướng dẫn qua email. Vui lòng kiểm tra cả thư mục Spam.</string>
+    <string name="password_reset_network_error">Không có kết nối Internet. Vui lòng kết nối và thử lại.</string>
+    <string name="password_reset_too_many_requests">Có quá nhiều yêu cầu. Vui lòng thử lại sau.</string>
+    <string name="password_reset_unavailable">Không thể gửi yêu cầu lúc này. Vui lòng thử lại sau.</string>
+    <string name="password_reset_google_hint">Nếu bạn dùng tài khoản Google, hãy đăng nhập bằng Google.</string>
     <string name="login">Đăng nhập</string>
     <string name="register">Đăng ký</string>
     <string name="no_account">Chưa có tài khoản?</string>
@@ -50,6 +62,13 @@
     <string name="income">Thu nhập</string>
     <string name="amount">Số tiền</string>
     <string name="category_management">Quản lý danh mục</string>
+    <string name="category_manage_actions">Quản lý danh mục</string>
+    <string name="category_default_actions_blocked">Không thể chỉnh sửa/xóa danh mục mặc định</string>
+    <string name="edit_category_action">Chỉnh sửa</string>
+    <string name="edit_category_title">Chỉnh sửa danh mục</string>
+    <string name="save_category_changes">Lưu thay đổi</string>
+    <string name="category_load_failed">Không thể tải danh mục để chỉnh sửa</string>
+    <string name="google_sign_in_failed">Đăng nhập Google không thành công. Vui lòng thử lại.</string>
     <string name="category_delete_title">Xóa danh mục</string>
     <string name="category_delete_warning">Vui lòng chọn danh mục thay thế cho các giao dịch thuộc danh mục sắp xóa.</string>
     <string name="category_delete_confirm_empty">Bạn có chắc muốn xóa danh mục này không?</string>
@@ -62,6 +81,7 @@
     <string name="category_no_replacement">Không có danh mục khác cùng loại để thay thế. Hãy tạo thêm danh mục trước.</string>
     <string name="category_delete_success">Đã xóa danh mục</string>
     <string name="category_delete_failed">Không thể xóa danh mục. Vui lòng thử lại.</string>
+    <string name="category_delete_default_protected">Không thể xóa danh mục mặc định.</string>
     <string name="category_delete_invalid">Danh mục đã thay đổi. Vui lòng chọn lại.</string>
     <string name="category_delete_in_use">Danh mục đang được dùng trong ngân sách hoặc giao dịch định kỳ. Hãy xóa các mục liên quan trước.</string>
     <string name="category_delete_in_budget">Danh mục đang được dùng trong ngân sách. Hãy xử lý ngân sách liên quan trước khi xóa danh mục.</string>
@@ -97,6 +117,23 @@
     <string name="add_category_title">Thêm danh mục</string>
     <string name="category_name">Tên danh mục</string>
     <string name="category_color">Màu danh mục</string>
+    <string name="category_save_failed">Không thể lưu danh mục</string>
+    <string name="category_color_red">Màu đỏ</string>
+    <string name="category_color_pink">Màu hồng</string>
+    <string name="category_color_purple">Màu tím</string>
+    <string name="category_color_deep_purple">Màu tím đậm</string>
+    <string name="category_color_indigo">Màu chàm</string>
+    <string name="category_color_blue">Màu xanh dương</string>
+    <string name="category_color_light_blue">Màu xanh dương nhạt</string>
+    <string name="category_color_cyan">Màu xanh lơ</string>
+    <string name="category_color_teal">Màu xanh ngọc</string>
+    <string name="category_color_green">Màu xanh lá</string>
+    <string name="category_color_light_green">Màu xanh lá nhạt</string>
+    <string name="category_color_lime">Màu xanh chanh</string>
+    <string name="category_color_amber">Màu vàng hổ phách</string>
+    <string name="category_color_orange">Màu cam</string>
+    <string name="category_color_brown">Màu nâu</string>
+    <string name="category_color_blue_grey">Màu xanh xám</string>
     <string name="category_icon">Biểu tượng danh mục</string>
     <string name="category_finance">Tài chính</string>
     <string name="category_food">Ăn uống</string>
@@ -111,6 +148,17 @@
     <string name="sort_by_time">Theo thời gian</string>
     <string name="sort_by_amount">Theo số tiền</string>
     <string name="history_title">Lịch sử giao dịch</string>
+    <string name="history_search_open">Tìm kiếm giao dịch</string>
+    <string name="history_search_back">Đóng tìm kiếm</string>
+    <string name="history_search_clear">Xóa từ khóa</string>
+    <string name="history_search_hint">Tìm giao dịch...</string>
+    <string name="history_search_guide">Tìm theo ghi chú, danh mục hoặc số tiền. Khoảng tiền: 50000-200000.</string>
+    <string name="history_previous_period">Kỳ trước</string>
+    <string name="history_next_period">Kỳ sau</string>
+    <string name="history_search_no_results">Không tìm thấy giao dịch phù hợp.</string>
+    <string name="history_search_load_error">Không thể tải lịch sử giao dịch.</string>
+    <string name="history_search_invalid_amount">Số tiền không hợp lệ. Nhập số nguyên VND, ví dụ 50.000.</string>
+    <string name="history_search_invalid_range">Khoảng tiền không hợp lệ. Nhập số nhỏ trước số lớn, ví dụ 50.000-200.000.</string>
 
 <!--    SettingsScreen-->
     <string name="customization_title">Tùy chỉnh</string>

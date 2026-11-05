@@ -20,7 +20,7 @@
     <string name="statistics_income_short">Income</string>
     <string name="statistics_expense_short">Expense</string>
     <string name="statistics_empty">No data available</string>
-    <string name="statistics_error">Failed to load data</string>
+    <string name="statistics_error">Unable to load statistics.</string>
     <string name="statistics_other">Other</string>
     <string name="statistics_month">Month %1$d</string>
     <string name="statistics_percent">%1$d%%</string>

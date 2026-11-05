@@ -187,6 +187,13 @@ private fun EmptyStatistics() {
     Box(Modifier.fillMaxWidth().height(150.dp), Alignment.Center) { Text(stringResource(StringRes.statistics_empty), color = MaterialTheme.colorScheme.onSurfaceVariant) }
 }
 
+@Composable
+private fun StatisticsErrorState() {
+    Box(Modifier.fillMaxWidth().heightIn(min = 150.dp).padding(16.dp), Alignment.Center) {
+        Text(stringResource(StringRes.statistics_error), color = MaterialTheme.colorScheme.error)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StatisticsTimeRangeSheet(selected: StatisticsPeriod, appliedRange: StatisticsRange, onDismiss: () -> Unit, onApply: (StatisticsPeriod, StatisticsRange?) -> Unit) {
@@ -276,7 +283,7 @@ fun CategoryBreakdownScreen(onBack: () -> Unit, onCategory: (Long, Long, String)
         SimpleHeader(stringResource(StringRes.statistics_categories), StatisticsDates.label(range), onBack)
         when (val ready = state) {
             StatisticsState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
-            StatisticsState.Error -> EmptyStatistics()
+            StatisticsState.Error -> StatisticsErrorState()
             is StatisticsState.Ready -> {
                 val snap = ready.snapshot
                 LazyColumn(contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -328,7 +335,7 @@ fun MonthlyTrendsScreen(onBack: () -> Unit, onMonth: (Long, Long) -> Unit, viewM
         }
         when (val ready = state) {
             StatisticsState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
-            StatisticsState.Error -> EmptyStatistics()
+            StatisticsState.Error -> StatisticsErrorState()
             is StatisticsState.Ready -> {
                 val months = ready.monthly
                 LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -374,7 +381,7 @@ fun CategoryTransactionsScreen(categoryId: String, onBack: () -> Unit, onTransac
         SimpleHeader(group?.let { categoryName(it.category) } ?: stringResource(StringRes.statistics_categories), StatisticsDates.label(range), onBack, group?.category)
         when (state) {
             StatisticsState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
-            StatisticsState.Error -> EmptyStatistics()
+            StatisticsState.Error -> StatisticsErrorState()
             is StatisticsState.Ready -> if (group == null) EmptyStatistics() else {
                 LazyColumn(contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     item {

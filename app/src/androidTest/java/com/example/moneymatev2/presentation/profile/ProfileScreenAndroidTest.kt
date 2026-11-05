@@ -6,8 +6,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -35,7 +33,7 @@ import org.junit.runner.RunWith
 class ProfileScreenAndroidTest {
     @get:Rule val rule = createComposeRule()
 
-    @Test fun menuAndDeletionDialogsDoNotDeleteAccount() {
+    @Test fun profileKeepsDetailsAndMenuWithoutUnfinishedDeletionEntry() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val auth = FakeAuth()
         val vm = ProfileViewModel(auth, FakeUsers())
@@ -51,17 +49,8 @@ class ProfileScreenAndroidTest {
         rule.onNodeWithContentDescription(context.getString(R.string.profile_menu)).performClick()
         rule.runOnIdle { assertEquals(1, menuOpens) }
 
-        rule.onNodeWithText(context.getString(R.string.profile_delete)).performClick()
-        rule.onNodeWithText(context.getString(R.string.profile_delete_confirmation)).assertIsDisplayed()
-        rule.onNodeWithText(context.getString(R.string.cancel)).performClick()
+        rule.onNodeWithText(context.getString(R.string.profile_delete)).assertDoesNotExist()
         rule.onNodeWithText(context.getString(R.string.profile_delete_confirmation)).assertDoesNotExist()
-        rule.runOnIdle { assertEquals(0, auth.signOutCalls) }
-
-        rule.onNodeWithText(context.getString(R.string.profile_delete)).performClick()
-        rule.onNodeWithText(context.getString(R.string.profile_delete_confirmation)).assertIsDisplayed()
-        rule.onNodeWithTag("profile_delete_confirm").performClick()
-        rule.onNodeWithText(context.getString(R.string.profile_deletion_unavailable)).assertIsDisplayed()
-        rule.onNodeWithTag("profile_delete_final").assertIsNotEnabled()
         rule.runOnIdle { assertEquals(0, auth.signOutCalls) }
     }
 
@@ -137,6 +126,7 @@ class ProfileScreenAndroidTest {
         override suspend fun signIn(email: String, password: String): AppResult<UserModel> = error("unused")
         override suspend fun signUp(email: String, password: String, displayName: String): AppResult<UserModel> = error("unused")
         override suspend fun signInWithGoogle(idToken: String): AppResult<UserModel> = error("unused")
+        override suspend fun sendPasswordResetEmail(email: String): AppResult<Unit> = error("unused")
         override suspend fun signOut() { signOutCalls++; account.value = null }
     }
 

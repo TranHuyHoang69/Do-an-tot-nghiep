@@ -20,7 +20,7 @@
     <string name="statistics_income_short">Thu</string>
     <string name="statistics_expense_short">Chi</string>
     <string name="statistics_empty">Không có dữ liệu</string>
-    <string name="statistics_error">Lỗi tải dữ liệu</string>
+    <string name="statistics_error">Không thể tải dữ liệu thống kê.</string>
     <string name="statistics_other">Khác</string>
     <string name="statistics_month">Tháng %1$d</string>
     <string name="statistics_percent">%1$d%%</string>

@@ -111,7 +111,7 @@ class CategoryOwnershipTest {
         val delete = mock(DeleteCategoryUseCase::class.java)
         val viewModel = CategoryManagementViewModel(categories, auth, delete)
         try {
-            viewModel.inspectCategoryDeletion(category("a"))
+            viewModel.inspectCategoryDeletion(category("a").copy(stableId = null, isDefault = false))
             viewModel.cancelCategoryDeletion()
             advanceUntilIdle()
             assertEquals(CategoryDeletePreview.Idle, viewModel.deletePreview.value)
@@ -124,7 +124,7 @@ class CategoryOwnershipTest {
         `when`(categories.getDeletionUsage("a", "legacy")).thenThrow(IllegalStateException("query failed"))
         val viewModel = CategoryManagementViewModel(categories, auth, delete)
         try {
-            viewModel.inspectCategoryDeletion(category("a"))
+            viewModel.inspectCategoryDeletion(category("a").copy(stableId = null, isDefault = false))
             advanceUntilIdle()
             assertTrue(viewModel.deletePreview.value is CategoryDeletePreview.Failed)
             verifyNoInteractions(delete)
@@ -133,7 +133,7 @@ class CategoryOwnershipTest {
 
     @Test fun categoryDeleteReportsFailureAndAllowsRetryWithoutDoubleSubmit() = runTest(dispatcher) {
         val delete = mock(DeleteCategoryUseCase::class.java)
-        val source = category("a")
+        val source = category("a").copy(stableId = null, isDefault = false)
         val replacement = source.copy(id = "replacement")
         `when`(delete.invoke("a", source.id, replacement.id))
             .thenReturn(AppResult.Failure(TransactionError.CategoryInUse))
@@ -255,6 +255,23 @@ class CategoryOwnershipTest {
                 RecurringFrequency.MONTHLY, 100, "UTC", false)
             advanceUntilIdle()
             verifyNoInteractions(recurring)
+        } finally { viewModel.viewModelScope.cancel() }
+    }
+
+    @Test fun defaultDeleteEventRejectsImmediatelyWithoutLoadingOrSuccess() = runTest(dispatcher) {
+        val delete = mock(DeleteCategoryUseCase::class.java)
+        val viewModel = CategoryManagementViewModel(categories, auth, delete)
+        try {
+            val source = category("a")
+            viewModel.inspectCategoryDeletion(source)
+            assertEquals(CategoryDeletePreview.Failed("a", source.id,
+                TransactionError.DefaultCategoryCannotBeDeleted), viewModel.deletePreview.value)
+            viewModel.deleteCategory(source)
+            advanceUntilIdle()
+            assertFalse(viewModel.isDeleting.value)
+            assertEquals(CategoryManagementViewModel.DeleteCategoryEvent.Failed(
+                TransactionError.DefaultCategoryCannotBeDeleted), viewModel.deleteEvents.first())
+            verifyNoInteractions(delete, categories)
         } finally { viewModel.viewModelScope.cancel() }
     }
 

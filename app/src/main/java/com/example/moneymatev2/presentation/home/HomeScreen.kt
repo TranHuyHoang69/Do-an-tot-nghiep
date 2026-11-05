@@ -43,15 +43,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.moneymatev2.StringRes
+import com.example.moneymatev2.R
 import com.example.moneymatev2.data.local.entity.TransactionType
 import com.example.moneymatev2.domain.model.categoryIdentityKey
 import com.example.moneymatev2.presentation.theme.AppTopBarColor
+import com.example.moneymatev2.presentation.theme.AppTopBarContentColor
+import com.example.moneymatev2.presentation.theme.AppTopBarTabContainerColor
+import com.example.moneymatev2.presentation.theme.AppTopBarTabSelectedColor
 import com.example.moneymatev2.presentation.theme.StringResource
 import com.example.moneymatev2.core.util.CurrencyFormatter
 import com.example.moneymatev2.ui.components.MorphingChartSection
@@ -195,7 +200,7 @@ fun HomeScreen(
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
-                contentDescription = "Add Transaction",
+                contentDescription = stringResource(StringRes.add_transaction_title),
                 tint = MaterialTheme.colorScheme.onSecondaryContainer
             )
         }
@@ -277,7 +282,7 @@ fun HeaderSection(
             IconButton(onClick = onMenuClick) {
                 Icon(
                     imageVector = Icons.Default.Menu,
-                    contentDescription = "Menu",
+                    contentDescription = stringResource(R.string.profile_menu),
                     tint = Color.White
                 )
             }
@@ -315,7 +320,7 @@ fun HeaderSection(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f))
+                .background(AppTopBarTabContainerColor)
                 .padding(4.dp)
         ) {
             listOf(
@@ -327,7 +332,7 @@ fun HeaderSection(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
                         .background(
-                            if (isSelected) MaterialTheme.colorScheme.onPrimary.copy(0.2f)
+                            if (isSelected) AppTopBarTabSelectedColor
                             else Color.Transparent
                         )
                         .clickable { onTabSelected(type) }
@@ -337,7 +342,7 @@ fun HeaderSection(
                         text = title,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = AppTopBarContentColor
                     )
                 }
             }

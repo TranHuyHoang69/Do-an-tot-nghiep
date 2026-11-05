@@ -5,6 +5,7 @@ sealed class TransactionError {
     object CategoryNotSelected: TransactionError()
     object CategoryInUse: TransactionError()
     object CategoryReplacementRequired: TransactionError()
+    object DefaultCategoryCannotBeDeleted: TransactionError()
     object NotAuthenticated: TransactionError()
     object InvalidCategoryName: TransactionError() // mới thêm
     data class UnknownError(val message: String): TransactionError()

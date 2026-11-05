@@ -180,6 +180,9 @@ class SyncWorkerDelegateTest {
         override suspend fun signInWithGoogle(idToken: String): AppResult<UserModel> =
             throw UnsupportedOperationException()
 
+        override suspend fun sendPasswordResetEmail(email: String): AppResult<Unit> =
+            throw UnsupportedOperationException()
+
         override suspend fun signOut() {
             throw UnsupportedOperationException()
         }
@@ -203,6 +206,9 @@ class SyncWorkerDelegateTest {
         ): AppResult<UserModel> = throw UnsupportedOperationException()
 
         override suspend fun signInWithGoogle(idToken: String): AppResult<UserModel> =
+            throw UnsupportedOperationException()
+
+        override suspend fun sendPasswordResetEmail(email: String): AppResult<Unit> =
             throw UnsupportedOperationException()
 
         override suspend fun signOut() {

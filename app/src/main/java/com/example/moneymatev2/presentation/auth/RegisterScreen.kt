@@ -3,6 +3,8 @@ package com.example.moneymatev2.presentation.auth
 import com.example.moneymatev2.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -42,6 +45,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -64,20 +68,25 @@ fun RegisterScreen(
     var emailState by remember { mutableStateOf("") }
     var userNameState by remember { mutableStateOf("") }
     var passwordState by remember { mutableStateOf("") }
+    var googleSignInFailed by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
     val activity = context as Activity
     val launcher = rememberLauncherForActivityResult(contract = ActivityResultContracts.StartActivityForResult()) { result ->
-        val data = result.data
-        val task = GoogleSignIn.getSignedInAccountFromIntent(data)
         try {
-            val account = task.getResult(ApiException::class.java)
+            val account = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                .getResult(ApiException::class.java)
             val idToken = account?.idToken
-            if (idToken != null) {
+            if (idToken.isNullOrBlank()) {
+                googleSignInFailed = true
+            } else {
+                googleSignInFailed = false
                 viewModel.signInWithGoogleToken(idToken)
             }
-        } catch (e: Exception) {
-            // ignore
+        } catch (e: ApiException) {
+            googleSignInFailed = !isGoogleSignInCancelled(e.statusCode)
+        } catch (_: Exception) {
+            googleSignInFailed = true
         }
     }
     val isLoading = uiState is AuthUiState.Loading
@@ -126,7 +135,8 @@ fun RegisterScreen(
                 tonalElevation = 8.dp
             ) {
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(32.dp),
+                    modifier = Modifier.fillMaxSize().imePadding()
+                        .verticalScroll(rememberScrollState()).padding(32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     RegisterEmailInputField(email = emailState, onEmailChange = {emailState = it})
@@ -217,16 +227,27 @@ fun RegisterScreen(
 
                     GoogleLoginButton(
                         onClick = {
-                            val gso =
-                                GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                                    .requestIdToken(context.getString(R.string.default_web_client_id))
-                                    .requestEmail()
-                                    .build()
-                            val googleSignInClient = GoogleSignIn.getClient(activity, gso)
-                            launcher.launch(googleSignInClient.signInIntent)
+                            googleSignInFailed = false
+                            viewModel.clearError()
+                            try {
+                                val gso =
+                                    GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                                        .requestIdToken(context.getString(R.string.default_web_client_id))
+                                        .requestEmail()
+                                        .build()
+                                val googleSignInClient = GoogleSignIn.getClient(activity, gso)
+                                launcher.launch(googleSignInClient.signInIntent)
+                            } catch (_: Exception) {
+                                googleSignInFailed = true
+                            }
                         },
                         isLoading = isLoading
                     )
+                    if (googleSignInFailed) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(stringResource(R.string.google_sign_in_failed),
+                            color = MaterialTheme.colorScheme.error, fontSize = 14.sp)
+                    }
                 }
             }
         }

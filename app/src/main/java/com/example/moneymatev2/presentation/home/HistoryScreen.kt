@@ -5,6 +5,7 @@ import com.example.moneymatev2.ui.item.categoryDisplayName
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -15,19 +16,33 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.moneymatev2.StringRes
+import com.example.moneymatev2.R
 import com.example.moneymatev2.data.local.entity.TransactionType
 import com.example.moneymatev2.domain.model.GroupedTransaction
 import com.example.moneymatev2.domain.model.TransactionWithCategory
@@ -46,6 +61,44 @@ fun HistoryScreen(
     onTransactionClick: (String) -> Unit = {}
 ) {
     val groupedItems by viewModel.groupedItems.collectAsState()
+    val searchOpen by viewModel.searchOpen.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val searchError by viewModel.searchError.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val loadError by viewModel.loadError.collectAsState()
+    val hasTransactionsInPeriod by viewModel.hasTransactionsInPeriod.collectAsState()
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val localizedDefaultNames = mapOf(
+        R.string.statistics_default_food to stringResource(R.string.statistics_default_food),
+        R.string.statistics_default_shopping to stringResource(R.string.statistics_default_shopping),
+        R.string.statistics_default_health to stringResource(R.string.statistics_default_health),
+        R.string.statistics_default_transport to stringResource(R.string.statistics_default_transport),
+        R.string.statistics_default_gift to stringResource(R.string.statistics_default_gift),
+        R.string.statistics_default_entertainment to stringResource(R.string.statistics_default_entertainment),
+        R.string.statistics_default_other to stringResource(R.string.statistics_default_other),
+        R.string.statistics_default_salary to stringResource(R.string.statistics_default_salary)
+    )
+    LaunchedEffect(localizedDefaultNames) { viewModel.onSearchCategoryLabelsChange(localizedDefaultNames) }
+    LaunchedEffect(searchOpen) {
+        if (searchOpen) {
+            focusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
+    val closeSearch = {
+        keyboardController?.hide()
+        focusManager.clearFocus()
+        viewModel.closeSearch()
+    }
+    val imeVisible = WindowInsets.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) > 0
+    BackHandler(enabled = searchOpen) {
+        if (imeVisible) {
+            keyboardController?.hide()
+            focusManager.clearFocus()
+        } else closeSearch()
+    }
 
     val expenseColor = MaterialTheme.colorScheme.error
     val incomeColor = MaterialTheme.colorScheme.primary
@@ -108,27 +161,56 @@ fun HistoryScreen(
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     // Đổi onOpenDrawer -> onBack: app không dùng Navigation Drawer,
                     // History là 1 destination độc lập, cần mũi tên quay lại.
-                    IconButton(onClick = onOpenDrawer) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Menu",
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-
-                            modifier = Modifier.size(28.dp)
+                    if (searchOpen) {
+                        IconButton(onClick = closeSearch) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.history_search_back),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                        }
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = viewModel::onSearchQueryChange,
+                            modifier = Modifier.weight(1f).focusRequester(focusRequester),
+                            placeholder = { Text(stringResource(R.string.history_search_hint), maxLines = 1) },
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Text, imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(onSearch = { keyboardController?.hide() }),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent)
                         )
+                        IconButton(onClick = { viewModel.onSearchQueryChange("") },
+                            enabled = searchQuery.isNotEmpty()) {
+                            Icon(Icons.Default.Close,
+                                contentDescription = stringResource(R.string.history_search_clear),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                        }
+                    } else {
+                        IconButton(onClick = onOpenDrawer) {
+                            Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.profile_menu),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(28.dp))
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(text = stringResource(StringRes.history_title),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(modifier = Modifier.weight(1f))
+                        IconButton(onClick = viewModel::openSearch) {
+                            Icon(Icons.Default.Search,
+                                contentDescription = stringResource(R.string.history_search_open),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                        }
                     }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(
-                        text = stringResource(StringRes.history_title),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
                 }
             }
         }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+        Column(modifier = Modifier.padding(padding).fillMaxSize().imePadding()) {
 
             Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
                 Row(
@@ -175,17 +257,40 @@ fun HistoryScreen(
                 onRangeClick = { showDatePicker = true }
             )
 
-            SummaryRow(
+            if (searchOpen && searchQuery.isBlank()) {
+                Text(
+                    text = stringResource(R.string.history_search_guide),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            if (!isLoading && !loadError && searchError == null) SummaryRow(
                 totalAmount = groupedItems.sumOf { it.totalAmount },
                 themeColor = themeColor,
                 currentSortType = viewModel.sortType,
                 onSortChange = { viewModel.onSortTypeChange(it) }
             )
 
-            if (groupedItems.isEmpty()) {
+            if (isLoading) {
+                Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+            } else if (loadError) {
+                Box(Modifier.fillMaxSize().padding(24.dp), Alignment.Center) {
+                    Text(stringResource(R.string.history_search_load_error),
+                        color = MaterialTheme.colorScheme.error)
+                }
+            } else if (searchError != null) {
+                Box(Modifier.fillMaxSize().padding(24.dp), Alignment.Center) {
+                    Text(stringResource(if (searchError == HistorySearchQuery.InvalidAmountRange)
+                        R.string.history_search_invalid_range else R.string.history_search_invalid_amount),
+                        color = MaterialTheme.colorScheme.error)
+                }
+            } else if (groupedItems.isEmpty()) {
                 Box(Modifier.fillMaxSize(), Alignment.Center) {
                     Text(
-                        text = stringResource(StringRes.dont_have_transaction),
+                        text = stringResource(if (searchQuery.isNotBlank() && hasTransactionsInPeriod)
+                            R.string.history_search_no_results else StringRes.dont_have_transaction),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -212,6 +317,11 @@ fun HistoryScreen(
         }
     }
 
+    LaunchedEffect(groupedItems, isLoading) {
+        if (!isLoading && expandedGroupKey != null && groupedItems.none {
+                (it.category.categoryIdentityKey() ?: it.category.id) == expandedGroupKey
+            }) expandedGroupKey = null
+    }
     expandedGroupKey?.let { key ->
         val transactions = remember(key, groupedItems) { viewModel.getTransactionsInGroup(key) }
         TransactionDetailDialog(transactions = transactions, onDismiss = { expandedGroupKey = null },
@@ -236,7 +346,7 @@ fun CompactTimeNavigation(
             .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(modifier = Modifier.fillMaxWidth()) {
             val modes = listOf(
                 HomePeriod.DAY to stringResource(StringRes.day),
                 HomePeriod.WEEK to stringResource(StringRes.week),
@@ -245,27 +355,37 @@ fun CompactTimeNavigation(
             )
             modes.forEach { (mode, label) ->
                 val isSelected = currentMode == mode
-                Text(
-                    text = label,
+                Box(
                     modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 48.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable { onModeChange(mode) }
-                        .padding(8.dp),
-                    color = if (isSelected) themeColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                    fontSize = 13.sp
-                )
+                        .selectable(selected = isSelected, role = Role.Tab) { onModeChange(mode) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(label,
+                        modifier = Modifier.padding(horizontal = 2.dp),
+                        color = if (isSelected) themeColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        fontSize = 13.sp,
+                        textAlign = TextAlign.Center)
+                }
             }
-            Text(
-                text = stringResource(StringRes.period),
+            Box(
                 modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 48.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .clickable { onRangeClick() }
-                    .padding(8.dp),
-                color = if (currentMode == HomePeriod.CUSTOM) themeColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = if (currentMode == HomePeriod.CUSTOM) FontWeight.Bold else FontWeight.Normal,
-                fontSize = 13.sp
-            )
+                    .selectable(selected = currentMode == HomePeriod.CUSTOM, role = Role.Tab) { onRangeClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(stringResource(StringRes.period),
+                    modifier = Modifier.padding(horizontal = 2.dp),
+                    color = if (currentMode == HomePeriod.CUSTOM) themeColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = if (currentMode == HomePeriod.CUSTOM) FontWeight.Bold else FontWeight.Normal,
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center)
+            }
         }
 
         Row(
@@ -277,7 +397,7 @@ fun CompactTimeNavigation(
             IconButton(onClick = onPrevious, enabled = !isCustom) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.history_previous_period),
                     tint = if (isCustom) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f) else themeColor
                 )
             }
@@ -292,7 +412,7 @@ fun CompactTimeNavigation(
             IconButton(onClick = onNext, enabled = nextState) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.history_next_period),
                     tint = if (nextState) themeColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                 )
             }

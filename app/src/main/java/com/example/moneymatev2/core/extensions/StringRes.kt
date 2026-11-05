@@ -123,6 +123,7 @@ object StringRes {
     val category_no_replacement = R.string.category_no_replacement
     val category_delete_success = R.string.category_delete_success
     val category_delete_failed = R.string.category_delete_failed
+    val category_delete_default_protected = R.string.category_delete_default_protected
     val category_delete_invalid = R.string.category_delete_invalid
     val category_delete_in_use = R.string.category_delete_in_use
     val category_delete_in_budget = R.string.category_delete_in_budget

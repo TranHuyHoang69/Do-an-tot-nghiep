@@ -5,6 +5,7 @@ import com.example.moneymatev2.presentation.home.HomePeriod
 
 sealed class Screen(val route: String){
     object Login: Screen("login")
+    object PasswordReset: Screen("password_reset")
     object Register: Screen("register")
     object Home: Screen("home")
     object AddTransaction: Screen("add_transaction")
@@ -34,6 +35,10 @@ sealed class Screen(val route: String){
         )
     }
     object AddCategory: Screen("add_category")
+    object EditCategory: Screen("edit_category/{categoryId}?categoryOwnerId={categoryOwnerId}") {
+        fun createRoute(userId: String, id: String) =
+            "edit_category/${android.net.Uri.encode(id)}?categoryOwnerId=${android.net.Uri.encode(userId)}"
+    }
     object CategoryManagement : Screen("category_management?pick={pick}") {
         fun pickRoute(): String = "category_management?pick=true"
         fun manageRoute(): String = "category_management?pick=false"

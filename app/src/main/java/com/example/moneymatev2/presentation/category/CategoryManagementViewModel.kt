@@ -3,6 +3,8 @@ package com.example.moneymatev2.presentation.category
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.moneymatev2.data.local.entity.TransactionType
+import com.example.moneymatev2.data.local.ProtectedDefaultCategory
+import com.example.moneymatev2.data.repository.DefaultCategoryDeletionException
 import com.example.moneymatev2.domain.model.AppResult
 import com.example.moneymatev2.domain.model.CategoryModel
 import com.example.moneymatev2.domain.model.TransactionError
@@ -72,6 +74,11 @@ class CategoryManagementViewModel @Inject constructor(
     val deletePreview: StateFlow<CategoryDeletePreview> = _deletePreview
 
     fun inspectCategoryDeletion(category: CategoryModel) {
+        if (ProtectedDefaultCategory.matches(category)) {
+            _deletePreview.value = CategoryDeletePreview.Failed(
+                category.userId, category.id, TransactionError.DefaultCategoryCannotBeDeleted)
+            return
+        }
         val loading = CategoryDeletePreview.Loading(category.userId, category.id)
         _deletePreview.value = loading
         viewModelScope.launch {
@@ -91,6 +98,10 @@ class CategoryManagementViewModel @Inject constructor(
                 if (!currentCoroutineContext().isActive) throw e
                 if (_deletePreview.value == loading) _deletePreview.value =
                     CategoryDeletePreview.Failed(category.userId, category.id, TransactionError.NotAuthenticated)
+            } catch (e: DefaultCategoryDeletionException) {
+                if (_deletePreview.value == loading) _deletePreview.value =
+                    CategoryDeletePreview.Failed(category.userId, category.id,
+                        TransactionError.DefaultCategoryCannotBeDeleted)
             } catch (e: IllegalArgumentException) {
                 if (_deletePreview.value == loading) _deletePreview.value =
                     CategoryDeletePreview.Failed(category.userId, category.id, TransactionError.CategoryNotSelected)
@@ -107,6 +118,12 @@ class CategoryManagementViewModel @Inject constructor(
 
     fun deleteCategory(category: CategoryModel, replacement: CategoryModel? = null) {
         if (_isDeleting.value) return
+        if (ProtectedDefaultCategory.matches(category)) {
+            viewModelScope.launch {
+                _deleteEvents.send(DeleteCategoryEvent.Failed(TransactionError.DefaultCategoryCannotBeDeleted))
+            }
+            return
+        }
         _isDeleting.value = true
         viewModelScope.launch {
             try {
@@ -127,6 +144,8 @@ class CategoryManagementViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 if (!currentCoroutineContext().isActive) throw e
                 _deleteEvents.send(DeleteCategoryEvent.Failed(TransactionError.NotAuthenticated))
+            } catch (e: DefaultCategoryDeletionException) {
+                _deleteEvents.send(DeleteCategoryEvent.Failed(TransactionError.DefaultCategoryCannotBeDeleted))
             } catch (e: Exception) {
                 _deleteEvents.send(DeleteCategoryEvent.Failed(TransactionError.UnknownError(e.message.orEmpty())))
             } finally {

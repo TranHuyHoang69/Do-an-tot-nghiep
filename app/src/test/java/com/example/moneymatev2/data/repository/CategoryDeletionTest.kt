@@ -3,6 +3,8 @@ package com.example.moneymatev2.data.repository
 import android.app.Application
 import androidx.room.Room
 import com.example.moneymatev2.data.local.AppDatabase
+import com.example.moneymatev2.data.local.CategoryStableId
+import com.example.moneymatev2.data.local.ProtectedDefaultCategory
 import com.example.moneymatev2.data.local.entity.*
 import com.example.moneymatev2.data.remote.sync.AuthSessionVersion
 import com.example.moneymatev2.data.remote.sync.PendingUploadRunner
@@ -35,6 +37,7 @@ class CategoryDeletionTest {
     private lateinit var db: AppDatabase
     private lateinit var categories: CategoryRepositoryImpl
     private lateinit var auth: AuthRepository
+    private lateinit var firestore: FirebaseFirestore
     private var uid: String? = "a"
 
     @Before fun setUp() = runBlocking {
@@ -45,7 +48,7 @@ class CategoryDeletionTest {
         `when`(auth.observeAuthState()).thenReturn(flowOf(UserModel("a", null, null, null)))
         val runner = PendingUploadRunner(db, SyncSessionGuard(auth, AuthSessionVersion()))
         val trigger = mock(SyncTrigger::class.java)
-        val firestore = mock(FirebaseFirestore::class.java)
+        firestore = mock(FirebaseFirestore::class.java)
         categories = CategoryRepositoryImpl(db.categoryDao(), firestore, trigger, runner, db)
         db.categoryDao().insertCategory(category("a", "old"))
         db.categoryDao().insertCategory(category("a", "new"))
@@ -66,6 +69,107 @@ class CategoryDeletionTest {
         id, owner, TransactionType.EXPENSE, 100, "VND", categoryId, null,
         SyncStatus.SYNCED, operation, isDeleted = deleted, createdAt = 10, updatedAt = 20
     )
+
+    @Test fun allEightDefaultsRejectEveryArchiveEntryPointWithoutChangingReferences() = runBlocking {
+        val ids = listOf(CategoryStableId.SPEND_FOOD, CategoryStableId.SPEND_SHOPPING,
+            CategoryStableId.SPEND_HEALTH, CategoryStableId.SPEND_TRANSPORT,
+            CategoryStableId.SPEND_GIFT, CategoryStableId.SPEND_ENTERTAINMENT,
+            CategoryStableId.SPEND_OTHER, CategoryStableId.INCOME_SALARY)
+        ids.forEach { stableId ->
+            val type = if (stableId == CategoryStableId.INCOME_SALARY)
+                TransactionType.INCOME else TransactionType.EXPENSE
+            val row = category("a", stableId).copy(stableId = stableId, isDefault = true,
+                type = type, iconKey = "user_changed_icon", name = "Custom name")
+            db.categoryDao().insertCategory(row)
+            assertTrue(ProtectedDefaultCategory.matches(row))
+            assertEquals(CategoryRepository.ArchiveResult.DEFAULT_PROTECTED,
+                categories.archiveWithReplacement("a", row.localId, null))
+            assertEquals(TransactionError.DefaultCategoryCannotBeDeleted,
+                (DeleteCategoryUseCase(categories, auth)("a", row.localId) as AppResult.Failure).error)
+            try {
+                categories.archiveCategory("a", row.localId)
+                fail("Direct archive must reject $stableId")
+            } catch (_: DefaultCategoryDeletionException) { }
+            try {
+                categories.updateCategory(categories.getCategory("a", row.localId)!!.copy(isArchived = true))
+                fail("Update must reject archive $stableId")
+            } catch (_: DefaultCategoryDeletionException) { }
+            assertEquals(row, db.categoryDao().getCategoryByLocalIdOnce("a", row.localId))
+        }
+        assertEquals(0, db.categoryDao().getAllCategoriesOnce("a")
+            .count { it.isDefault && it.pendingOperation != PendingOperation.NONE })
+        verifyNoInteractions(firestore)
+    }
+
+    @Test fun legacyDefaultWithoutStableIdIsProtectedButSameNamePersonalCategoryDeletes() = runBlocking {
+        val legacy = category("a", DefaultCategoryIds.SPEND_TRANSPORT).copy(
+            stableId = null, isDefault = true, name = "My commute", iconKey = "custom_icon")
+        val personal = category("a", "same-name").copy(name = "My commute", iconKey = "ic_car")
+        db.categoryDao().insertCategory(legacy)
+        db.categoryDao().insertCategory(personal)
+        assertEquals(CategoryRepository.ArchiveResult.DEFAULT_PROTECTED,
+            categories.archiveWithReplacement("a", legacy.localId, null))
+        assertEquals(CategoryRepository.ArchiveResult.ARCHIVED,
+            categories.archiveWithReplacement("a", personal.localId, null))
+        assertFalse(db.categoryDao().getCategoryByLocalIdOnce("a", legacy.localId)!!.isArchived)
+        assertTrue(db.categoryDao().getCategoryByLocalIdOnce("a", personal.localId)!!.isArchived)
+        assertNull(db.categoryDao().getCategoryByLocalIdOnce("a", personal.localId)!!.stableId)
+    }
+
+    @Test fun oldPendingDefaultArchiveIsPreservedAndNeverUploadedBlindly() = runBlocking {
+        val row = category("a", "old-default").copy(
+            stableId = CategoryStableId.SPEND_HEALTH, isDefault = true, isArchived = true,
+            pendingOperation = PendingOperation.UPDATE, syncStatus = SyncStatus.PENDING)
+        db.categoryDao().insertCategory(row)
+        try {
+            categories.updateCategory(categories.getCategory("a", row.localId)!!.copy(isArchived = false))
+            fail("An edit cannot revive an unresolved cloud archive")
+        } catch (_: DefaultCategoryDeletionException) { }
+        categories.syncPendingCategories("a")
+        assertEquals(row, db.categoryDao().getCategoryByLocalIdOnce("a", row.localId))
+        verifyNoInteractions(firestore)
+        categories.seedDefaultCategoriesIfNeeded("a")
+        assertEquals(1, db.categoryDao().getAllCategoriesOnce("a")
+            .count { it.stableId == CategoryStableId.SPEND_HEALTH })
+    }
+
+    @Test fun defaultVisualEditsKeepIdentityAndRemainActive() = runBlocking {
+        val row = category("a", "old-food").copy(
+            stableId = CategoryStableId.SPEND_FOOD, isDefault = true)
+        db.categoryDao().insertCategory(row)
+        categories.updateCategory(categories.getCategory("a", row.localId)!!.copy(
+            name = "My meals", iconKey = "ic_shop", colorHex = "#ABCDEF"))
+        val edited = db.categoryDao().getCategoryByLocalIdOnce("a", row.localId)!!
+        assertEquals(row.localId, edited.localId)
+        assertEquals(row.stableId, edited.stableId)
+        assertEquals("My meals", edited.name)
+        assertEquals("ic_shop", edited.iconKey)
+        assertEquals("#ABCDEF", edited.colorHex)
+        assertFalse(edited.isArchived)
+        assertEquals(PendingOperation.UPDATE, edited.pendingOperation)
+    }
+
+    @Test fun deniedDefaultDeletePreservesTransactionBudgetAndRecurringReferences() = runBlocking {
+        val row = category("a", "linked-food").copy(
+            stableId = CategoryStableId.SPEND_FOOD, isDefault = true)
+        db.categoryDao().insertCategory(row)
+        val transaction = transaction("a", "linked-transaction", row.localId)
+        val budget = BudgetEntity("linked-budget", "a", row.localId, 500, "VND", 11, 2026,
+            syncStatus = SyncStatus.SYNCED, pendingOperation = PendingOperation.NONE,
+            createdAt = 1, updatedAt = 1)
+        val recurring = RecurringTransactionEntity("linked-recurring", "a", TransactionType.EXPENSE,
+            100, "VND", row.localId, null, "MONTHLY", 1, "UTC", 0, 1, false,
+            createdAt = 1, updatedAt = 1)
+        db.transactionDao().insertTransaction(transaction)
+        db.budgetDao().insertBudget(budget)
+        db.recurringTransactionDao().insert(recurring)
+        assertEquals(CategoryRepository.ArchiveResult.DEFAULT_PROTECTED,
+            categories.archiveWithReplacement("a", row.localId, "new"))
+        assertEquals(row, db.categoryDao().getCategoryByLocalIdOnce("a", row.localId))
+        assertEquals(transaction, db.transactionDao().getRowForCloudMerge(transaction.localId))
+        assertEquals(budget, db.budgetDao().getRowForCloudMerge(budget.localId))
+        assertEquals(recurring, db.recurringTransactionDao().getById(recurring.localId, "a"))
+    }
 
     @Test fun unusedCategoryArchivesWithoutReplacementOrAnotherCategoryOfSameType() = runBlocking {
         db.categoryDao().archiveCategory("a", "new", 2)

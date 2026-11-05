@@ -11,3 +11,6 @@ val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 
 val AppTopBarColor = Color(0xFF006C4C)
+val AppTopBarContentColor = Color.White
+val AppTopBarTabContainerColor = AppTopBarContentColor.copy(alpha = 0.1f)
+val AppTopBarTabSelectedColor = Color.Black.copy(alpha = 0.2f)

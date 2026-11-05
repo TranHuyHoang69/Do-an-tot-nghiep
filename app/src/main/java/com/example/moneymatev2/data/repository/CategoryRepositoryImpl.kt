@@ -3,6 +3,7 @@ package com.example.moneymatev2.data.repository
 import androidx.room.withTransaction
 import com.example.moneymatev2.data.local.AppDatabase
 import com.example.moneymatev2.data.local.CategoryStableId
+import com.example.moneymatev2.data.local.ProtectedDefaultCategory
 import com.example.moneymatev2.data.local.dao.CategoryDao
 import com.example.moneymatev2.data.local.entity.CategoryEntity
 import com.example.moneymatev2.data.local.entity.PendingOperation
@@ -68,6 +69,8 @@ private val defaultCategorySpecs = listOf(
         "ic_money", "#009688", DefaultCategoryIds.INCOME_SALARY)
 )
 
+class DefaultCategoryDeletionException : IllegalStateException("Default categories cannot be deleted")
+
 class CategoryRepositoryImpl @Inject constructor(
     private val dao: CategoryDao,
     private val firestore: FirebaseFirestore,
@@ -120,27 +123,41 @@ class CategoryRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateCategory(category: CategoryModel) {
-        uploadRunner.capture(category.userId)
+        val session = uploadRunner.capture(category.userId)
         require(!category.isMissing)
-        val existing = dao.getCategoryByLocalIdOnce(category.userId, category.id)
-            ?: throw IllegalArgumentException("Category with id ${category.id} does not exist")
-        dao.updateCategory(
-            existing.copy(
+        db.withTransaction {
+            val existing = dao.getCategoryByLocalIdOnce(category.userId, category.id)
+                ?: throw IllegalArgumentException("Category with id ${category.id} does not exist")
+            if (ProtectedDefaultCategory.matches(existing) && category.isArchived != existing.isArchived) {
+                throw DefaultCategoryDeletionException()
+            }
+            uploadRunner.check(session)
+            dao.updateCategory(existing.copy(
                 name = category.name,
                 iconKey = category.iconKey,
                 colorHex = category.colorHex,
                 isArchived = category.isArchived,
-                updatedAt = System.currentTimeMillis(),
+                updatedAt = maxOf(System.currentTimeMillis(), existing.updatedAt + 1),
                 syncStatus = SyncStatus.PENDING,
-                pendingOperation = PendingOperation.UPDATE
-            )
-        )
+                pendingOperation = if (existing.pendingOperation == PendingOperation.CREATE)
+                    PendingOperation.CREATE else PendingOperation.UPDATE,
+                lastSyncError = null,
+                retryCount = 0,
+                lastSyncAttemptAt = null
+            ))
+        }
         syncTrigger.requestImmediateSync()
     }
 
     override suspend fun archiveCategory(userId: String, id: String) {
-        uploadRunner.capture(userId)
-        dao.archiveCategory(userId, id, System.currentTimeMillis())
+        val session = uploadRunner.capture(userId)
+        db.withTransaction {
+            val source = dao.getCategoryByLocalIdOnce(userId, id)
+                ?: throw IllegalArgumentException("Category unavailable")
+            if (ProtectedDefaultCategory.matches(source)) throw DefaultCategoryDeletionException()
+            uploadRunner.check(session)
+            dao.archiveCategory(userId, id, System.currentTimeMillis())
+        }
         syncTrigger.requestImmediateSync()
     }
 
@@ -149,6 +166,7 @@ class CategoryRepositoryImpl @Inject constructor(
         return db.withTransaction {
             val source = dao.getCategoryByLocalIdOnce(userId, id)
             require(source != null && !source.isArchived) { "Category unavailable" }
+            if (ProtectedDefaultCategory.matches(source)) throw DefaultCategoryDeletionException()
             val usage = deletionUsage(userId, id)
             uploadRunner.check(session)
             usage
@@ -169,6 +187,9 @@ class CategoryRepositoryImpl @Inject constructor(
             val source = dao.getCategoryByLocalIdOnce(userId, id)
             if (source == null || source.isArchived) {
                 return@withTransaction CategoryRepository.ArchiveResult.INVALID
+            }
+            if (ProtectedDefaultCategory.matches(source)) {
+                return@withTransaction CategoryRepository.ArchiveResult.DEFAULT_PROTECTED
             }
             val usage = deletionUsage(userId, id)
             uploadRunner.check(session)
@@ -259,6 +280,10 @@ class CategoryRepositoryImpl @Inject constructor(
         val pending = dao.getPendingCategoriesForSync(userId)
         var firstError: Exception? = null
         for (row in pending) {
+            // An older APK may have queued an archive. Its cloud state is unknown;
+            // leave the row and operation intact for explicit reconciliation.
+            if (ProtectedDefaultCategory.matches(row) &&
+                (row.isArchived || row.pendingOperation == PendingOperation.DELETE)) continue
             try {
                 uploadRunner.run(
                     session = session,

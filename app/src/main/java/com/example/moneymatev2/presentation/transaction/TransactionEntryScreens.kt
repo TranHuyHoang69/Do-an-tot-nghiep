@@ -3,7 +3,6 @@ package com.example.moneymatev2.presentation.transaction
 import com.example.moneymatev2.ui.item.categoryDisplayName
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
@@ -52,9 +51,11 @@ fun TransactionDetailScreen(
                 .background(MaterialTheme.colorScheme.primary).padding(horizontal = 24.dp, vertical = 28.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(StringRes.back),
-                Modifier.size(28.dp).clickable(onClick = onBack), tint = Color.White)
-            Spacer(Modifier.width(16.dp))
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(StringRes.back), tint = Color.White)
+            }
+            Spacer(Modifier.width(8.dp))
             Text(stringResource(R.string.transaction_detail_title), color = Color.White,
                 style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         }

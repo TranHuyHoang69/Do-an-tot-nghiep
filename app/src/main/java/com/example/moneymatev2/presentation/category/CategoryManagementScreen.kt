@@ -4,7 +4,9 @@ import com.example.moneymatev2.ui.item.categoryDisplayName
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -20,6 +22,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
@@ -27,6 +31,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -36,11 +45,14 @@ import androidx.compose.ui.window.Dialog
 import androidx.core.graphics.toColorInt
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.moneymatev2.StringRes
+import com.example.moneymatev2.R
 import com.example.moneymatev2.data.local.entity.TransactionType
+import com.example.moneymatev2.data.local.ProtectedDefaultCategory
 import com.example.moneymatev2.domain.model.CategoryModel
 import com.example.moneymatev2.domain.model.TransactionError
 import com.example.moneymatev2.ui.item.rememberCategoryIcon
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -48,6 +60,7 @@ fun ManagementCategoryScreen(
     viewModel: CategoryManagementViewModel = hiltViewModel(),
     onOpenDrawer: () -> Unit,
     onAddCategoryClick: (TransactionType) -> Unit,
+    onEditCategoryClick: (CategoryModel) -> Unit = {},
     onCategoryClick: ((CategoryModel) -> Unit)? = null // null = chế độ quản lý (long-press xóa), non-null = chế độ chọn
 ) {
     val expenseCategories by viewModel.expenseCategories.collectAsState()
@@ -60,12 +73,15 @@ fun ManagementCategoryScreen(
     val scope = rememberCoroutineScope()
     val tabs = remember { listOf(StringRes.expense, StringRes.income) }
     val snackbar = remember { SnackbarHostState() }
+    var defaultNoticeJob by remember { mutableStateOf<Job?>(null) }
+    val defaultActionsBlockedMessage = stringResource(R.string.category_default_actions_blocked)
     val successMessage = stringResource(StringRes.category_delete_success)
     val failedMessage = stringResource(StringRes.category_delete_failed)
     val invalidMessage = stringResource(StringRes.category_delete_invalid)
     val inUseMessage = stringResource(StringRes.category_delete_in_use)
     val loginMessage = stringResource(StringRes.error_not_authenticated)
     val replacementRequiredMessage = stringResource(StringRes.category_delete_changed_need_replacement)
+    val defaultProtectedMessage = stringResource(StringRes.category_delete_default_protected)
 
     // --- State cho luồng xóa (chỉ dùng khi isManageMode) ---
     var categoryPendingDelete by remember { mutableStateOf<CategoryModel?>(null) } // đang hiện dialog cảnh báo
@@ -83,7 +99,7 @@ fun ManagementCategoryScreen(
     }
 
     LaunchedEffect(viewModel, successMessage, failedMessage, invalidMessage, inUseMessage,
-        loginMessage, replacementRequiredMessage) {
+        loginMessage, replacementRequiredMessage, defaultProtectedMessage) {
         viewModel.deleteEvents.collect { event ->
             when (event) {
                 is CategoryManagementViewModel.DeleteCategoryEvent.Success -> {
@@ -108,6 +124,7 @@ fun ManagementCategoryScreen(
                         TransactionError.CategoryReplacementRequired -> replacementRequiredMessage
                         TransactionError.CategoryNotSelected -> invalidMessage
                         TransactionError.NotAuthenticated -> loginMessage
+                        TransactionError.DefaultCategoryCannotBeDeleted -> defaultProtectedMessage
                         else -> failedMessage
                     }
                     scope.launch { snackbar.showSnackbar(message) }
@@ -130,7 +147,7 @@ fun ManagementCategoryScreen(
                     IconButton(onClick = onOpenDrawer) {
                         Icon(
                             imageVector = Icons.Default.Menu,
-                            contentDescription = "Menu",
+                            contentDescription = stringResource(R.string.profile_menu),
                             tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.size(28.dp)
                         )
@@ -182,12 +199,22 @@ fun ManagementCategoryScreen(
                     categories = currentList,
                     isManageMode = isManageMode,
                     onTap = { category -> onCategoryClick?.invoke(category) },
-                    onLongPress = { category ->
-                        deleteFailure = null
-                        selectedReplacement = null
-                        showReplacementPicker = false
-                        categoryPendingDelete = category
-                        viewModel.inspectCategoryDeletion(category)
+                    onEdit = onEditCategoryClick,
+                    onDefaultLongPress = {
+                        defaultNoticeJob?.cancel()
+                        snackbar.currentSnackbarData?.dismiss()
+                        defaultNoticeJob = scope.launch {
+                            snackbar.showSnackbar(defaultActionsBlockedMessage, duration = SnackbarDuration.Short)
+                        }
+                    },
+                    onDeleteRequested = { category ->
+                        if (!ProtectedDefaultCategory.matches(category)) {
+                            deleteFailure = null
+                            selectedReplacement = null
+                            showReplacementPicker = false
+                            categoryPendingDelete = category
+                            viewModel.inspectCategoryDeletion(category)
+                        }
                     },
                     onAddClick = { onAddCategoryClick(currentType) }
                 )
@@ -196,7 +223,7 @@ fun ManagementCategoryScreen(
     }
 
     // --- Dialog 1: cảnh báo trước khi xóa ---
-    categoryPendingDelete?.let { category ->
+    categoryPendingDelete?.takeUnless(ProtectedDefaultCategory::matches)?.let { category ->
         if (!showReplacementPicker) {
             val ready = (deletePreview as? CategoryDeletePreview.Ready)
                 ?.takeIf { it.userId == category.userId && it.categoryId == category.id }
@@ -388,9 +415,24 @@ fun CategoryGrid(
     categories: List<CategoryModel>,
     isManageMode: Boolean,
     onTap: (CategoryModel) -> Unit,
-    onLongPress: (CategoryModel) -> Unit,
-    onAddClick: () -> Unit
+    onEdit: (CategoryModel) -> Unit,
+    onDeleteRequested: (CategoryModel) -> Unit,
+    onAddClick: () -> Unit,
+    onDefaultLongPress: () -> Unit
 ) {
+    var expandedCategoryKey by remember(isManageMode) {
+        mutableStateOf<Pair<String, String>?>(null)
+    }
+    LaunchedEffect(categories) {
+        if (categories.none { (it.userId to it.id) == expandedCategoryKey && !ProtectedDefaultCategory.matches(it) }) {
+            expandedCategoryKey = null
+        }
+    }
+    val editLabel = stringResource(R.string.edit_category_action)
+    val deleteLabel = stringResource(StringRes.delete)
+    val manageLabel = stringResource(R.string.category_manage_actions)
+    val defaultBlockedLabel = stringResource(R.string.category_default_actions_blocked)
+    val notifyDefaultLongPress by rememberUpdatedState(onDefaultLongPress)
     LazyVerticalGrid(
         columns = GridCells.Fixed(4),
         modifier = Modifier.fillMaxSize(),
@@ -399,19 +441,61 @@ fun CategoryGrid(
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(categories, key = { it.id }) { category ->
-            CategoryItemView(
-                category = category,
-                modifier = Modifier.combinedClickable(
-                    onClick = {
-                        // Chế độ quản lý: tap không làm gì. Chế độ chọn: tap chọn + trả về.
-                        if (!isManageMode) onTap(category)
-                    },
-                    onLongClick = {
-                        // Nhấn giữ chỉ có tác dụng ở chế độ quản lý.
-                        if (isManageMode) onLongPress(category)
+            val key = category.userId to category.id
+            val canManage = isManageMode && !ProtectedDefaultCategory.matches(category)
+            val edit = {
+                expandedCategoryKey = null
+                onEdit(category)
+            }
+            val requestDelete = {
+                expandedCategoryKey = null
+                onDeleteRequested(category)
+            }
+            val interaction = when {
+                !isManageMode -> Modifier.clickable { onTap(category) }
+                canManage -> Modifier
+                    .pointerInput(key) {
+                        detectTapGestures(onLongPress = { expandedCategoryKey = key })
                     }
-                )
-            )
+                    .semantics(mergeDescendants = true) {
+                        onLongClick(label = manageLabel) {
+                            expandedCategoryKey = key
+                            true
+                        }
+                        customActions = listOf(
+                            CustomAccessibilityAction(editLabel) { edit(); true },
+                            CustomAccessibilityAction(deleteLabel) { requestDelete(); true }
+                        )
+                    }
+                else -> Modifier
+                    .pointerInput(key) {
+                        detectTapGestures(onLongPress = { notifyDefaultLongPress() })
+                    }
+                    .semantics(mergeDescendants = true) {
+                        onLongClick(label = defaultBlockedLabel) {
+                            notifyDefaultLongPress()
+                            true
+                        }
+                    }
+            }
+            Box {
+                CategoryItemView(category = category, modifier = interaction)
+                DropdownMenu(
+                    expanded = canManage && expandedCategoryKey == key,
+                    onDismissRequest = { expandedCategoryKey = null }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(editLabel) },
+                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                        onClick = edit
+                    )
+                    DropdownMenuItem(
+                        text = { Text(deleteLabel) },
+                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
+                        onClick = requestDelete
+                    )
+                }
+            }
         }
 
         item(key = "add_tile") {

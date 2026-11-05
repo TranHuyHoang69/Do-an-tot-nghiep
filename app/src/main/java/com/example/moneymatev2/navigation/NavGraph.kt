@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.moneymatev2.presentation.auth.LoginScreen
+import com.example.moneymatev2.presentation.auth.PasswordResetScreen
 import com.example.moneymatev2.presentation.auth.RegisterScreen
 import com.example.moneymatev2.presentation.budget.BudgetScreen
 import com.example.moneymatev2.presentation.category.AddCategoryScreen
@@ -53,6 +54,7 @@ fun NavGraph(
         composable(Screen.Login.route) {
             LoginScreen(
                 onNavigateToRegister = { navController.navigate(Screen.Register.route) },
+                onNavigateToPasswordReset = { navController.navigate(Screen.PasswordReset.route) },
                 onLoginSuccess = {
                     if (!authEntryOnly) {
                         navController.navigate(Screen.Home.route) {
@@ -62,6 +64,10 @@ fun NavGraph(
                     }
                 }
             )
+        }
+
+        composable(Screen.PasswordReset.route) {
+            PasswordResetScreen(onBack = { navController.popBackStack() })
         }
 
         composable(Screen.Register.route) {
@@ -171,11 +177,14 @@ fun NavGraph(
             ManagementCategoryScreen(
                 onOpenDrawer = onOpenDrawer,
                 onAddCategoryClick = { navController.navigate(Screen.AddCategory.route) },
+                onEditCategoryClick = { category ->
+                    navController.navigate(Screen.EditCategory.createRoute(category.userId, category.id))
+                },
                 onCategoryClick = if (isPickMode) { category ->
                     navController.previousBackStackEntry?.savedStateHandle?.set(
                         "selected_category_owner_and_id", arrayListOf(category.userId, category.id))
                     navController.popBackStack()
-                } else null // chế độ quản lý -> tap không làm gì, chỉ long-press mới có tác dụng
+                } else null // Management uses the shared editor; picker returns a selection.
             )
         }
 
@@ -183,6 +192,18 @@ fun NavGraph(
             AddCategoryScreen(
                 onBack = { navController.popBackStack() },
                 onSaved = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.EditCategory.route, arguments = listOf(
+            navArgument("categoryId") { type = NavType.StringType },
+            navArgument("categoryOwnerId") { type = NavType.StringType }
+        )) { entry ->
+            AddCategoryScreen(
+                viewModel = hiltViewModel(entry),
+                onBack = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() },
+                editMode = true
             )
         }
 

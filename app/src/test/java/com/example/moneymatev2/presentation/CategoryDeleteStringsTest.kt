@@ -52,6 +52,8 @@ class CategoryDeleteStringsTest {
                 "This category is used by a recurring transaction. Resolve the linked recurring transaction before deleting this category."),
             R.string.category_delete_in_budget_and_recurring to ("Danh mục đang được dùng trong ngân sách và giao dịch định kỳ. Hãy xử lý các liên kết này trước khi xóa danh mục." to
                 "This category is used by a budget and a recurring transaction. Resolve these links before deleting this category."),
+            R.string.category_delete_default_protected to ("Không thể xóa danh mục mặc định." to
+                "Default categories cannot be deleted."),
             R.string.delete to ("Xóa" to "Delete"),
             R.string.cancel to ("Hủy" to "Cancel"),
             R.string.confirm to ("Xác nhận" to "Confirm")

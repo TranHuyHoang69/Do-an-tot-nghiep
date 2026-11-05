@@ -14,7 +14,7 @@ interface CategoryRepository {
         val isBlocked: Boolean get() = hasActiveBudget || hasRecurringTransaction
     }
 
-    enum class ArchiveResult { ARCHIVED, INVALID, IN_USE, REPLACEMENT_REQUIRED }
+    enum class ArchiveResult { ARCHIVED, INVALID, IN_USE, REPLACEMENT_REQUIRED, DEFAULT_PROTECTED }
 
     fun getAllCategories(userId: String): Flow<List<CategoryModel>>
 
