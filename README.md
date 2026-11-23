@@ -7,6 +7,7 @@ MoneyMate brings everyday money records into one place. You can categorize trans
 ## Contents
 
 - [Features](#features)
+- [Screenshots](#screenshots)
 - [Tech stack](#tech-stack)
 - [Architecture](#architecture)
 - [Project structure](#project-structure)
@@ -25,6 +26,10 @@ MoneyMate brings everyday money records into one place. You can categorize trans
 - **Recurring transactions and reminders:** Configure recurring income or expenses and receive scheduled reminder notifications, subject to Android notification and alarm permissions.
 - **Receipt scanning:** Capture a receipt with CameraX or choose an image, extract text with ML Kit, and review suggested expense details before saving.
 - **Personalization and app lock:** Switch between Vietnamese and English and choose light, dark, or system theme. Optionally protect app access with a PIN or supported biometric authentication.
+
+## Screenshots
+
+App screenshots are not yet included in the published repository.
 
 ## Tech stack
 
@@ -131,7 +136,7 @@ The debug APK is generated at `app/build/outputs/apk/debug/app-debug.apk`. The r
 - Receipt extraction depends on image quality and receipt layout; missing or uncertain values need manual review.
 - Cloud synchronization depends on authentication, connectivity, and successful background execution. Conflicting edits, especially across devices, can require resolution.
 - Reminder delivery depends on Android notification settings and alarm permission or scheduling policy.
-- The project currently has no curated app screenshots or published installable release in the repository.
+- The repository currently has no published app screenshots or installable release.
 
 ## Author
 
