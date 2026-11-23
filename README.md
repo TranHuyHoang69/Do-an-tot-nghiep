@@ -29,7 +29,15 @@ MoneyMate brings everyday money records into one place. You can categorize trans
 
 ## Screenshots
 
-App screenshots are not yet included in the published repository.
+Captured from MoneyMate running on a Samsung Galaxy A34 (Android 16).
+
+| Add transaction | Receipt scanning | Settings |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/add-transaction.png" alt="Add transaction screen" width="240"> | <img src="docs/screenshots/ocr-scanning.png" alt="Receipt scanning screen" width="240"> | <img src="docs/screenshots/settings.png" alt="Settings screen" width="240"> |
+
+| Add recurring transaction | Add reminder |
+| :---: | :---: |
+| <img src="docs/screenshots/add-recurring-transaction.png" alt="Add recurring transaction screen" width="240"> | <img src="docs/screenshots/add-reminder.png" alt="Add reminder screen" width="240"> |
 
 ## Tech stack
 
@@ -136,7 +144,7 @@ The debug APK is generated at `app/build/outputs/apk/debug/app-debug.apk`. The r
 - Receipt extraction depends on image quality and receipt layout; missing or uncertain values need manual review.
 - Cloud synchronization depends on authentication, connectivity, and successful background execution. Conflicting edits, especially across devices, can require resolution.
 - Reminder delivery depends on Android notification settings and alarm permission or scheduling policy.
-- The repository currently has no published app screenshots or installable release.
+- The repository currently has no published installable release.
 
 ## Author
 
